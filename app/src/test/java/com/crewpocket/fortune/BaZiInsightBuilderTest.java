@@ -35,6 +35,8 @@ public final class BaZiInsightBuilderTest {
         assertEquals("2025", String.valueOf(((Map<?, ?>) first).get("year")));
         assertTrue(((Map<?, ?>) first).containsKey("stemTenGod"));
         assertTrue(((Map<?, ?>) first).containsKey("themes"));
+        assertTrue(((Map<?, ?>) first).containsKey("plainSummary"));
+        assertTrue(String.valueOf(((Map<?, ?>) first).get("plainSummary")).length() > 8);
 
         assertTrue(facts.detail("wealthProfile") instanceof Map);
         assertTrue(facts.detail("careerProfile") instanceof Map);
@@ -71,5 +73,7 @@ public final class BaZiInsightBuilderTest {
         assertTrue(item.containsKey("element"));
         assertTrue(item.containsKey("interactionsWithNatal"));
         assertTrue(item.containsKey("themes"));
+        assertTrue(item.containsKey("plainSummary"));
+        assertTrue(item.containsKey("stemTenGodMeaning"));
     }
 }
