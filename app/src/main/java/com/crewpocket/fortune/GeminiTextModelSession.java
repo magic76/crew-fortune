@@ -208,8 +208,8 @@ public final class GeminiTextModelSession implements ModelSession {
                 .put("tools", new JSONArray().put(new JSONObject()
                         .put("functionDeclarations", functionDeclarations())))
                 .put("generationConfig", new JSONObject()
-                        .put("temperature", 0.95)
-                        .put("maxOutputTokens", 700));
+                        .put("temperature", 0.88)
+                        .put("maxOutputTokens", 2400));
 
         if (forceFortuneTool) {
             request.put("toolConfig", new JSONObject().put("functionCallingConfig",
