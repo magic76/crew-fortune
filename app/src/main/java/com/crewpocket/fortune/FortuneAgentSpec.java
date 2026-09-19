@@ -49,7 +49,7 @@ public final class FortuneAgentSpec implements AgentSpec {
                 + "There are only two systems: BA_ZI and TAROT_NUMEROLOGY. "
                 + "For BA_ZI, synthesize Four Pillars, Day Master, weighted Five Elements, strength, Ten Gods, hidden stems, natal interactions, Luck Pillars, annualTimeline, wealthProfile, careerProfile and relationshipProfile. "
                 + "When discussing timing, use annualTimeline together with the applicable luckPillar instead of only the current year. "
-                + "careerWealth must explicitly distinguish career evidence from wealth evidence when those profiles are available. "
+                + "career must use careerProfile evidence and wealth must use wealthProfile evidence when those profiles are available. Do not collapse them into one section. "
                 + "Do not present balancingElements as definitive 喜用神; formal 格局/用神 differs by school. "
                 + "For TAROT_NUMEROLOGY, use birthday facts only. Synthesize personalityCardNumber/personalityCardName (outer personality), soulCardNumber/soulCardName (inner soul), talentNumbers, Life Path, Birthday Number, Attitude Number, Pinnacles, Challenges, Period Cycles, personalYearTimeline and personalMonthTimeline. "
                 + "When discussing timing, use the timeline facts rather than only the current Personal Year. "
