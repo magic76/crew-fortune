@@ -73,6 +73,8 @@ public final class MainActivity extends Activity {
     private TextView teacherInputText;
     private TextView teacherOutputText;
     private boolean pendingTeacherStart;
+    private int selectedBaZiTab = 0;
+    private LinearLayout baZiTabContent;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -115,6 +117,7 @@ public final class MainActivity extends Activity {
         outState.putString("state_mode", selectedMode.name());
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
+        outState.putInt("state_bazi_tab", selectedBaZiTab);
         if (aiCopy != null) outState.putString("state_ai_copy", serializeAiCopy(aiCopy));
         OperationLog.add(this, "STATE_SAVED",
                 currentResult == null ? "no_result" : "result_saved");
@@ -311,6 +314,7 @@ public final class MainActivity extends Activity {
     }
 
     private void calculate() {
+        selectedBaZiTab = 0;
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         closeTeacher();
         closeAgent();
@@ -442,6 +446,12 @@ public final class MainActivity extends Activity {
         resultCard.addView(title, marginTop(8));
 
         if (result.mode == FortuneMode.BA_ZI) {
+            addBaZiTabbedResult(result, aiLoading);
+            resultCard.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        if (result.mode == FortuneMode.BA_ZI) {
             addBaZiResultPanel();
         } else if (result.mode == FortuneMode.TAROT_NUMEROLOGY) {
             addTarotResultPanel();
@@ -518,6 +528,486 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.VISIBLE);
     }
 
+
+    private void addBaZiTabbedResult(FortuneResult result, boolean aiLoading) {
+        TextView basis = text("計算依據｜" + result.basis, 12, MUTED, false);
+        resultCard.addView(basis, marginTop(6));
+
+        HorizontalScrollView tabScroll = new HorizontalScrollView(this);
+        tabScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabScroll.addView(tabs);
+
+        final String[] labels = {"總覽", "命盤", "大運・流年", "主題分析", "老師解讀"};
+        for (int i = 0; i < labels.length; i++) {
+            final int index = i;
+            Button tab = new Button(this);
+            tab.setText(labels[i]);
+            tab.setTextSize(13);
+            tab.setAllCaps(false);
+            boolean selected = selectedBaZiTab == i;
+            tab.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
+            tab.setTextColor(selected ? Color.rgb(30, 22, 46) : TEXT);
+            tab.setBackground(round(selected ? ACCENT : CARD_2, 15));
+            tab.setPadding(dp(14), 0, dp(14), 0);
+            tab.setOnClickListener(v -> {
+                selectedBaZiTab = index;
+                OperationLog.add(this, "BAZI_TAB_SELECTED", labels[index]);
+                renderResult(currentResult, activeHarness != null && aiCopy == null);
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, dp(44));
+            lp.rightMargin = dp(7);
+            tabs.addView(tab, lp);
+        }
+        resultCard.addView(tabScroll, marginTop(16));
+
+        baZiTabContent = column();
+        resultCard.addView(baZiTabContent, marginTop(8));
+        renderBaZiTab(result, aiLoading);
+    }
+
+    private void renderBaZiTab(FortuneResult result, boolean aiLoading) {
+        if (baZiTabContent == null) return;
+        baZiTabContent.removeAllViews();
+        switch (selectedBaZiTab) {
+            case 1:
+                addBaZiResultPanel();
+                break;
+            case 2:
+                addBaZiLuckTimelineTab();
+                break;
+            case 3:
+                addBaZiTopicAnalysisTab();
+                break;
+            case 4:
+                addBaZiTeacherTab(result, aiLoading);
+                break;
+            case 0:
+            default:
+                addBaZiOverviewTab(result, aiLoading);
+                break;
+        }
+    }
+
+    private void addBaZiOverviewTab(FortuneResult result, boolean aiLoading) {
+        LinearLayout panel = baZiPanel();
+
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.HORIZONTAL);
+        hero.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout master = column();
+        master.addView(text("日主", 11, GOLD, true));
+        master.addView(text(
+                currentFacts.detailText("dayMaster")
+                        + currentFacts.detailText("dayMasterElement"),
+                30, TEXT, true), marginTop(3));
+        hero.addView(master, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        LinearLayout strength = column();
+        TextView strengthLabel = text("旺衰", 11, MUTED, true);
+        strengthLabel.setGravity(Gravity.END);
+        strength.addView(strengthLabel);
+        TextView strengthValue = text(
+                currentFacts.detailText("dayMasterStrength")
+                        + " · " + currentFacts.detailText("strengthIndex"),
+                20, ACCENT, true);
+        strengthValue.setGravity(Gravity.END);
+        strength.addView(strengthValue, marginTop(3));
+        hero.addView(strength, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        panel.addView(hero);
+
+        addPanelSection(panel, "四柱", currentFacts.detailText("fourPillars"));
+        addPanelSection(panel, "五行摘要",
+                "可見：" + formatMap(currentFacts.detail("visibleFiveElements"))
+                        + "\n加權：" + formatMap(currentFacts.detail("weightedFiveElements"))
+                        + "\n平衡參考：" + currentFacts.detailText("balancingElements"));
+
+        Object luck = currentFacts.detail("currentLuckPillar");
+        addPanelSection(panel, "目前大運", summaryLuck(luck));
+        addPanelSection(panel, "今年流年", formatCurrentAnnual());
+
+        String aiSummary;
+        if (aiLoading) {
+            aiSummary = "AI 命理師正在整理四柱、大運與流年的重點…";
+        } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
+            aiSummary = aiCopy.overview;
+        } else {
+            aiSummary = localReportSection("核心總覽");
+        }
+        if (!aiSummary.isEmpty()) addPanelSection(panel, "重點解讀", aiSummary);
+    }
+
+    private void addBaZiLuckTimelineTab() {
+        LinearLayout panel = baZiPanel();
+
+        TextView intro = text(
+                "大運看十年級別的背景，流年看每一年如何落在這個背景上。點任一項可看完整十神、五行、合沖與主題依據。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addPanelSection(panel, "目前大運", summaryLuck(currentFacts.detail("currentLuckPillar")));
+
+        TextView luckTitle = text("大運時間軸", 13, GOLD, true);
+        panel.addView(luckTitle, marginTop(18));
+
+        Object luckRaw = currentFacts.detail("luckPillars");
+        String currentGanZhi = mapValue(currentFacts.detail("currentLuckPillar"), "ganZhi");
+        if (luckRaw instanceof List) {
+            for (Object raw : (List<?>) luckRaw) {
+                if (!(raw instanceof Map)) continue;
+                final Map<?, ?> item = (Map<?, ?>) raw;
+                String gz = mapValue(item, "ganZhi");
+                String title = (gz.equals(currentGanZhi) ? "● " : "○ ")
+                        + gz + "　" + mapValue(item, "startYear")
+                        + "–" + mapValue(item, "endYear");
+                String summary = "十神 " + mapValue(item, "stemTenGod")
+                        + "　·　五行 " + mapValue(item, "element")
+                        + "\n主題 " + compactValue(item.get("themes"));
+                addClickableFactCard(panel, title, summary,
+                        () -> showFactDetailDialog("大運 " + gz, item));
+            }
+        }
+
+        TextView yearTitle = text(
+                "逐年流年 · " + currentFacts.detailText("annualTimelineStartYear")
+                        + "–" + currentFacts.detailText("annualTimelineEndYear"),
+                13, GOLD, true);
+        panel.addView(yearTitle, marginTop(22));
+
+        Object yearsRaw = currentFacts.detail("annualTimeline");
+        if (yearsRaw instanceof List) {
+            for (Object raw : (List<?>) yearsRaw) {
+                if (!(raw instanceof Map)) continue;
+                final Map<?, ?> year = (Map<?, ?>) raw;
+                String title = mapValue(year, "year") + "　"
+                        + mapValue(year, "ganZhi")
+                        + "　" + mapValue(year, "stemTenGod");
+                String summary = "大運 " + mapValue(year, "luckPillar")
+                        + "　·　主題 " + compactValue(year.get("themes"))
+                        + "\n" + firstMeaningfulInteraction(year.get("natalInteractions"));
+                addClickableFactCard(panel, title, summary,
+                        () -> showFactDetailDialog(
+                                mapValue(year, "year") + " 流年", year));
+            }
+        }
+
+        TextView convention = text(
+                currentFacts.detailText("annualTimelineConvention"),
+                11, MUTED, false);
+        panel.addView(convention, marginTop(14));
+    }
+
+    private void addBaZiTopicAnalysisTab() {
+        LinearLayout panel = baZiPanel();
+
+        TextView intro = text(
+                "這裡不做神祕分數。每個主題都拆成「本命依據 → 現在大運 → 哪些年份訊號明顯 → AI/老師怎麼解讀」。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addWealthTopic(panel);
+        addCareerTopic(panel);
+        addRelationshipTopic(panel);
+    }
+
+    private void addWealthTopic(LinearLayout panel) {
+        Object p = currentFacts.detail("wealthProfile");
+        LinearLayout card = topicCard(panel, "財運", "看財星、財星位置、大運與逐年啟動");
+        addTopicLine(card, "本命",
+                "財星五行 " + mapValue(p, "wealthElement")
+                        + "　·　正財 " + mapValue(p, "directWealthCount")
+                        + "　·　偏財 " + mapValue(p, "indirectWealthCount"));
+        addTopicLine(card, "依據", compactValue(mapObjectValue(p, "natalEvidence")));
+        addTopicLine(card, "目前大運", summaryLuck(mapObjectValue(p, "currentLuck")));
+        addTopicLine(card, "時間",
+                "財星訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
+        addTopicLine(card, "老師解讀",
+                aiCopy != null && !aiCopy.careerWealth.isEmpty()
+                        ? aiCopy.careerWealth
+                        : "AI 完成後會把財星、大運與流年證據翻成白話；沒有 AI 時仍可直接看上面的 deterministic evidence。");
+        addTopicBoundary(card, mapValue(p, "evidenceRule"));
+    }
+
+    private void addCareerTopic(LinearLayout panel) {
+        Object p = currentFacts.detail("careerProfile");
+        LinearLayout card = topicCard(panel, "工作", "看官殺、印、食傷與大運流年");
+        addTopicLine(card, "本命",
+                "官殺 " + mapValue(p, "officerCount")
+                        + "　·　印 " + mapValue(p, "resourceCount")
+                        + "　·　食傷 " + mapValue(p, "outputCount"));
+        addTopicLine(card, "依據", compactValue(mapObjectValue(p, "natalEvidence")));
+        addTopicLine(card, "目前大運", summaryLuck(mapObjectValue(p, "currentLuck")));
+        addTopicLine(card, "時間",
+                "工作訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
+        addTopicLine(card, "老師解讀",
+                aiCopy != null && !aiCopy.careerWealth.isEmpty()
+                        ? aiCopy.careerWealth
+                        : "官殺偏責任與規範、印偏資源與學習、食傷偏輸出與表達；要再和大運、流年一起看。");
+        addTopicBoundary(card, mapValue(p, "evidenceRule"));
+    }
+
+    private void addRelationshipTopic(LinearLayout panel) {
+        Object p = currentFacts.detail("relationshipProfile");
+        LinearLayout card = topicCard(panel, "感情", "看日支配偶宮、財官約定與合沖");
+        addTopicLine(card, "本命",
+                "配偶宮 " + mapValue(p, "spousePalace")
+                        + "　·　藏干十神 " + compactValue(mapObjectValue(p, "spousePalaceTenGods")));
+        addTopicLine(card, "依據",
+                "常見財官約定 " + compactValue(mapObjectValue(p, "partnerGodConvention"))
+                        + "　·　本命數量 " + mapValue(p, "partnerGodCount"));
+        addTopicLine(card, "時間",
+                "配偶宮／財官訊號年份：" + compactRelationshipYears(
+                        mapObjectValue(p, "annualSignalYears")));
+        addTopicLine(card, "老師解讀",
+                aiCopy != null && !aiCopy.relationships.isEmpty()
+                        ? aiCopy.relationships
+                        : "這裡只標出配偶宮與財官訊號被碰到的年份，不直接等同戀愛、結婚或分手。");
+        addTopicBoundary(card, mapValue(p, "evidenceRule"));
+    }
+
+    private void addBaZiTeacherTab(FortuneResult result, boolean aiLoading) {
+        LinearLayout panel = baZiPanel();
+
+        if (aiLoading) {
+            TextView loading = text(
+                    "AI 命理師正在把命盤整理成完整報告。你仍然可以先看其他 Tab 的 deterministic 資料。",
+                    14, ACCENT, true);
+            loading.setLineSpacing(dp(3), 1f);
+            panel.addView(loading);
+        } else if (aiCopy != null) {
+            addPanelSection(panel, "總覽", aiCopy.overview);
+            if (!aiCopy.personality.isEmpty()) addPanelSection(panel, "性格與天賦", aiCopy.personality);
+            if (!aiCopy.careerWealth.isEmpty()) addPanelSection(panel, "工作與財務", aiCopy.careerWealth);
+            if (!aiCopy.relationships.isEmpty()) addPanelSection(panel, "感情與人際", aiCopy.relationships);
+            if (!aiCopy.timing.isEmpty()) addPanelSection(panel, "目前運勢／週期", aiCopy.timing);
+            addPanelSection(panel, "翻譯成人話", aiCopy.translation);
+            addPanelSection(panel, "建議", aiCopy.advice);
+        } else {
+            Map<String, String> local = FortuneLocalReport.sections(currentFacts);
+            for (Map.Entry<String, String> entry : local.entrySet()) {
+                addPanelSection(panel, entry.getKey(), entry.getValue());
+            }
+        }
+
+        TextView q = text(
+                "可以直接問老師：\n「我未來十年怎麼走？」　「財運怎樣？」\n「哪幾年工作變動大？」　「感情哪幾年訊號比較明顯？」",
+                13, GOLD, true);
+        q.setLineSpacing(dp(4), 1f);
+        panel.addView(q, marginTop(18));
+
+        Button teacher = new Button(this);
+        teacher.setText("老師跟我講解");
+        teacher.setTextSize(15);
+        teacher.setAllCaps(false);
+        teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        teacher.setTextColor(Color.rgb(30, 22, 46));
+        teacher.setBackground(round(GOLD, 18));
+        teacher.setOnClickListener(v -> startTeacherExplanation());
+        panel.addView(teacher, fixedHeightTop(52, 14));
+
+        Button share = secondaryButton("分享結果");
+        share.setOnClickListener(v -> shareResult());
+        panel.addView(share, fixedHeightTop(52, 10));
+    }
+
+    private LinearLayout baZiPanel() {
+        LinearLayout panel = column();
+        panel.setPadding(dp(14), dp(16), dp(14), dp(16));
+        panel.setBackground(roundBorder(
+                CARD_2, Color.rgb(86, 70, 119), 20, 1));
+        baZiTabContent.addView(panel, marginTop(8));
+        return panel;
+    }
+
+    private LinearLayout topicCard(LinearLayout parent, String title, String subtitle) {
+        LinearLayout card = column();
+        card.setPadding(dp(14), dp(14), dp(14), dp(14));
+        card.setBackground(roundBorder(
+                Color.rgb(31, 24, 49), Color.rgb(80, 65, 111), 16, 1));
+        TextView h = text(title, 19, TEXT, true);
+        card.addView(h);
+        TextView s = text(subtitle, 12, MUTED, false);
+        card.addView(s, marginTop(3));
+        parent.addView(card, marginTop(14));
+        return card;
+    }
+
+    private void addTopicLine(LinearLayout card, String label, String value) {
+        TextView l = text(label, 11, GOLD, true);
+        card.addView(l, marginTop(12));
+        TextView v = text(value == null || value.isEmpty() ? "—" : value, 14, TEXT, false);
+        v.setLineSpacing(dp(3), 1f);
+        card.addView(v, marginTop(3));
+    }
+
+    private void addTopicBoundary(LinearLayout card, String value) {
+        if (value == null || value.isEmpty()) return;
+        TextView v = text(value, 11, MUTED, false);
+        v.setLineSpacing(dp(2), 1f);
+        card.addView(v, marginTop(12));
+    }
+
+    private void addClickableFactCard(
+            LinearLayout parent, String title, String summary, final Runnable action) {
+        LinearLayout card = column();
+        card.setPadding(dp(12), dp(12), dp(12), dp(12));
+        card.setBackground(roundBorder(
+                Color.rgb(31, 24, 49), Color.rgb(80, 65, 111), 14, 1));
+        TextView h = text(title, 15, TEXT, true);
+        card.addView(h);
+        TextView s = text(summary, 12, MUTED, false);
+        s.setLineSpacing(dp(3), 1f);
+        card.addView(s, marginTop(4));
+        TextView more = text("點擊查看完整依據 ›", 11, ACCENT, true);
+        card.addView(more, marginTop(7));
+        card.setClickable(true);
+        card.setOnClickListener(v -> action.run());
+        parent.addView(card, marginTop(8));
+    }
+
+    private void showFactDetailDialog(String titleValue, Object value) {
+        LinearLayout panel = column();
+        panel.setPadding(dp(20), dp(18), dp(20), dp(16));
+        panel.setBackground(roundBorder(
+                CARD, Color.rgb(92, 73, 127), 24, 1));
+
+        panel.addView(text(titleValue, 21, TEXT, true));
+        TextView detail = text(formatStructured(value), 13, TEXT, false);
+        detail.setLineSpacing(dp(4), 1f);
+        detail.setPadding(dp(12), dp(12), dp(12), dp(12));
+        detail.setBackground(roundBorder(
+                CARD_2, Color.rgb(80, 65, 111), 14, 1));
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(detail);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(420));
+        scrollLp.topMargin = dp(12);
+        panel.addView(scroll, scrollLp);
+
+        Button close = secondaryButton("關閉");
+        panel.addView(close, fixedHeightTop(48, 12));
+
+        final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        styleDarkDialog(dialog);
+    }
+
+    private String summaryLuck(Object value) {
+        if (!(value instanceof Map)) return "目前沒有對應的大運資料";
+        return mapValue(value, "ganZhi")
+                + "　" + mapValue(value, "startYear") + "–" + mapValue(value, "endYear")
+                + "\n十神 " + mapValue(value, "stemTenGod")
+                + "　·　五行 " + mapValue(value, "element")
+                + "\n主題 " + compactValue(mapObjectValue(value, "themes"))
+                + "\n" + firstMeaningfulInteraction(mapObjectValue(value, "interactionsWithNatal"));
+    }
+
+    private Object mapObjectValue(Object source, String key) {
+        if (!(source instanceof Map)) return null;
+        return ((Map<?, ?>) source).get(key);
+    }
+
+    private String compactValue(Object value) {
+        if (value == null) return "—";
+        if (value instanceof List) {
+            StringBuilder out = new StringBuilder();
+            for (Object item : (List<?>) value) {
+                if (out.length() > 0) out.append("、");
+                out.append(String.valueOf(item));
+            }
+            return out.length() == 0 ? "—" : out.toString();
+        }
+        return String.valueOf(value);
+    }
+
+    private String compactRelationshipYears(Object value) {
+        if (!(value instanceof List)) return compactValue(value);
+        StringBuilder out = new StringBuilder();
+        for (Object raw : (List<?>) value) {
+            if (!(raw instanceof Map)) continue;
+            if (out.length() > 0) out.append("、");
+            out.append(mapValue(raw, "year"));
+            String relation = mapValue(raw, "spousePalaceInteraction");
+            if (!relation.isEmpty()) out.append("(").append(relation).append(")");
+        }
+        return out.length() == 0 ? "—" : out.toString();
+    }
+
+    private String firstMeaningfulInteraction(Object value) {
+        if (!(value instanceof List)) return compactValue(value);
+        for (Object item : (List<?>) value) {
+            String text = String.valueOf(item);
+            if (!text.contains("未偵測")) return text;
+        }
+        return "與本命主要地支互動較少";
+    }
+
+    private String formatStructured(Object value) {
+        return formatStructured(value, 0);
+    }
+
+    private String formatStructured(Object value, int depth) {
+        if (value == null) return "—";
+        String indent = "";
+        for (int i = 0; i < depth; i++) indent += "  ";
+
+        if (value instanceof Map) {
+            StringBuilder out = new StringBuilder();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+                if (out.length() > 0) out.append("\n");
+                Object child = entry.getValue();
+                if (child instanceof Map || child instanceof List) {
+                    out.append(indent).append(entry.getKey()).append("：\n")
+                            .append(formatStructured(child, depth + 1));
+                } else {
+                    out.append(indent).append(entry.getKey()).append("：")
+                            .append(String.valueOf(child));
+                }
+            }
+            return out.toString();
+        }
+
+        if (value instanceof List) {
+            StringBuilder out = new StringBuilder();
+            for (Object child : (List<?>) value) {
+                if (out.length() > 0) out.append("\n");
+                if (child instanceof Map || child instanceof List) {
+                    out.append(indent).append("•\n")
+                            .append(formatStructured(child, depth + 1));
+                } else {
+                    out.append(indent).append("• ").append(String.valueOf(child));
+                }
+            }
+            return out.toString();
+        }
+        return indent + String.valueOf(value);
+    }
+
+    private String localReportSection(String key) {
+        if (currentFacts == null) return "";
+        Map<String, String> sections = FortuneLocalReport.sections(currentFacts);
+        String value = sections.get(key);
+        if (value != null) return value;
+        for (Map.Entry<String, String> entry : sections.entrySet()) return entry.getValue();
+        return "";
+    }
+
+    private LinearLayout.LayoutParams fixedHeightTop(int heightDp, int topDp) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(heightDp));
+        lp.topMargin = dp(topDp);
+        return lp;
+    }
+
     private String primaryMetric(FortuneResult result) {
         if (currentFacts != null && result.mode == FortuneMode.BA_ZI) {
             return "日主強弱指標 " + currentFacts.detailText("strengthIndex") + " / 100";
@@ -534,7 +1024,8 @@ public final class MainActivity extends Activity {
         LinearLayout panel = column();
         panel.setPadding(dp(14), dp(16), dp(14), dp(16));
         panel.setBackground(round(CARD_2, 20));
-        resultCard.addView(panel, marginTop(16));
+        LinearLayout host = baZiTabContent == null ? resultCard : baZiTabContent;
+        host.addView(panel, marginTop(16));
 
         LinearLayout hero = new LinearLayout(this);
         hero.setOrientation(LinearLayout.HORIZONTAL);
@@ -639,6 +1130,13 @@ public final class MainActivity extends Activity {
         TextView annual = text(formatCurrentAnnual(), 13, TEXT, false);
         annual.setLineSpacing(dp(3), 1f);
         panel.addView(annual, marginTop(6));
+
+        addPanelSection(panel, "加權五行", formatMap(currentFacts.detail("weightedFiveElements")));
+        addPanelSection(panel, "納音", formatList(currentFacts.detail("naYin")));
+        addPanelSection(panel, "十二長生", formatList(currentFacts.detail("lifeStages")));
+        addPanelSection(panel, "命宮／身宮",
+                "命宮 " + currentFacts.detailText("mingGong")
+                        + "　·　身宮 " + currentFacts.detailText("shenGong"));
 
         TextView convention = text(
                 "排盤規則｜" + currentFacts.detailText("timeConvention"),
@@ -1304,6 +1802,7 @@ public final class MainActivity extends Activity {
                     state.getString("state_mode", FortuneMode.BA_ZI.name()));
             selectedAiStyle = AiStyle.valueOf(
                     state.getString("state_ai_style", AiStyle.FUNNY.name()));
+            selectedBaZiTab = state.getInt("state_bazi_tab", 0);
 
             selectMode(selectedMode);
             if (!selectedGender.isEmpty()) selectGender(selectedGender);
