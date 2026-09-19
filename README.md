@@ -138,3 +138,35 @@ The deterministic BaZi facts now also include:
 - `relationshipProfile`
 
 Gemini text and Live teacher prompts are instructed to use these structures for questions such as the next ten years, wealth, career and relationship timing. They still cannot recalculate the chart or substitute defaults.
+
+
+## v0.8.0 unified fortune information architecture
+
+Both fortune systems now use the same result-page structure:
+
+- **總覽** — the few facts a user should understand first.
+- **本命** — the complete deterministic source data for that system.
+- **流年** — time-based cycles with readable summaries and tap-to-inspect evidence.
+- **主題** — work/resources, relationships and other domain interpretations tied back to source facts.
+- **解讀** — the full local/AI written report.
+
+A shared footer always appears below the tabs for both systems:
+
+- **老師跟我講解**
+- **分享結果**
+
+The fortune-system selector is now inside the profile card, above basic data. The selected system is visually highlighted.
+
+### BaZi readability
+
+BaZi Luck Pillars and annual timeline rows now include deterministic plain-language summaries in addition to Gan-Zhi, Ten Gods, elements and natal interactions. Detail dialogs translate internal field names into user-facing Traditional Chinese labels.
+
+### Tarot timing
+
+Tarot Numerology now exposes:
+
+- `personalYearTimeline`: previous year through the next 9 years.
+- `personalMonthTimeline`: all 12 months of the current Personal Year.
+- Human-readable Personal Year and Personal Month summaries.
+
+Gemini text and Live teacher prompts use these timelines for follow-up questions instead of only knowing the current year.
