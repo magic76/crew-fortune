@@ -21,16 +21,25 @@ public final class FortuneToolRegistry {
                             text(args.get("name")),
                             text(args.get("birthDate")),
                             text(args.get("secondaryName")));
-                    FortuneResult result = engine.calculate(mode, profile, new Date());
+                    FortuneFacts facts = engine.calculateFacts(mode, profile, new Date());
+
                     Map<String, Object> payload = new LinkedHashMap<String, Object>();
-                    payload.put("mode", result.mode.name());
-                    payload.put("score", result.score);
-                    payload.put("title", result.title);
-                    payload.put("basis", result.basis);
-                    payload.put("analysis", result.analysis);
-                    payload.put("translation", result.translation);
-                    payload.put("punchline", result.punchline);
-                    payload.put("advice", result.advice);
+                    payload.put("mode", facts.mode.name());
+                    payload.put("score", facts.score);
+                    payload.put("basis", facts.basis);
+                    payload.put("lifeNumber", facts.lifeNumber);
+                    payload.put("zodiac", facts.zodiac);
+                    payload.put("nameNumber", facts.nameNumber);
+                    if (facts.secondaryNameNumber > 0) {
+                        payload.put("secondaryNameNumber", facts.secondaryNameNumber);
+                    }
+                    payload.put("momentum", facts.momentum);
+                    payload.put("stability", facts.stability);
+                    payload.put("social", facts.social);
+                    payload.put("impulse", facts.impulse);
+                    payload.put("dayKey", facts.dayKey);
+                    payload.put("interpretationRule",
+                            "These values are deterministic facts. Create fresh wording from them; do not change numeric values.");
                     completion.complete(ToolResult.success(call.id(), payload));
                 } catch (Exception error) {
                     completion.complete(ToolResult.failure(call.id(), "FORTUNE_INPUT_ERROR",

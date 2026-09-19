@@ -8,39 +8,65 @@ import java.util.Date;
 import java.util.Locale;
 
 public final class FortuneEngine {
-    public FortuneResult calculate(FortuneMode mode, FortuneProfile profile, Date now) {
+    public FortuneFacts calculateFacts(FortuneMode mode, FortuneProfile profile, Date now) {
         if (mode == null) throw new IllegalArgumentException("mode is required");
         if (profile == null || profile.name.isEmpty()) throw new IllegalArgumentException("name is required");
+
         ParsedBirth birth = parseBirth(profile.birthDate);
         int life = digitalRootDigits(profile.birthDate);
         int nameNumber = digitalRootCodePoints(profile.name);
         String zodiac = zodiac(birth.month, birth.day);
-
         String dayKey = mode == FortuneMode.TODAY
                 ? new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now == null ? new Date() : now)
                 : "stable";
         int seed = stableHash(mode.name() + "|" + profile.name + "|" + profile.birthDate + "|"
                 + profile.secondaryName + "|" + dayKey);
+
+        int secondaryNameNumber = 0;
         int score = 42 + Math.abs(seed % 55);
+        if (mode == FortuneMode.COMPATIBILITY) {
+            if (profile.secondaryName.isEmpty()) {
+                throw new IllegalArgumentException("合盤需要第二個名字");
+            }
+            secondaryNameNumber = digitalRootCodePoints(profile.secondaryName);
+            score = 55 + (9 - Math.abs(nameNumber - secondaryNameNumber)) * 5;
+            score = Math.max(45, Math.min(96, score + (seed % 7)));
+        }
+
         String basis = "生命靈數 " + life + " · " + zodiac + " · 名字數 " + nameNumber;
+        if (secondaryNameNumber > 0) basis += " · 對方名字數 " + secondaryNameNumber;
+
+        return new FortuneFacts(
+                mode,
+                score,
+                basis,
+                life,
+                zodiac,
+                nameNumber,
+                secondaryNameNumber,
+                dimension(seed, 11),
+                dimension(seed, 23),
+                dimension(seed, 37),
+                dimension(seed, 53),
+                dayKey);
+    }
+
+    public FortuneResult calculate(FortuneMode mode, FortuneProfile profile, Date now) {
+        FortuneFacts facts = calculateFacts(mode, profile, now);
+        int seed = stableHash(mode.name() + "|" + profile.name + "|" + profile.birthDate + "|"
+                + profile.secondaryName + "|" + facts.dayKey);
 
         switch (mode) {
             case TODAY:
-                return today(score, seed, basis);
+                return today(facts.score, seed, facts.basis);
             case PERSONALITY:
-                return personality(score, seed, basis, life);
+                return personality(facts.score, seed, facts.basis, facts.lifeNumber);
             case WEALTH:
-                return wealth(score, seed, basis, nameNumber);
+                return wealth(facts.score, seed, facts.basis, facts.nameNumber);
             case LOVE_BUG:
-                return love(score, seed, basis, zodiac);
+                return love(facts.score, seed, facts.basis, facts.zodiac);
             case COMPATIBILITY:
-                if (profile.secondaryName.isEmpty()) {
-                    throw new IllegalArgumentException("合盤需要第二個名字");
-                }
-                int second = digitalRootCodePoints(profile.secondaryName);
-                int compatibility = 55 + (9 - Math.abs(nameNumber - second)) * 5;
-                compatibility = Math.max(45, Math.min(96, compatibility + (seed % 7)));
-                return compatibility(compatibility, seed, basis + " · 對方名字數 " + second, profile.secondaryName);
+                return compatibility(facts.score, seed, facts.basis, profile.secondaryName);
             default:
                 throw new IllegalStateException("unsupported mode");
         }
@@ -187,6 +213,10 @@ public final class FortuneEngine {
             number = next;
         }
         return number == 0 ? 9 : number;
+    }
+
+    private int dimension(int seed, int salt) {
+        return 30 + ((stableHash(seed + "|" + salt) & Integer.MAX_VALUE) % 66);
     }
 
     private int stableHash(String input) {

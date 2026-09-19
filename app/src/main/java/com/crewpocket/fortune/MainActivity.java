@@ -43,7 +43,7 @@ public final class MainActivity extends Activity {
     private TextView aiStatus;
     private LinearLayout resultCard;
     private FortuneResult currentResult;
-    private String aiNarration = "";
+    private AiFortuneCopy aiCopy;
     private AgentHarness activeHarness;
 
     @Override protected void onCreate(Bundle state) {
@@ -86,7 +86,7 @@ public final class MainActivity extends Activity {
         title.setLineSpacing(0, 1.04f);
         root.addView(title, marginTop(8));
 
-        TextView sub = text("把命理算得有條理，把人生講得有笑點。\nAI 只負責補刀，不准偷改命盤。", 15, MUTED, false);
+        TextView sub = text("底層數字固定，AI 每次換一種方式講你。\n沒有 AI 也能算，有 AI 就比較會嘴。", 15, MUTED, false);
         sub.setLineSpacing(dp(4), 1f);
         root.addView(sub, marginTop(10));
 
@@ -147,7 +147,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · AI 失敗時自動退回本地結果", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · Gemini 失敗時自動退回本地文案", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -167,17 +167,19 @@ public final class MainActivity extends Activity {
                 secondInput.getText().toString());
         try {
             currentResult = engine.calculate(selectedMode, profile, new Date());
-            aiNarration = "";
-            aiBuffer.setLength(0);
+            aiCopy = null;
+            synchronized (aiBuffer) {
+                aiBuffer.setLength(0);
+            }
             boolean useAi = AppConfig.hasGeminiApiKey(this);
             renderResult(currentResult, useAi);
-            if (useAi) startAiNarration(profile);
+            if (useAi) startAiCopy(profile);
         } catch (IllegalArgumentException error) {
             Toast.makeText(this, error.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void startAiNarration(FortuneProfile profile) {
+    private void startAiCopy(FortuneProfile profile) {
         try {
             GeminiTextModelSession session = new GeminiTextModelSession(AppConfig.getGeminiApiKey(this));
             activeHarness = FortuneAgentRuntime.create(session, new AgentHarness.Listener() {
@@ -194,19 +196,19 @@ public final class MainActivity extends Activity {
                             synchronized (aiBuffer) {
                                 completed = aiBuffer.toString().trim();
                             }
-                            runOnUiThread(() -> {
-                                aiNarration = completed;
-                                if (currentResult != null) renderResult(currentResult, false);
-                            });
+                            try {
+                                final AiFortuneCopy parsed = AiFortuneCopy.parse(completed);
+                                runOnUiThread(() -> {
+                                    aiCopy = parsed;
+                                    if (currentResult != null) renderResult(currentResult, false);
+                                });
+                            } catch (IllegalArgumentException parseError) {
+                                showAiFallback("AI 命理師講得太玄，格式跑掉了。先顯示本地結果。");
+                            }
                             closeAgent();
                             break;
                         case ERROR:
-                            runOnUiThread(() -> {
-                                if (currentResult != null) renderResult(currentResult, false);
-                                Toast.makeText(MainActivity.this,
-                                        "AI 命理師暫時去喝茶，先顯示本地結果。",
-                                        Toast.LENGTH_SHORT).show();
-                            });
+                            showAiFallback("AI 命理師暫時去喝茶，先顯示本地結果。");
                             closeAgent();
                             break;
                         default:
@@ -217,22 +219,30 @@ public final class MainActivity extends Activity {
             activeHarness.start();
             activeHarness.submitText(buildAiRequest(profile));
         } catch (Exception error) {
-            renderResult(currentResult, false);
-            Toast.makeText(this, "AI 模式啟動失敗，已使用本地結果。", Toast.LENGTH_SHORT).show();
+            showAiFallback("AI 模式啟動失敗，已使用本地結果。");
             closeAgent();
         }
     }
 
+    private void showAiFallback(String message) {
+        runOnUiThread(() -> {
+            aiCopy = null;
+            if (currentResult != null) renderResult(currentResult, false);
+            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+        });
+    }
+
     private String buildAiRequest(FortuneProfile profile) {
         StringBuilder value = new StringBuilder();
-        value.append("請為這次算命產生繁體中文幽默加碼。你必須先呼叫 calculate_fortune。\n");
+        value.append("請完成這次娛樂型算命。你必須先呼叫 calculate_fortune，再依工具回傳的 deterministic facts 寫完整結果。\n");
         value.append("mode=").append(selectedMode.name()).append('\n');
         value.append("name=").append(profile.name).append('\n');
         value.append("birthDate=").append(profile.birthDate).append('\n');
         if (!profile.secondaryName.isEmpty()) {
             value.append("secondaryName=").append(profile.secondaryName).append('\n');
         }
-        value.append("請維持工具算出的核心結論，不要自行改分數。");
+        value.append("creativeVariant=").append(System.nanoTime()).append('\n');
+        value.append("這個 creativeVariant 只用來避免重複措辭，絕對不可改變工具算出的數字或命理依據。");
         return value.toString();
     }
 
@@ -242,7 +252,21 @@ public final class MainActivity extends Activity {
         TextView badge = text(result.mode.title().toUpperCase(), 12, GOLD, true);
         resultCard.addView(badge);
 
-        TextView title = text(result.title, 25, TEXT, true);
+        if (aiLoading) {
+            TextView score = text(result.score + " / 100", 30, ACCENT, true);
+            resultCard.addView(score, marginTop(12));
+            TextView basis = text("計算依據｜" + result.basis, 13, MUTED, false);
+            resultCard.addView(basis, marginTop(4));
+            TextView loading = text("✦ 命盤算完了。AI 命理師正在重新組織措辭，避免拿罐頭話術敷衍你…",
+                    15, ACCENT, true);
+            loading.setLineSpacing(dp(3), 1f);
+            resultCard.addView(loading, marginTop(20));
+            resultCard.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        String titleValue = aiCopy == null ? result.title : aiCopy.title;
+        TextView title = text(titleValue, 25, TEXT, true);
         resultCard.addView(title, marginTop(8));
 
         TextView score = text(result.score + " / 100", 30, ACCENT, true);
@@ -251,19 +275,13 @@ public final class MainActivity extends Activity {
         TextView basis = text("計算依據｜" + result.basis, 13, MUTED, false);
         resultCard.addView(basis, marginTop(4));
 
-        addSection("認真分析", result.analysis);
-        addSection("翻譯成人話", result.translation);
-        addSection("命理師補充", result.punchline);
-        addSection("今日忠告", result.advice);
+        addSection("認真分析", aiCopy == null ? result.analysis : aiCopy.analysis);
+        addSection("翻譯成人話", aiCopy == null ? result.translation : aiCopy.translation);
+        addSection("命理師補充", aiCopy == null ? result.punchline : aiCopy.punchline);
+        addSection("今日忠告", aiCopy == null ? result.advice : aiCopy.advice);
 
-        if (aiLoading) {
-            TextView loading = text("✦ AI 命理師正在讀取宇宙資料，順便想一個夠好笑的說法…",
-                    14, ACCENT, true);
-            loading.setLineSpacing(dp(3), 1f);
-            resultCard.addView(loading, marginTop(20));
-        } else if (!aiNarration.isEmpty()) {
-            addSection("AI 命理師加碼", aiNarration);
-        }
+        TextView source = text(aiCopy == null ? "本地備用文案" : "AI 即席解讀 · 命盤數字固定", 12, MUTED, false);
+        resultCard.addView(source, marginTop(16));
 
         Button share = new Button(this);
         share.setText("分享這個荒謬但有點準的結果");
@@ -289,10 +307,9 @@ public final class MainActivity extends Activity {
 
     private void shareResult() {
         if (currentResult == null) return;
-        String payload = currentResult.shareText();
-        if (!aiNarration.isEmpty()) {
-            payload += "\n\nAI 命理師加碼：\n" + aiNarration;
-        }
+        String payload = aiCopy == null
+                ? currentResult.shareText()
+                : aiCopy.shareText(currentResult);
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
         intent.putExtra(Intent.EXTRA_TEXT, payload);
@@ -309,7 +326,7 @@ public final class MainActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle("AI 幽默模式")
-                .setMessage("填入 Gemini API Key 後，固定命盤會再交給 AI 補刀。Key 儲存在此 App 的本機設定；清空即可停用。")
+                .setMessage("開啟後，底層命盤與分數仍由本地 deterministic engine 計算；Gemini 會重新生成整份標題、分析、翻譯、補刀、忠告與分享文案。")
                 .setView(keyInput)
                 .setPositiveButton("儲存", (dialog, which) -> {
                     AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
