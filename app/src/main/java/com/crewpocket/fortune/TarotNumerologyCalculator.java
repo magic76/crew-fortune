@@ -51,6 +51,10 @@ public final class TarotNumerologyCalculator {
         int currentMonth = c.get(Calendar.MONTH) + 1;
         int personalYear = reduceSingle(monthCore + dayCore + reduceSingle(digitSum(currentYear)));
         int personalMonth = reduceSingle(personalYear + currentMonth);
+        List<Map<String, Object>> personalYearTimeline =
+                personalYearTimeline(monthCore, dayCore, currentYear);
+        List<Map<String, Object>> personalMonthTimeline =
+                personalMonthTimeline(personalYear, currentYear);
 
         List<Integer> birthCards = tarotPersonalitySoulCards(personalityNumber, soulNumber);
         List<Map<String, Object>> cardDetails = new ArrayList<Map<String, Object>>();
@@ -89,6 +93,10 @@ public final class TarotNumerologyCalculator {
         result.put("personalYear", personalYear);
         result.put("personalYearCardName", CARD_NAMES[cardIndex(personalYear)]);
         result.put("personalMonth", personalMonth);
+        result.put("personalYearTimelineStartYear", currentYear - 1);
+        result.put("personalYearTimelineEndYear", currentYear + 9);
+        result.put("personalYearTimeline", personalYearTimeline);
+        result.put("personalMonthTimeline", personalMonthTimeline);
         result.put("birthCards", cardDetails);
         result.put("birthCardDisplay", join(cardNames, " × "));
         result.put("pinnacles", Arrays.asList(pinnacles[0], pinnacles[1], pinnacles[2], pinnacles[3]));
@@ -107,12 +115,78 @@ public final class TarotNumerologyCalculator {
                 "生命道路數：西元出生年月日全部數字加總，保留 11/22/33 主數",
                 "態度數：出生月 + 出生日，化為 1–9",
                 "個人流年：當年西元年各位數 + 出生月 + 出生日，化為 1–9",
+                "流年時間軸：固定顯示上一年到未來 9 年；每年依同一公式計算，對應 1–9 號大牌",
+                "個人月：當年個人流年 + 月份，化為 1–9",
                 "Rider-Waite-Smith 編號：5=教皇、8=力量、9=隱者、11=正義",
                 "人格牌／靈魂牌流派有差異，本 App 固定採生日加總 → ≤22 → 1–9 的規則，不使用姓名"));
         result.put("note", containsCard(birthCards, 13)
                 ? "死神牌在此代表轉化與階段更替，不是死亡預測。"
                 : "塔羅生命靈數作為娛樂與自我反思用途，不代表必然命運。");
         return result;
+    }
+
+    private static List<Map<String, Object>> personalYearTimeline(
+            int monthCore, int dayCore, int currentYear) {
+        List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
+        for (int year = currentYear - 1; year <= currentYear + 9; year++) {
+            int number = reduceSingle(
+                    monthCore + dayCore + reduceSingle(digitSum(year)));
+            Map<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("year", year);
+            item.put("personalYear", number);
+            item.put("cardName", CARD_NAMES[cardIndex(number)]);
+            item.put("keywords", CARD_KEYWORDS[cardIndex(number)]);
+            item.put("plainSummary", personalYearSummary(number));
+            out.add(item);
+        }
+        return out;
+    }
+
+    private static List<Map<String, Object>> personalMonthTimeline(
+            int personalYear, int currentYear) {
+        List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
+        for (int month = 1; month <= 12; month++) {
+            int number = reduceSingle(personalYear + month);
+            Map<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("year", currentYear);
+            item.put("month", month);
+            item.put("personalMonth", number);
+            item.put("cardName", CARD_NAMES[cardIndex(number)]);
+            item.put("keywords", CARD_KEYWORDS[cardIndex(number)]);
+            item.put("plainSummary", personalMonthSummary(number));
+            out.add(item);
+        }
+        return out;
+    }
+
+    private static String personalYearSummary(int number) {
+        switch (number) {
+            case 1: return "新週期啟動，適合定方向、開始新計畫與建立自主節奏";
+            case 2: return "合作與關係調整更重要，適合觀察、協調與耐心累積";
+            case 3: return "表達、創作與社交能見度提高，適合把想法說出來做出來";
+            case 4: return "重點在打基礎、制度化與穩定推進，成果靠持續累積";
+            case 5: return "變化、移動與新選項增加，適合保持彈性但避免亂衝";
+            case 6: return "責任、家庭、承諾與照顧議題變重，需要平衡自己與他人";
+            case 7: return "研究、內省與重新理解方向的一年，適合減少雜訊、深挖能力";
+            case 8: return "成果、資源與現實目標被放大，適合談效率、權責與資源配置";
+            case 9: return "整理、完成與收尾的年份，適合清掉舊包袱並準備下一輪";
+            default: return "以穩定觀察與自我整理為主";
+        }
+    }
+
+    private static String personalMonthSummary(int number) {
+        switch (number) {
+            case 1: return "適合啟動";
+            case 2: return "適合協調";
+            case 3: return "適合表達";
+            case 4: return "適合整理";
+            case 5: return "適合變動";
+            case 6: return "適合承擔";
+            case 7: return "適合研究";
+            case 8: return "適合推進成果";
+            case 9: return "適合收尾";
+            default: return "保持觀察";
+        }
     }
 
     private static List<Integer> tarotPersonalitySoulCards(int personality, int soul) {
