@@ -56,12 +56,13 @@ public final class TarotNumerologyCalculator {
         List<Map<String, Object>> cardDetails = new ArrayList<Map<String, Object>>();
         List<String> cardNames = new ArrayList<String>();
         for (int number : birthCards) {
+            int index = cardIndex(number);
             Map<String, Object> card = new LinkedHashMap<String, Object>();
             card.put("number", number);
-            card.put("name", CARD_NAMES[number]);
-            card.put("keywords", CARD_KEYWORDS[number]);
+            card.put("name", CARD_NAMES[index]);
+            card.put("keywords", CARD_KEYWORDS[index]);
             cardDetails.add(card);
-            cardNames.add(number + " " + CARD_NAMES[number]);
+            cardNames.add(number + " " + CARD_NAMES[index]);
         }
 
         int[] pinnacles = pinnacles(month, day, year);
@@ -115,8 +116,8 @@ public final class TarotNumerologyCalculator {
 
     private static List<Integer> tarotPersonalitySoulCards(int personality, int soul) {
         List<Integer> cards = new ArrayList<Integer>();
-        cards.add(cardIndex(personality));
-        if (soul != personality) cards.add(cardIndex(soul));
+        cards.add(personality);
+        if (soul != personality) cards.add(soul);
         return cards;
     }
 
