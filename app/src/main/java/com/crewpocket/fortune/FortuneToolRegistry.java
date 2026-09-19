@@ -22,8 +22,7 @@ public final class FortuneToolRegistry {
                             text(args.get("name")),
                             text(args.get("birthDate")),
                             text(args.get("birthTime")),
-                            text(args.get("gender")),
-                            text(args.get("birthNameLatin")));
+                            text(args.get("gender")));
                     FortuneFacts facts = engine.calculateFacts(mode, profile, new Date());
 
                     Map<String, Object> payload = new LinkedHashMap<String, Object>();
@@ -31,7 +30,7 @@ public final class FortuneToolRegistry {
                     payload.put("basis", facts.basis);
                     payload.put("details", facts.details);
                     payload.put("interpretationRule",
-                            "All returned calculations are immutable. Explain them in fresh Traditional Chinese wording; never invent or alter pillars, gods, luck cycles, numerology numbers, or tarot cards.");
+                            "All returned calculations are immutable. Never invent or alter pillars, gods, luck cycles, numerology numbers or tarot cards.");
                     completion.complete(ToolResult.success(call.id(), payload));
                 } catch (Exception error) {
                     completion.complete(ToolResult.failure(call.id(), "FORTUNE_INPUT_ERROR",

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class TarotNumerologyCalculator {
-    public static final String METHOD_VERSION = "tarot-school-birth-cards-plus-core-five-numerology-v3";
+    public static final String METHOD_VERSION = "birthday-inner-outer-plus-tarot-v4";
 
     private static final String[] CARD_NAMES = {
             "愚者", "魔術師", "女祭司", "皇后", "皇帝", "教皇", "戀人", "戰車",
@@ -27,10 +27,6 @@ public final class TarotNumerologyCalculator {
     };
 
     public Map<String, Object> calculate(String birthDate, Date now) {
-        return calculate(birthDate, "", now);
-    }
-
-    public Map<String, Object> calculate(String birthDate, String birthNameLatin, Date now) {
         int[] d = parseDate(birthDate);
         int year = d[0];
         int month = d[1];
@@ -38,10 +34,11 @@ public final class TarotNumerologyCalculator {
 
         int monthCore = reduceSingle(month);
         int dayCore = reduceSingle(day);
-        int yearCore = reduceSingle(digitSum(year));
 
         int rawDigitSum = digitSum(year) + digitSum(month) + digitSum(day);
         int lifePath = reduceMaster(rawDigitSum);
+        int innerNumber = reduceSingle(rawDigitSum);
+        int outerNumber = reduceSingle(day);
         int attitude = reduceSingle(month + day);
         int birthdayCore = reduceSingle(day);
 
@@ -71,23 +68,10 @@ public final class TarotNumerologyCalculator {
 
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         result.put("methodVersion", METHOD_VERSION);
-
-        if (birthNameLatin != null && !birthNameLatin.trim().isEmpty()) {
-            Map<String, Object> nameNumbers = new NameNumerologyCalculator().calculate(birthNameLatin);
-            Object nameMethodVersion = nameNumbers.get("methodVersion");
-            result.putAll(nameNumbers);
-            result.put("nameNumerologyMethodVersion", nameMethodVersion);
-            result.put("methodVersion", METHOD_VERSION);
-            Map<String, Object> coreFive = new LinkedHashMap<String, Object>();
-            coreFive.put("lifePath", masterDisplay(lifePath));
-            coreFive.put("birthday", String.valueOf(day));
-            coreFive.put("expression", nameNumbers.get("expressionDisplay"));
-            coreFive.put("soulUrge", nameNumbers.get("soulUrgeDisplay"));
-            coreFive.put("personality", nameNumbers.get("personalityDisplay"));
-            result.put("coreFive", coreFive);
-        }
         result.put("lifePathNumber", lifePath);
         result.put("lifePathDisplay", masterDisplay(lifePath));
+        result.put("innerNumber", innerNumber);
+        result.put("outerNumber", outerNumber);
         result.put("birthdayNumber", day);
         result.put("birthdayCore", birthdayCore);
         result.put("attitudeNumber", attitude);
@@ -105,12 +89,14 @@ public final class TarotNumerologyCalculator {
         result.put("periodCycles", Arrays.asList(
                 reduceMaster(month), reduceMaster(day), reduceMaster(digitSum(year))));
         result.put("calculationNotes", Arrays.asList(
-                "生命靈數：完整生日數字加總，保留 11/22/33 主數",
+                "生命道路數：西元出生年月日全部數字加總，保留 11/22/33 主數",
+                "內靈數：西元出生年月日全部數字加總後化為 1–9",
+                "外靈數：西元出生日化為 1–9",
                 "態度數：出生月 + 出生日，化為 1–9",
                 "個人年：出生月 + 出生日 + 當年度，化為 1–9",
                 "出生牌：採 Tarot School 的 MM + DD + century + YY 公式與牌組配對",
                 "Rider-Waite-Smith 編號：8=力量、11=正義；出生牌組不把 0 愚者列為配對牌",
-                "姓名靈數：Pythagorean 1–9；Expression=全部字母、Soul Urge=母音、Personality=子音；11/22/33 保留主數"));
+                "內／外靈數流派很多，本 App 固定採生日型算法，不使用姓名"));
         result.put("note", containsCard(birthCards, 13)
                 ? "死神牌在此代表轉化與階段更替，不是死亡預測。"
                 : "塔羅生命靈數作為娛樂與自我反思用途，不代表必然命運。");

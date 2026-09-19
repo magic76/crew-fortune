@@ -10,14 +10,13 @@ public final class FortuneAgentSpec implements AgentSpec {
     private final AiStyle style;
     private final List<ToolSpec> tools = Collections.singletonList(new ToolSpec(
             "calculate_fortune",
-            "Calculate the complete deterministic BaZi or tarot numerology report before interpretation.",
+            "Calculate the complete deterministic BaZi or birthday-based tarot numerology report before interpretation.",
             "{\"type\":\"object\",\"properties\":{"
                     + "\"mode\":{\"type\":\"string\",\"enum\":[\"BA_ZI\",\"TAROT_NUMEROLOGY\"]},"
                     + "\"name\":{\"type\":\"string\"},"
                     + "\"birthDate\":{\"type\":\"string\",\"description\":\"yyyy-MM-dd\"},"
-                    + "\"birthTime\":{\"type\":\"string\",\"description\":\"HH:mm, required for BA_ZI\"},"
-                    + "\"gender\":{\"type\":\"string\",\"enum\":[\"male\",\"female\"],\"description\":\"required for BA_ZI luck pillars\"},"
-                    + "\"birthNameLatin\":{\"type\":\"string\",\"description\":\"full birth name in English letters / romanization; required for TAROT_NUMEROLOGY name numerology\"}"
+                    + "\"birthTime\":{\"type\":\"string\",\"description\":\"HH:mm, required for BA_ZI only\"},"
+                    + "\"gender\":{\"type\":\"string\",\"enum\":[\"male\",\"female\"],\"description\":\"required for BA_ZI luck pillars\"}"
                     + "},\"required\":[\"mode\",\"name\",\"birthDate\"]}"
     ));
 
@@ -37,15 +36,16 @@ public final class FortuneAgentSpec implements AgentSpec {
                 + "There are only two systems: BA_ZI and TAROT_NUMEROLOGY. "
                 + "For BA_ZI, synthesize Four Pillars, Day Master, weighted Five Elements, strength, Ten Gods, hidden stems, natal interactions, Luck Pillars and current Annual Pillar. "
                 + "Do not present balancingElements as definitive 喜用神; formal 格局/用神 differs by school. "
-                + "For TAROT_NUMEROLOGY, synthesize the core five numerology numbers: Life Path, Birthday, Expression/Destiny, Soul Urge/Heart's Desire (inner self), and Personality (outer self), plus Attitude Number, birth-card pair/triplet, Pinnacles, Challenges, Period Cycles, Personal Year and Personal Month. "
-                + "When discussing inner vs outer self, explicitly compare soulUrgeDisplay with personalityDisplay and explain any contrast without changing the numbers. "
+                + "For TAROT_NUMEROLOGY, use birthday facts only. Synthesize Life Path, innerNumber, outerNumber, Birthday Number, Attitude Number, birth-card pair/triplet, Pinnacles, Challenges, Period Cycles, Personal Year and Personal Month. "
+                + "innerNumber is the full Gregorian birth-date digit sum reduced to 1-9; outerNumber is the day-of-month reduced to 1-9. Do not introduce name numerology, Soul Urge, Personality Number or Expression Number. "
+                + "Explicitly compare innerNumber and outerNumber when discussing the inner/outer contrast. "
                 + "If Death appears, interpret transformation only, never literal death. "
                 + "Write a substantial Traditional Chinese report, not horoscope filler. Every section must cite at least one concrete returned fact. "
                 + style.promptInstruction() + " "
                 + "After the tool result output ONLY one valid JSON object with exactly these string fields: "
                 + "title, overview, personality, careerWealth, relationships, timing, translation, punchline, advice, shareText. "
                 + "overview: 4-6 sentences integrating the main structure. "
-                + "personality: 3-5 sentences about temperament, strengths and blind spots. "
+                + "personality: 3-5 sentences about temperament, strengths, blind spots and the inner/outer contrast. "
                 + "careerWealth: 3-5 sentences about work style, money tendencies and suitable strategies; never give investment instructions. "
                 + "relationships: 3-5 sentences about interpersonal and relationship patterns. "
                 + "timing: 3-5 sentences about current Luck/Annual cycle for BaZi or current Personal Year/Month and Pinnacle phase for tarot numerology. "
