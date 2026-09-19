@@ -24,6 +24,8 @@ import android.widget.Toast;
 import com.magic76.crew.agent.AgentEvent;
 import com.magic76.crew.agent.AgentHarness;
 
+import org.json.JSONObject;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -231,7 +233,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.5.1", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.5.2", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -284,7 +286,7 @@ public final class MainActivity extends Activity {
             GeminiTextModelSession session = new GeminiTextModelSession(
                     AppConfig.getGeminiApiKey(this),
                     selectedAiStyle.temperature());
-            activeHarness = FortuneAgentRuntime.create(session, new AgentHarness.Listener() {
+            activeHarness = FortuneAgentRuntime.createInterpretation(session, new AgentHarness.Listener() {
                 @Override public void onAgentEvent(AgentEvent event) {
                     if (event == null) return;
                     switch (event.type()) {
@@ -335,20 +337,19 @@ public final class MainActivity extends Activity {
     }
 
     private String buildAiRequest(FortuneProfile profile) {
+        if (currentFacts == null) {
+            throw new IllegalStateException("deterministic facts are missing");
+        }
+        String factsJson = new JSONObject(currentFacts.details).toString();
         StringBuilder value = new StringBuilder();
-        value.append("請完成這次娛樂型算命。你必須先呼叫 calculate_fortune，再依工具回傳的 deterministic facts 寫完整結果。\n");
+        value.append("請只解讀以下已由本機完成的 deterministic facts。不要重新計算，不要呼叫工具，不要修正輸入格式，也絕對不要使用預設值。\n");
         value.append("mode=").append(selectedMode.name()).append('\n');
-        value.append("name=").append(profile.name).append('\n');
-        value.append("birthDate=").append(profile.birthDate).append('\n');
-        if (!profile.birthTime.isEmpty()) {
-            value.append("birthTime=").append(profile.birthTime).append('\n');
-        }
-        if (!profile.gender.isEmpty()) {
-            value.append("gender=").append(profile.gender).append('\n');
-        }
+        value.append("displayName=").append(profile.name).append('\n');
+        value.append("basis=").append(currentFacts.basis).append('\n');
         value.append("aiStyle=").append(selectedAiStyle.name()).append('\n');
+        value.append("deterministicFacts=").append(factsJson).append('\n');
         value.append("creativeVariant=").append(System.nanoTime()).append('\n');
-        value.append("這個 creativeVariant 只用來避免重複措辭，絕對不可改變工具算出的數字或命理依據。");
+        value.append("creativeVariant 只允許改變措辭與笑點。所有數字、干支、十神、大運、流年、塔羅牌、天賦數都必須逐字遵守 deterministicFacts。");
         return value.toString();
     }
 
