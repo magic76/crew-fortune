@@ -15,9 +15,9 @@ public final class FortuneEngineTest {
         Date now = new Date(1760000000000L);
         FortuneFacts first = engine.calculateFacts(FortuneMode.TAROT_NUMEROLOGY, profile, now);
         FortuneFacts second = engine.calculateFacts(FortuneMode.TAROT_NUMEROLOGY, profile, now);
-        assertEquals(first.detailText("lifePathNumber"), second.detailText("lifePathNumber"));
-        assertEquals(first.detailText("innerNumber"), second.detailText("innerNumber"));
-        assertEquals(first.detailText("outerNumber"), second.detailText("outerNumber"));
+        assertEquals(first.detailText("personalityCardNumber"), second.detailText("personalityCardNumber"));
+        assertEquals(first.detailText("soulCardNumber"), second.detailText("soulCardNumber"));
+        assertEquals(first.detailText("talentNumbers"), second.detailText("talentNumbers"));
         assertEquals(first.detailText("birthCardDisplay"), second.detailText("birthCardDisplay"));
     }
 

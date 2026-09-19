@@ -22,10 +22,10 @@ public final class FortuneFactsTest {
 
         assertTrue(bazi.details.containsKey("fourPillars"));
         assertTrue(bazi.details.containsKey("luckPillars"));
-        assertTrue(tarot.details.containsKey("birthCards"));
-        assertTrue(tarot.details.containsKey("pinnacles"));
-        assertTrue(tarot.details.containsKey("innerNumber"));
-        assertTrue(tarot.details.containsKey("outerNumber"));
+        assertTrue(tarot.details.containsKey("personalityCardNumber"));
+        assertTrue(tarot.details.containsKey("soulCardNumber"));
+        assertTrue(tarot.details.containsKey("talentNumbers"));
+        assertTrue(tarot.details.containsKey("personalYear"));
         assertNotEquals(bazi.basis, tarot.basis);
     }
 }
