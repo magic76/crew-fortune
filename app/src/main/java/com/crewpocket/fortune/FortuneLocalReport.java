@@ -64,30 +64,52 @@ public final class FortuneLocalReport {
     private static LinkedHashMap<String, String> tarot(FortuneFacts f) {
         LinkedHashMap<String, String> out = new LinkedHashMap<String, String>();
         int life = intValue(f.detail("lifePathNumber"));
+        int soul = intValue(f.detail("soulUrgeNumber"));
+        int personality = intValue(f.detail("personalityNumber"));
+        int expression = intValue(f.detail("expressionNumber"));
         String[] meanings = numberMeaning(life);
+        String[] soulMeanings = numberMeaning(soul);
+        String[] personalityMeanings = numberMeaning(personality);
+        String[] expressionMeanings = numberMeaning(expression);
         String cards = f.detailText("birthCardDisplay");
 
         out.put("核心總覽",
-                "生命靈數是 " + f.detailText("lifePathDisplay")
+                "生命道路數是 " + f.detailText("lifePathDisplay")
+                        + "，表達／命運數是 " + f.detailText("expressionDisplay")
                         + "，出生牌組是「" + cards + "」。"
                         + " 生日數 " + f.detailText("birthdayNumber")
                         + "、態度數 " + f.detailText("attitudeNumber")
                         + "，提供核心人生主題之外的日常表現角度。"
-                        + " " + meanings[0]);
+                        + " " + meanings[0]
+                        + " 表達數則補充你比較自然會拿什麼能力去處理人生：" + expressionMeanings[0]);
+
+        out.put("內在 vs 外在",
+                "靈魂數（內在）是 " + f.detailText("soulUrgeDisplay")
+                        + "，人格數（外在）是 " + f.detailText("personalityDisplay") + "。"
+                        + " 內在層：" + soulMeanings[1]
+                        + " 外在層：" + personalityMeanings[1]
+                        + " 當兩個數字差異明顯時，常見情況是「自己真正需要的」和「別人第一眼認識的你」不是同一套介面。");
 
         out.put("性格與天賦",
                 meanings[1]
+                        + " 表達／命運數 " + f.detailText("expressionDisplay")
+                        + " 的能力方向：" + expressionMeanings[1]
                         + " 出生牌組的關鍵字為：" + birthCardKeywords(f.detail("birthCards"))
-                        + "。生命靈數描述長期主題，出生牌比較像把同一主題轉成象徵語言，兩者重疊處通常最值得觀察。");
+                        + "。生命道路描述長期主題，姓名數字補充內在動機、外在印象與自然表達方式。");
 
         out.put("工作與財務",
                 meanings[2]
+                        + " 表達／命運數 " + f.detailText("expressionDisplay")
+                        + " 的工作傾向可補充為：" + expressionMeanings[2]
                         + " 四大巔峰數為 " + f.detailText("pinnacles")
                         + "，代表不同人生階段會反覆換重點。"
                         + " 這些數字適合拿來看工作方式與資源運用偏好，不應當成職業或投資決策的單一依據。");
 
         out.put("感情與人際",
                 meanings[3]
+                        + " 內在靈魂數 " + f.detailText("soulUrgeDisplay")
+                        + " 與外在人格數 " + f.detailText("personalityDisplay")
+                        + " 的落差，是關係中很值得觀察的一層。"
                         + " 態度數 " + f.detailText("attitudeNumber")
                         + " 比較接近別人第一時間感受到的你；四大挑戰數 "
                         + f.detailText("challenges")
@@ -101,7 +123,8 @@ public final class FortuneLocalReport {
                         + "，用來看長週期；個人年與個人月則偏向短期節奏。");
 
         out.put("解讀邊界",
-                "塔羅生命靈數有多種流派，本 App 明確採用目前顯示的出生牌與生命靈數計算規則。"
+                "塔羅生命靈數與姓名靈數都有多種流派。本 App 的姓名數採 Pythagorean 1–9："
+                        + "全部字母算表達數、母音算靈魂數、子音算人格數；Y 在目前版本固定視為子音。"
                         + " 它適合當作自我反思與娛樂工具，不是事件預言。");
         return out;
     }
