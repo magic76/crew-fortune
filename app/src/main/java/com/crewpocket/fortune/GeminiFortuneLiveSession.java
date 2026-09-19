@@ -386,7 +386,7 @@ public final class GeminiFortuneLiveSession {
     private void writeAudio(byte[] pcm) {
         try {
             AudioTrack target = player;
-            if (!running || target == null) return;
+            if (!running || manualBargeIn || target == null) return;
             long durationMs = Math.max(1L, (pcm.length * 1000L) / (OUTPUT_RATE * 2L));
             micSuppressedUntilMs = Math.max(
                     micSuppressedUntilMs,
