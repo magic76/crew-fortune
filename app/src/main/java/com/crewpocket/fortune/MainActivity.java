@@ -43,6 +43,7 @@ public final class MainActivity extends Activity {
 
     private FortuneMode selectedMode = FortuneMode.BA_ZI;
     private EditText nameInput;
+    private EditText birthNameLatinInput;
     private EditText birthInput;
     private EditText birthTimeInput;
     private LinearLayout genderRow;
@@ -128,6 +129,8 @@ public final class MainActivity extends Activity {
 
         form.addView(label("先交代一下你的基本資料"));
         nameInput = input("你的名字");
+        birthNameLatinInput = input("出生姓名拼音，例如 HSIAO LI YANG（英文姓名可留白）");
+        birthNameLatinInput.setVisibility(View.GONE);
         birthInput = input("生日，例如 1985-07-22");
         birthInput.setFocusable(false);
         birthInput.setClickable(true);
@@ -138,6 +141,7 @@ public final class MainActivity extends Activity {
         birthTimeInput.setClickable(true);
         birthTimeInput.setOnClickListener(v -> showTimePicker());
         form.addView(nameInput, marginTop(12));
+        form.addView(birthNameLatinInput, marginTop(10));
         form.addView(birthInput, marginTop(10));
         form.addView(birthTimeInput, marginTop(10));
 
@@ -231,7 +235,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.4", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.4.0", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -242,9 +246,10 @@ public final class MainActivity extends Activity {
         boolean isBaZi = mode == FortuneMode.BA_ZI;
         birthTimeInput.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
         genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
+        birthNameLatinInput.setVisibility(isBaZi ? View.GONE : View.VISIBLE);
         modeLabel.setText("今天想算：" + mode.title() + "\n" + mode.subtitle()
                 + (isBaZi ? "\n以出生地當地民用時間排盤；目前不做真太陽時校正"
-                : "\n固定生日計算，不是隨機抽牌"));
+                : "\n生日＋出生姓名拼音：算生命道路、內在、外在與塔羅出生牌"));
     }
 
     private void selectGender(String gender) {
@@ -262,7 +267,8 @@ public final class MainActivity extends Activity {
                 nameInput.getText().toString(),
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
-                selectedGender);
+                selectedGender,
+                birthNameLatinInput.getText().toString());
         try {
             currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
             currentResult = engine.calculate(selectedMode, profile, new Date());
@@ -345,6 +351,9 @@ public final class MainActivity extends Activity {
         }
         if (!profile.gender.isEmpty()) {
             value.append("gender=").append(profile.gender).append('\n');
+        }
+        if (!profile.numerologyBirthName().isEmpty()) {
+            value.append("birthNameLatin=").append(profile.numerologyBirthName()).append('\n');
         }
         value.append("aiStyle=").append(selectedAiStyle.name()).append('\n');
         value.append("creativeVariant=").append(System.nanoTime()).append('\n');
@@ -651,6 +660,42 @@ public final class MainActivity extends Activity {
         panel.setBackground(background);
         resultCard.addView(panel, marginTop(16));
 
+        TextView coreFiveTitle = text("核心五數", 12, GOLD, true);
+        coreFiveTitle.setGravity(Gravity.CENTER);
+        panel.addView(coreFiveTitle);
+
+        TextView coreFive = text(
+                "生命道路 " + currentFacts.detailText("lifePathDisplay")
+                        + "　·　生日 " + currentFacts.detailText("birthdayNumber")
+                        + "\n表達／命運 " + currentFacts.detailText("expressionDisplay"),
+                15, TEXT, true);
+        coreFive.setGravity(Gravity.CENTER);
+        coreFive.setLineSpacing(dp(3), 1f);
+        panel.addView(coreFive, marginTop(8));
+
+        LinearLayout innerOuter = new LinearLayout(this);
+        innerOuter.setOrientation(LinearLayout.HORIZONTAL);
+        innerOuter.setGravity(Gravity.CENTER);
+
+        addNumerologyIdentityCard(
+                innerOuter,
+                "內在的你",
+                currentFacts.detailText("soulUrgeDisplay"),
+                "Soul Urge");
+        addNumerologyIdentityCard(
+                innerOuter,
+                "外人看到的你",
+                currentFacts.detailText("personalityDisplay"),
+                "Personality");
+        panel.addView(innerOuter, marginTop(16));
+
+        TextView contrast = text(
+                "內在 " + currentFacts.detailText("soulUrgeDisplay")
+                        + "　↔　外在 " + currentFacts.detailText("personalityDisplay"),
+                13, ACCENT, true);
+        contrast.setGravity(Gravity.CENTER);
+        panel.addView(contrast, marginTop(10));
+
         TextView card = text(currentFacts.detailText("birthCardDisplay"), 27, TEXT, true);
         card.setGravity(Gravity.CENTER);
         panel.addView(card);
@@ -682,6 +727,36 @@ public final class MainActivity extends Activity {
         note.setGravity(Gravity.CENTER);
         note.setLineSpacing(dp(2), 1f);
         panel.addView(note, marginTop(16));
+    }
+
+    private void addNumerologyIdentityCard(LinearLayout row,
+                                                String heading,
+                                                String number,
+                                                String subtitle) {
+        LinearLayout card = column();
+        card.setGravity(Gravity.CENTER);
+        card.setPadding(dp(10), dp(14), dp(10), dp(14));
+        GradientDrawable background = round(Color.rgb(31, 24, 49), 16);
+        background.setStroke(dp(1), Color.rgb(86, 70, 119));
+        card.setBackground(background);
+
+        TextView h = text(heading, 12, GOLD, true);
+        h.setGravity(Gravity.CENTER);
+        card.addView(h);
+
+        TextView n = text(number, 30, TEXT, true);
+        n.setGravity(Gravity.CENTER);
+        card.addView(n, marginTop(4));
+
+        TextView s = text(subtitle, 10, MUTED, false);
+        s.setGravity(Gravity.CENTER);
+        card.addView(s, marginTop(2));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        lp.leftMargin = dp(4);
+        lp.rightMargin = dp(4);
+        row.addView(card, lp);
     }
 
     private void addPanelSection(LinearLayout panel, String heading, String body) {
@@ -866,6 +941,7 @@ public final class MainActivity extends Activity {
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
                 selectedGender,
+                birthNameLatinInput.getText().toString(),
                 selectedMode);
     }
 
@@ -890,6 +966,12 @@ public final class MainActivity extends Activity {
         }
         if (preset.mode == FortuneMode.BA_ZI && preset.gender.isEmpty()) {
             Toast.makeText(this, "八字 preset 需要選擇性別", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        FortuneProfile profile = new FortuneProfile(
+                preset.name, preset.birthDate, preset.birthTime, preset.gender, preset.birthNameLatin);
+        if (preset.mode == FortuneMode.TAROT_NUMEROLOGY && profile.numerologyBirthName().isEmpty()) {
+            Toast.makeText(this, "塔羅生命靈數 preset 需要英文／羅馬拼音出生姓名", Toast.LENGTH_SHORT).show();
             return;
         }
         FortunePresetStore.savePreset(this, preset);
@@ -921,6 +1003,7 @@ public final class MainActivity extends Activity {
         nameInput.setText(preset.name);
         birthInput.setText(preset.birthDate);
         birthTimeInput.setText(preset.birthTime);
+        birthNameLatinInput.setText(preset.birthNameLatin);
         selectMode(preset.mode);
         if (!preset.gender.isEmpty()) selectGender(preset.gender);
         else {
