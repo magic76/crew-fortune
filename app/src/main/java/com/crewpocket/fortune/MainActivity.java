@@ -620,7 +620,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addInterpretationTab(FortuneResult result, boolean aiLoading) {
-        LinearLayout panel = baZiPanel();
+        LinearLayout panel = resultPanel();
 
         if (aiLoading) {
             TextView loading = text(
@@ -674,7 +674,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addTarotOverviewTab(FortuneResult result, boolean aiLoading) {
-        LinearLayout panel = baZiPanel();
+        LinearLayout panel = resultPanel();
 
         LinearLayout identities = new LinearLayout(this);
         identities.setOrientation(LinearLayout.HORIZONTAL);
@@ -716,7 +716,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addTarotTimelineTab() {
-        LinearLayout panel = baZiPanel();
+        LinearLayout panel = resultPanel();
 
         TextView intro = text(
                 "個人流年看每一年的主題循環；個人月則把今年拆成 12 個月。數字每 9 年循環一次，所以重點是當年的課題與節奏，不是吉凶分數。",
@@ -779,7 +779,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addTarotTopicAnalysisTab() {
-        LinearLayout panel = baZiPanel();
+        LinearLayout panel = resultPanel();
 
         TextView intro = text(
                 "塔羅生命靈數的主題分析會把本命數字、年度循環與 AI 解讀放在一起。先看依據，再看解讀。",
@@ -872,7 +872,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addBaZiOverviewTab(FortuneResult result, boolean aiLoading) {
-        LinearLayout panel = baZiPanel();
+        LinearLayout panel = resultPanel();
 
         LinearLayout hero = new LinearLayout(this);
         hero.setOrientation(LinearLayout.HORIZONTAL);
@@ -923,7 +923,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addBaZiLuckTimelineTab() {
-        LinearLayout panel = baZiPanel();
+        LinearLayout panel = resultPanel();
 
         TextView intro = text(
                 "大運看十年級別的背景，流年看每一年如何落在這個背景上。點任一項可看完整十神、五行、合沖與主題依據。",
@@ -993,7 +993,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addBaZiTopicAnalysisTab() {
-        LinearLayout panel = baZiPanel();
+        LinearLayout panel = resultPanel();
 
         TextView intro = text(
                 "這裡不做神祕分數。每個主題都拆成「本命依據 → 現在大運 → 哪些年份訊號明顯 → AI/老師怎麼解讀」。",
@@ -1061,52 +1061,7 @@ public final class MainActivity extends Activity {
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
     }
 
-    private void addBaZiTeacherTab(FortuneResult result, boolean aiLoading) {
-        LinearLayout panel = baZiPanel();
-
-        if (aiLoading) {
-            TextView loading = text(
-                    "AI 命理師正在把命盤整理成完整報告。你仍然可以先看其他 Tab 的 deterministic 資料。",
-                    14, ACCENT, true);
-            loading.setLineSpacing(dp(3), 1f);
-            panel.addView(loading);
-        } else if (aiCopy != null) {
-            addPanelSection(panel, "總覽", aiCopy.overview);
-            if (!aiCopy.personality.isEmpty()) addPanelSection(panel, "性格與天賦", aiCopy.personality);
-            if (!aiCopy.careerWealth.isEmpty()) addPanelSection(panel, "工作與財務", aiCopy.careerWealth);
-            if (!aiCopy.relationships.isEmpty()) addPanelSection(panel, "感情與人際", aiCopy.relationships);
-            if (!aiCopy.timing.isEmpty()) addPanelSection(panel, "目前運勢／週期", aiCopy.timing);
-            addPanelSection(panel, "翻譯成人話", aiCopy.translation);
-            addPanelSection(panel, "建議", aiCopy.advice);
-        } else {
-            Map<String, String> local = FortuneLocalReport.sections(currentFacts);
-            for (Map.Entry<String, String> entry : local.entrySet()) {
-                addPanelSection(panel, entry.getKey(), entry.getValue());
-            }
-        }
-
-        TextView q = text(
-                "可以直接問老師：\n「我未來十年怎麼走？」　「財運怎樣？」\n「哪幾年工作變動大？」　「感情哪幾年訊號比較明顯？」",
-                13, GOLD, true);
-        q.setLineSpacing(dp(4), 1f);
-        panel.addView(q, marginTop(18));
-
-        Button teacher = new Button(this);
-        teacher.setText("老師跟我講解");
-        teacher.setTextSize(15);
-        teacher.setAllCaps(false);
-        teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        teacher.setTextColor(Color.rgb(30, 22, 46));
-        teacher.setBackground(round(GOLD, 18));
-        teacher.setOnClickListener(v -> startTeacherExplanation());
-        panel.addView(teacher, fixedHeightTop(52, 14));
-
-        Button share = secondaryButton("分享結果");
-        share.setOnClickListener(v -> shareResult());
-        panel.addView(share, fixedHeightTop(52, 10));
-    }
-
-    private LinearLayout baZiPanel() {
+    private LinearLayout resultPanel() {
         LinearLayout panel = column();
         panel.setPadding(dp(14), dp(16), dp(14), dp(16));
         panel.setBackground(roundBorder(
