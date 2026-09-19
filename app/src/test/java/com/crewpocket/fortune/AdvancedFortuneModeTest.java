@@ -20,13 +20,12 @@ public final class AdvancedFortuneModeTest {
     }
 
     @Test public void tarotFactsReachFortuneEngine() {
-        FortuneProfile profile = new FortuneProfile("測試", "1950-02-21", "", "", "JOHN DOE");
+        FortuneProfile profile = new FortuneProfile("測試", "1950-02-21", "", "");
         FortuneFacts facts = engine.calculateFacts(FortuneMode.TAROT_NUMEROLOGY, profile, new Date(1760000000000L));
         assertEquals("11 正義 × 2 女祭司", facts.detailText("birthCardDisplay"));
         assertEquals("2", facts.detailText("lifePathNumber"));
-        assertEquals("8", facts.detailText("expressionNumber"));
-        assertEquals("8", facts.detailText("soulUrgeNumber"));
-        assertEquals("9", facts.detailText("personalityNumber"));
+        assertEquals("2", facts.detailText("innerNumber"));
+        assertEquals("3", facts.detailText("outerNumber"));
         assertTrue(facts.detail("pinnacles") instanceof java.util.List);
     }
 }

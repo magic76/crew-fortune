@@ -12,12 +12,19 @@ import java.util.Map;
 public final class TarotNumerologyCalculatorTest {
     @Test public void matchesTarotSchoolJusticePriestessExample() {
         Map<String, Object> facts = new TarotNumerologyCalculator().calculate(
-                "1950-02-21", "JOHN DOE", new Date(1760000000000L));
+                "1950-02-21", new Date(1760000000000L));
         assertEquals("11 正義 × 2 女祭司", facts.get("birthCardDisplay"));
         assertEquals(2, ((Number) facts.get("lifePathNumber")).intValue());
-        assertEquals(8, ((Number) facts.get("expressionNumber")).intValue());
-        assertEquals(8, ((Number) facts.get("soulUrgeNumber")).intValue());
-        assertEquals(9, ((Number) facts.get("personalityNumber")).intValue());
+        assertEquals(2, ((Number) facts.get("innerNumber")).intValue());
+        assertEquals(3, ((Number) facts.get("outerNumber")).intValue());
+    }
+
+    @Test public void birthday19850706UsesBirthdayInnerOuterMethod() {
+        Map<String, Object> facts = new TarotNumerologyCalculator().calculate(
+                "1985-07-06", new Date(1760000000000L));
+        assertEquals(9, ((Number) facts.get("lifePathNumber")).intValue());
+        assertEquals(9, ((Number) facts.get("innerNumber")).intValue());
+        assertEquals(6, ((Number) facts.get("outerNumber")).intValue());
     }
 
     @Test public void matchesTarotSchoolStarStrengthExample() {
