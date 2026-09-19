@@ -21,6 +21,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -711,7 +712,7 @@ public final class MainActivity extends Activity {
         resultTabContent = column();
         resultCard.addView(resultTabContent, marginTop(4));
         renderUnifiedTab(result, aiLoading);
-        addSharedResultActions();
+        addSharedResultActions(aiLoading, result.mode);
     }
 
     private void renderUnifiedTab(FortuneResult result, boolean aiLoading) {
@@ -761,11 +762,7 @@ public final class MainActivity extends Activity {
         LinearLayout panel = resultPanel();
 
         if (aiLoading) {
-            TextView loading = text(
-                    "AI 命理師正在整理完整解讀。你可以先切到本命、流年或主題查看已完成的 deterministic 資料。",
-                    14, ACCENT, true);
-            loading.setLineSpacing(dp(3), 1f);
-            panel.addView(loading);
+            addAiLoadingPlaceholder(panel, result.mode);
             return;
         }
 
@@ -855,7 +852,7 @@ public final class MainActivity extends Activity {
 
         String summary;
         if (aiLoading) {
-            summary = "AI 命理師正在整理人格牌、靈魂牌、生命道路與目前流年的關係…";
+            summary = localReportSection("核心總覽");
         } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
             summary = aiCopy.overview;
         } else {
@@ -1010,26 +1007,121 @@ public final class MainActivity extends Activity {
         return "";
     }
 
-    private void addSharedResultActions() {
-        TextView source = text(aiCopy == null
-                ? "本地完整資料 · AI 可選"
-                : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
-                12, MUTED, false);
-        resultCard.addView(source, marginTop(6));
+    private void addSharedResultActions(boolean aiLoading, FortuneMode mode) {
+        if (aiLoading) {
+            addAiLoadingBanner(mode);
+        }
+
+        TextView source = text(
+                aiLoading
+                        ? "本地計算已完成 · AI 完整解讀整理中"
+                        : aiCopy == null
+                        ? "本地完整資料 · AI 可選"
+                        : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
+                12,
+                aiLoading ? ACCENT : MUTED,
+                aiLoading);
+        resultCard.addView(source, marginTop(aiLoading ? 5 : 6));
 
         Button teacher = new Button(this);
-        teacher.setText("老師跟我講解");
+        teacher.setText(aiLoading ? "老師跟我講解 · 整理中" : "老師跟我講解");
         teacher.setTextSize(15);
         teacher.setAllCaps(false);
         teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        teacher.setTextColor(Color.rgb(30, 22, 46));
-        teacher.setBackground(round(GOLD, 18));
-        teacher.setOnClickListener(v -> startTeacherExplanation());
+        teacher.setEnabled(!aiLoading);
+        teacher.setAlpha(aiLoading ? 0.48f : 1f);
+        teacher.setTextColor(aiLoading ? MUTED : Color.rgb(30, 22, 46));
+        teacher.setBackground(round(aiLoading ? CARD_2 : GOLD, 18));
+        if (!aiLoading) {
+            teacher.setOnClickListener(v -> startTeacherExplanation());
+        }
         resultCard.addView(teacher, fixedHeightTop(48, 8));
 
-        Button share = secondaryButton("分享結果");
-        share.setOnClickListener(v -> shareResult());
+        Button share = secondaryButton(aiLoading ? "分享結果 · 整理中" : "分享結果");
+        share.setEnabled(!aiLoading);
+        share.setAlpha(aiLoading ? 0.48f : 1f);
+        if (!aiLoading) {
+            share.setOnClickListener(v -> shareResult());
+        }
         resultCard.addView(share, fixedHeightTop(48, 6));
+    }
+
+    private void addAiLoadingBanner(FortuneMode mode) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(10), dp(10), dp(10), dp(10));
+        card.setBackground(roundBorder(
+                Color.rgb(45, 35, 67),
+                Color.rgb(111, 91, 157),
+                15,
+                1));
+
+        ProgressBar spinner = new ProgressBar(this);
+        spinner.setIndeterminate(true);
+        LinearLayout.LayoutParams spinnerLp = new LinearLayout.LayoutParams(
+                dp(28), dp(28));
+        spinnerLp.rightMargin = dp(10);
+        card.addView(spinner, spinnerLp);
+
+        LinearLayout copy = column();
+
+        TextView title = text("AI 命理師正在整理完整解讀", 14, TEXT, true);
+        copy.addView(title);
+
+        String detail = mode == FortuneMode.BA_ZI
+                ? "正在串起本命、大運、逐年流年、工作、財運與感情"
+                : "正在串起本命牌、人生階段、個人流年、工作、資源與感情";
+        TextView subtitle = text(detail, 12, MUTED, false);
+        subtitle.setLineSpacing(dp(1), 1f);
+        copy.addView(subtitle, marginTop(2));
+
+        TextView wait = text("完成後會自動更新，不需要重新按一次。", 11, ACCENT, true);
+        copy.addView(wait, marginTop(3));
+
+        card.addView(copy, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        resultCard.addView(card, marginTop(8));
+    }
+
+    private void addAiLoadingPlaceholder(LinearLayout panel, FortuneMode mode) {
+        TextView title = text("完整解讀正在生成", 16, TEXT, true);
+        panel.addView(title);
+
+        TextView subtitle = text(
+                mode == FortuneMode.BA_ZI
+                        ? "本命、流年等資料已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。"
+                        : "本命與流年資料已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。",
+                13, MUTED, false);
+        subtitle.setLineSpacing(dp(2), 1f);
+        panel.addView(subtitle, marginTop(5));
+
+        String[] sections = {
+                "總覽",
+                "性格、優勢與盲點",
+                "工作",
+                "財運與資源",
+                "感情與人際",
+                mode == FortuneMode.BA_ZI ? "未來十年" : "未來幾年",
+                "重要年份"
+        };
+        for (String section : sections) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(9), dp(8), dp(9), dp(8));
+            row.setBackground(round(Color.rgb(43, 33, 65), 12));
+
+            TextView label = text(section, 12, MUTED, true);
+            row.addView(label, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            TextView state = text("整理中…", 11, ACCENT, true);
+            row.addView(state);
+
+            panel.addView(row, marginTop(5));
+        }
     }
 
     private void addBaZiOverviewTab(FortuneResult result, boolean aiLoading) {
@@ -1074,7 +1166,7 @@ public final class MainActivity extends Activity {
 
         String aiSummary;
         if (aiLoading) {
-            aiSummary = "AI 命理師正在整理四柱、大運與流年的重點…";
+            aiSummary = localReportSection("核心總覽");
         } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
             aiSummary = aiCopy.overview;
         } else {
