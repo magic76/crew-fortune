@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class BaZiCalculator {
-    public static final String METHOD_VERSION = "bazi-mainstream-report-v2-lunar-java-1.7.7-sect2";
+    public static final String METHOD_VERSION = "bazi-mainstream-report-v3-insight-timeline-lunar-java-1.7.7-sect2";
 
     private static final String[] ELEMENTS = {"木", "火", "土", "金", "水"};
     private static final String[] GENERATES = {"火", "土", "金", "水", "木"};
@@ -74,7 +74,9 @@ public final class BaZiCalculator {
         result.put("mingGong", eight.getMingGong());
         result.put("shenGong", eight.getShenGong());
 
-        addLuckCycles(result, eight, gender, date[0], now == null ? new Date() : now);
+        Date effectiveNow = now == null ? new Date() : now;
+        addLuckCycles(result, eight, gender, date[0], effectiveNow);
+        BaZiInsightBuilder.enrich(result, eight, gender, date[0], effectiveNow);
         return result;
     }
 
@@ -178,7 +180,7 @@ public final class BaZiCalculator {
         String resource = ELEMENTS[(i + 4) % 5];
         String output = GENERATES[i];
         String wealth = CONTROLS[i];
-        String officer = ELEMENTS[(i + 2) % 5];
+        String officer = ELEMENTS[(i + 3) % 5];
         if (strength < 43) return Arrays.asList(resource, dayElement);
         if (strength > 57) return Arrays.asList(output, wealth, officer);
         return Arrays.asList(output, resource);
