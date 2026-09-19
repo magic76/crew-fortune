@@ -12,13 +12,27 @@ Crew Fortune 是 Crew 系列的娛樂型算命 App。核心原則是：**用可�
 - AI 是文案層：模型負責幽默轉譯，不負責憑空決定命運。
 - Crew Agent Harness：共用 agent orchestration，不在 App 裡另造 agent loop。
 
-## MVP modes
+## Fortune systems
 
-1. 今日運勢
-2. 隱藏人格
-3. 發財命
-4. 戀愛 Bug
-5. 朋友／情侶合盤
+Crew Fortune now intentionally exposes only two calculation systems:
+
+1. **八字 / Four Pillars**
+   - Four Pillars (年／月／日／時)
+   - Day Master and weighted Five Elements
+   - Hidden Stems and Ten Gods
+   - Simplified Day Master strength indicator
+   - Natal combinations / clashes / harms / punishments
+   - Luck start, direction and 10-year Luck Pillars
+   - Current Annual Pillar and its Ten-God relationship
+
+2. **塔羅生命靈數 / Tarot Numerology**
+   - Life Path number with 11/22/33 master numbers
+   - Birthday number and Attitude number
+   - Tarot School birth-card pair/triplet
+   - Four Pinnacle numbers and timing
+   - Four Challenge numbers
+   - Three Period cycles
+   - Current Personal Year and Personal Month
 
 ## Architecture
 
@@ -53,27 +67,24 @@ The product owns its prompt, state and tools. The shared Harness owns orchestrat
 Initial Android MVP scaffold in progress.
 
 
-## v0.2 fortune calculation engines
+## Calculation conventions
 
 ### BaZi / Four Pillars
 
-`BA_ZI` accepts a Gregorian birth date plus the local civil birth time.
-
 - Calendar engine: `cn.6tail:lunar:1.7.7`
-- Outputs year/month/day/time pillars, day master, visible five-element counts, hidden stems, ten gods, Na Yin, life stages, Ming Gong and Shen Gong.
-- Month/year pillars follow the library's exact solar-term-based Gan-Zhi calculations.
-- Late-Zi convention is explicitly pinned to `sect=2`: 23:00 does not advance the day pillar.
-- v0.2 uses the birthplace's local civil clock time as entered. It does **not** yet apply true-solar-time/longitude correction.
-- Five-element balance is a simple visible-element distribution indicator, not a luck score and not a 喜用神 calculation.
+- Late-Zi convention: `sect=2` (23:00 stays on the current civil day).
+- Luck Pillars use gender and surrounding solar terms through lunar-java's `Yun` implementation.
+- Current version uses the entered birthplace-local civil time and does **not** yet apply longitude / true-solar-time correction.
+- Day Master strength is deliberately labeled as a simplified weighted model. It is not presented as a universal 格局／喜用神 verdict.
+- Relationship detection covers common stem combinations and branch 六合／六沖／六害／三合／三刑／自刑 patterns.
 
 ### Tarot numerology
 
-`TAROT_NUMEROLOGY` uses a disclosed single-card birth-card convention:
+- Life Path uses the full birth date and preserves master numbers 11, 22 and 33.
+- Birthday Number and Attitude Number are calculated separately.
+- Tarot Birth Cards follow the Tarot School birth-card system: `MM + DD + century + YY`, producing the standard Major Arcana pair, with 19 → 10 → 1 as the three-card exception.
+- The Fool is not used as a birth-card pair in this convention.
+- Pinnacles and Challenges use standard birth-date numerology formulas.
+- Personal Year follows the calendar-year method; Personal Month derives from the Personal Year plus the current month.
 
-1. Add every digit of `yyyy-MM-dd`.
-2. While the result is above 22, sum its digits again.
-3. 1–21 map to the Rider-Waite-Smith Major Arcana; 22 maps to 0 / The Fool.
-4. Life Path reduces separately while preserving master numbers 11, 22 and 33.
-5. Two-digit Major Arcana values 10–21 also expose a reduced soul-card companion.
-
-Different tarot-numerology schools use different reduction conventions, so the method is versioned in the structured facts instead of being presented as universal.
+All readings are positioned as entertainment and reflection. Gemini writes the interpretation; deterministic calculators remain the source of truth.
