@@ -51,3 +51,29 @@ The product owns its prompt, state and tools. The shared Harness owns orchestrat
 ## Status
 
 Initial Android MVP scaffold in progress.
+
+
+## v0.2 fortune calculation engines
+
+### BaZi / Four Pillars
+
+`BA_ZI` accepts a Gregorian birth date plus the local civil birth time.
+
+- Calendar engine: `cn.6tail:lunar:1.7.7`
+- Outputs year/month/day/time pillars, day master, visible five-element counts, hidden stems, ten gods, Na Yin, life stages, Ming Gong and Shen Gong.
+- Month/year pillars follow the library's exact solar-term-based Gan-Zhi calculations.
+- Late-Zi convention is explicitly pinned to `sect=2`: 23:00 does not advance the day pillar.
+- v0.2 uses the birthplace's local civil clock time as entered. It does **not** yet apply true-solar-time/longitude correction.
+- Five-element balance is a simple visible-element distribution indicator, not a luck score and not a 喜用神 calculation.
+
+### Tarot numerology
+
+`TAROT_NUMEROLOGY` uses a disclosed single-card birth-card convention:
+
+1. Add every digit of `yyyy-MM-dd`.
+2. While the result is above 22, sum its digits again.
+3. 1–21 map to the Rider-Waite-Smith Major Arcana; 22 maps to 0 / The Fool.
+4. Life Path reduces separately while preserving master numbers 11, 22 and 33.
+5. Two-digit Major Arcana values 10–21 also expose a reduced soul-card companion.
+
+Different tarot-numerology schools use different reduction conventions, so the method is versioned in the structured facts instead of being presented as universal.
