@@ -762,16 +762,27 @@ public final class MainActivity extends Activity {
         if (aiCopy != null) {
             addPanelSection(panel, "總覽", aiCopy.overview);
             if (!aiCopy.personality.isEmpty()) {
-                addPanelSection(panel, "性格與天賦", aiCopy.personality);
+                addPanelSection(panel, "性格、優勢與盲點", aiCopy.personality);
             }
-            if (!aiCopy.careerWealth.isEmpty()) {
-                addPanelSection(panel, "工作與財務", aiCopy.careerWealth);
+            if (!aiCopy.career.isEmpty()) {
+                addPanelSection(panel, "工作", aiCopy.career);
+            }
+            if (!aiCopy.wealth.isEmpty()) {
+                addPanelSection(panel, "財運與資源", aiCopy.wealth);
             }
             if (!aiCopy.relationships.isEmpty()) {
                 addPanelSection(panel, "感情與人際", aiCopy.relationships);
             }
-            if (!aiCopy.timing.isEmpty()) {
-                addPanelSection(panel, "運勢與時間", aiCopy.timing);
+            if (!aiCopy.currentCycle.isEmpty()) {
+                addPanelSection(panel, "目前運勢", aiCopy.currentCycle);
+            }
+            if (!aiCopy.longTerm.isEmpty()) {
+                addPanelSection(panel,
+                        result.mode == FortuneMode.BA_ZI ? "未來十年" : "未來幾年",
+                        aiCopy.longTerm);
+            }
+            if (!aiCopy.keyYears.isEmpty()) {
+                addPanelSection(panel, "重要年份", aiCopy.keyYears);
             }
             if (!aiCopy.translation.isEmpty()) {
                 addPanelSection(panel, "翻譯成人話", aiCopy.translation);
@@ -938,9 +949,21 @@ public final class MainActivity extends Activity {
         addTopicLine(career, "時間",
                 currentTarotYearSummary());
         addTopicLine(career, "解讀",
-                aiCopy != null && !aiCopy.careerWealth.isEmpty()
-                        ? aiCopy.careerWealth
+                aiCopy != null && !aiCopy.career.isEmpty()
+                        ? aiCopy.career
                         : localReportSection("工作與財務"));
+
+        LinearLayout wealth = topicCard(panel, "財運與資源", "生命道路 × 巔峰 × 個人流年");
+        addTopicLine(wealth, "依據",
+                "生命道路 " + currentFacts.detailText("lifePathDisplay")
+                        + "　·　四大巔峰 " + compactValue(currentFacts.detail("pinnacles"))
+                        + "\n目前流年 " + currentFacts.detailText("personalYear")
+                        + "「" + currentFacts.detailText("personalYearCardName") + "」");
+        addTopicLine(wealth, "時間", currentTarotYearSummary());
+        addTopicLine(wealth, "解讀",
+                aiCopy != null && !aiCopy.wealth.isEmpty()
+                        ? aiCopy.wealth
+                        : "塔羅生命靈數的財務解讀以資源使用、成果節奏與年度主題為主，不把牌義當成投資預測。");
 
         LinearLayout relationship = topicCard(panel, "感情與人際", "內外牌 × 挑戰數 × 年度節奏");
         addTopicLine(relationship, "依據",
@@ -1146,8 +1169,8 @@ public final class MainActivity extends Activity {
         addTopicLine(card, "時間",
                 "財星訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
         addTopicLine(card, "老師解讀",
-                aiCopy != null && !aiCopy.careerWealth.isEmpty()
-                        ? aiCopy.careerWealth
+                aiCopy != null && !aiCopy.wealth.isEmpty()
+                        ? aiCopy.wealth
                         : "AI 完成後會把財星、大運與流年證據翻成白話；沒有 AI 時仍可直接看上面的 deterministic evidence。");
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
     }
@@ -1164,8 +1187,8 @@ public final class MainActivity extends Activity {
         addTopicLine(card, "時間",
                 "工作訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
         addTopicLine(card, "老師解讀",
-                aiCopy != null && !aiCopy.careerWealth.isEmpty()
-                        ? aiCopy.careerWealth
+                aiCopy != null && !aiCopy.career.isEmpty()
+                        ? aiCopy.career
                         : "官殺偏責任與規範、印偏資源與學習、食傷偏輸出與表達；要再和大運、流年一起看。");
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
     }
@@ -2245,9 +2268,12 @@ public final class MainActivity extends Activity {
                     .put("title", copy.title)
                     .put("overview", copy.overview)
                     .put("personality", copy.personality)
-                    .put("careerWealth", copy.careerWealth)
+                    .put("career", copy.career)
+                    .put("wealth", copy.wealth)
                     .put("relationships", copy.relationships)
-                    .put("timing", copy.timing)
+                    .put("currentCycle", copy.currentCycle)
+                    .put("longTerm", copy.longTerm)
+                    .put("keyYears", copy.keyYears)
                     .put("translation", copy.translation)
                     .put("punchline", copy.punchline)
                     .put("advice", copy.advice)
