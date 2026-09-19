@@ -39,11 +39,13 @@ public final class MainActivity extends Activity {
     private FortuneMode selectedMode = FortuneMode.TODAY;
     private EditText nameInput;
     private EditText birthInput;
+    private EditText birthTimeInput;
     private EditText secondInput;
     private TextView modeLabel;
     private TextView aiStatus;
     private LinearLayout resultCard;
     private FortuneResult currentResult;
+    private FortuneFacts currentFacts;
     private AiFortuneCopy aiCopy;
     private AgentHarness activeHarness;
 
@@ -112,10 +114,13 @@ public final class MainActivity extends Activity {
         form.addView(label("先交代一下你的基本資料"));
         nameInput = input("你的名字");
         birthInput = input("生日，例如 1985-07-22");
+        birthTimeInput = input("出生地當地時間，例如 14:30（八字使用）");
+        birthTimeInput.setVisibility(View.GONE);
         secondInput = input("朋友 / 對象名字（合盤時填）");
         secondInput.setVisibility(View.GONE);
         form.addView(nameInput, marginTop(12));
         form.addView(birthInput, marginTop(10));
+        form.addView(birthTimeInput, marginTop(10));
         form.addView(secondInput, marginTop(10));
 
         modeLabel = text("今天想算：今日運勢", 16, TEXT, true);
@@ -161,7 +166,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · Gemini 失敗時自動退回本地文案 · v0.1.1", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字與塔羅皆揭露計算規則 · v0.2.0", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -170,7 +175,12 @@ public final class MainActivity extends Activity {
     private void selectMode(FortuneMode mode) {
         selectedMode = mode;
         modeLabel.setText("今天想算：" + mode.title() + "\n" + mode.subtitle());
+        birthTimeInput.setVisibility(mode == FortuneMode.BA_ZI ? View.VISIBLE : View.GONE);
         secondInput.setVisibility(mode == FortuneMode.COMPATIBILITY ? View.VISIBLE : View.GONE);
+        if (mode == FortuneMode.BA_ZI) {
+            modeLabel.setText("今天想算：" + mode.title() + "\n" + mode.subtitle()
+                    + "\n以出生地當地民用時間排盤；目前不做真太陽時校正");
+        }
     }
 
     private void calculate() {
@@ -178,8 +188,10 @@ public final class MainActivity extends Activity {
         FortuneProfile profile = new FortuneProfile(
                 nameInput.getText().toString(),
                 birthInput.getText().toString(),
+                birthTimeInput.getText().toString(),
                 secondInput.getText().toString());
         try {
+            currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
             currentResult = engine.calculate(selectedMode, profile, new Date());
             aiCopy = null;
             synchronized (aiBuffer) {
@@ -252,6 +264,9 @@ public final class MainActivity extends Activity {
         value.append("mode=").append(selectedMode.name()).append('\n');
         value.append("name=").append(profile.name).append('\n');
         value.append("birthDate=").append(profile.birthDate).append('\n');
+        if (!profile.birthTime.isEmpty()) {
+            value.append("birthTime=").append(profile.birthTime).append('\n');
+        }
         if (!profile.secondaryName.isEmpty()) {
             value.append("secondaryName=").append(profile.secondaryName).append('\n');
         }
@@ -267,7 +282,7 @@ public final class MainActivity extends Activity {
         resultCard.addView(badge);
 
         if (aiLoading) {
-            TextView score = text(result.score + " / 100", 30, ACCENT, true);
+            TextView score = text(primaryMetric(result), 30, ACCENT, true);
             resultCard.addView(score, marginTop(12));
             TextView basis = text("計算依據｜" + result.basis, 13, MUTED, false);
             resultCard.addView(basis, marginTop(4));
@@ -283,11 +298,13 @@ public final class MainActivity extends Activity {
         TextView title = text(titleValue, 25, TEXT, true);
         resultCard.addView(title, marginTop(8));
 
-        TextView score = text(result.score + " / 100", 30, ACCENT, true);
+        TextView score = text(primaryMetric(result), 30, ACCENT, true);
         resultCard.addView(score, marginTop(12));
 
         TextView basis = text("計算依據｜" + result.basis, 13, MUTED, false);
         resultCard.addView(basis, marginTop(4));
+
+        addCalculationFacts();
 
         addSection("認真分析", aiCopy == null ? result.analysis : aiCopy.analysis);
         addSection("翻譯成人話", aiCopy == null ? result.translation : aiCopy.translation);
@@ -309,6 +326,42 @@ public final class MainActivity extends Activity {
         lp.topMargin = dp(18);
         resultCard.addView(share, lp);
         resultCard.setVisibility(View.VISIBLE);
+    }
+
+    private String primaryMetric(FortuneResult result) {
+        if (currentFacts != null && result.mode == FortuneMode.BA_ZI) {
+            return "五行均衡度 " + currentFacts.score + " / 100";
+        }
+        if (currentFacts != null && result.mode == FortuneMode.TAROT_NUMEROLOGY) {
+            return "生命靈數 " + currentFacts.detailText("lifePathNumber");
+        }
+        return result.score + " / 100";
+    }
+
+    private void addCalculationFacts() {
+        if (currentFacts == null) return;
+        if (currentFacts.mode == FortuneMode.BA_ZI) {
+            addSection("四柱",
+                    currentFacts.detailText("fourPillars")
+                            + "\n日主：" + currentFacts.detailText("dayMaster")
+                            + currentFacts.detailText("dayMasterElement"));
+            addSection("可見五行",
+                    currentFacts.detailText("visibleFiveElements")
+                            + "\n藏干：" + currentFacts.detailText("hiddenStems"));
+            addSection("十神",
+                    currentFacts.detailText("tenGods"));
+        } else if (currentFacts.mode == FortuneMode.TAROT_NUMEROLOGY) {
+            addSection("出生牌",
+                    "(" + currentFacts.detailText("birthCardNumber") + ") "
+                            + currentFacts.detailText("birthCardName")
+                            + "\n" + currentFacts.detailText("birthCardKeywords"));
+            String soul = currentFacts.detailText("reducedSoulCardName");
+            if (!soul.isEmpty()) {
+                addSection("延伸靈魂牌",
+                        currentFacts.detailText("reducedSoulNumber") + " " + soul
+                                + " · " + currentFacts.detailText("reducedSoulCardKeywords"));
+            }
+        }
     }
 
     private void addSection(String heading, String body) {
