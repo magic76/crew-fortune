@@ -1,25 +1,28 @@
 package com.crewpocket.fortune;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 public final class TarotNumerologyCalculatorTest {
-    @Test public void calculatesBirthCardFromDigitSum() {
-        Map<String, Object> facts = new TarotNumerologyCalculator().calculate("1990-02-14");
-        assertEquals(26, ((Number) facts.get("rawDigitSum")).intValue());
-        assertEquals(8, ((Number) facts.get("lifePathNumber")).intValue());
-        assertEquals(8, ((Number) facts.get("birthCardNumber")).intValue());
-        assertEquals("力量", facts.get("birthCardName"));
+    @Test public void matchesTarotSchoolJusticePriestessExample() {
+        Map<String, Object> facts = new TarotNumerologyCalculator().calculate(
+                "1950-02-21", new Date(1760000000000L));
+        assertEquals("11 正義 × 2 女祭司", facts.get("birthCardDisplay"));
+        assertEquals(2, ((Number) facts.get("lifePathNumber")).intValue());
     }
 
-    @Test public void mapsTwentyTwoToTheFool() {
-        Map<String, Object> facts = new TarotNumerologyCalculator().calculate("1979-09-13");
-        if (((Number) facts.get("tarotReductionValue")).intValue() == 22) {
-            assertEquals(0, ((Number) facts.get("birthCardNumber")).intValue());
-            assertEquals("愚者", facts.get("birthCardName"));
-        }
+    @Test public void matchesTarotSchoolStarStrengthExample() {
+        Map<String, Object> facts = new TarotNumerologyCalculator().calculate(
+                "1969-08-20", new Date(1760000000000L));
+        assertEquals("17 星星 × 8 力量", facts.get("birthCardDisplay"));
+        assertTrue(facts.get("pinnacles") instanceof List);
+        assertTrue(facts.get("challenges") instanceof List);
+        assertTrue(facts.get("personalYear") instanceof Number);
     }
 }

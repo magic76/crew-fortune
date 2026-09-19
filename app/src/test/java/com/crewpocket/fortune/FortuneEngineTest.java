@@ -2,39 +2,35 @@ package com.crewpocket.fortune;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+
 import org.junit.Test;
+
 import java.util.Date;
 
 public final class FortuneEngineTest {
     private final FortuneEngine engine = new FortuneEngine();
 
-    @Test public void sameInputProducesSameResult() {
-        FortuneProfile profile = new FortuneProfile("小明", "2015-06-18", "");
+    @Test public void sameTarotInputProducesSameCoreFacts() {
+        FortuneProfile profile = new FortuneProfile("小明", "1990-02-14", "", "");
         Date now = new Date(1760000000000L);
-        FortuneResult first = engine.calculate(FortuneMode.TODAY, profile, now);
-        FortuneResult second = engine.calculate(FortuneMode.TODAY, profile, now);
-        assertEquals(first.score, second.score);
-        assertEquals(first.title, second.title);
-        assertEquals(first.translation, second.translation);
+        FortuneFacts first = engine.calculateFacts(FortuneMode.TAROT_NUMEROLOGY, profile, now);
+        FortuneFacts second = engine.calculateFacts(FortuneMode.TAROT_NUMEROLOGY, profile, now);
+        assertEquals(first.detailText("lifePathNumber"), second.detailText("lifePathNumber"));
+        assertEquals(first.detailText("birthCardDisplay"), second.detailText("birthCardDisplay"));
     }
 
-    @Test public void nonDailyModesStayStableAcrossDates() {
-        FortuneProfile profile = new FortuneProfile("Alice", "1990-03-12", "");
-        FortuneResult first = engine.calculate(FortuneMode.PERSONALITY, profile, new Date(0L));
-        FortuneResult second = engine.calculate(FortuneMode.PERSONALITY, profile, new Date(1893456000000L));
-        assertEquals(first.score, second.score);
-        assertEquals(first.title, second.title);
+    @Test public void sameBaziInputProducesSameFourPillars() {
+        FortuneProfile profile = new FortuneProfile("小明", "2005-12-23", "08:37", "male");
+        Date now = new Date(1760000000000L);
+        FortuneFacts first = engine.calculateFacts(FortuneMode.BA_ZI, profile, now);
+        FortuneFacts second = engine.calculateFacts(FortuneMode.BA_ZI, profile, now);
+        assertEquals(first.detailText("fourPillars"), second.detailText("fourPillars"));
+        assertEquals(first.detailText("dayMasterStrength"), second.detailText("dayMasterStrength"));
     }
 
-    @Test public void compatibilityRequiresSecondName() {
-        FortuneProfile profile = new FortuneProfile("小明", "2015-06-18", "");
+    @Test public void baziRequiresGender() {
+        FortuneProfile profile = new FortuneProfile("小明", "2005-12-23", "08:37", "");
         assertThrows(IllegalArgumentException.class,
-                () -> engine.calculate(FortuneMode.COMPATIBILITY, profile, new Date()));
-    }
-
-    @Test public void invalidBirthDateIsRejected() {
-        FortuneProfile profile = new FortuneProfile("小明", "2015-99-99", "");
-        assertThrows(IllegalArgumentException.class,
-                () -> engine.calculate(FortuneMode.WEALTH, profile, new Date()));
+                () -> engine.calculateFacts(FortuneMode.BA_ZI, profile, new Date()));
     }
 }

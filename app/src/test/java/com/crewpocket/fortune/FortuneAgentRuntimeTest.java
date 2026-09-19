@@ -29,7 +29,7 @@ public final class FortuneAgentRuntimeTest {
         });
 
         harness.start();
-        harness.submitText("幫小明算今日運勢");
+        harness.submitText("幫我算塔羅生命靈數");
 
         assertTrue(model.receivedToolResult);
         assertEquals("calculate_fortune", model.requestedToolName);
@@ -50,9 +50,9 @@ public final class FortuneAgentRuntimeTest {
 
         @Override public void sendUserText(String text) {
             Map<String, Object> args = new LinkedHashMap<String, Object>();
-            args.put("mode", "TODAY");
+            args.put("mode", "TAROT_NUMEROLOGY");
             args.put("name", "小明");
-            args.put("birthDate", "2015-06-18");
+            args.put("birthDate", "1950-02-21");
             requestedToolName = "calculate_fortune";
             listener.onModelEvent(ModelEvent.toolCall(
                     new ToolCall("call-1", requestedToolName, args)));
@@ -62,7 +62,7 @@ public final class FortuneAgentRuntimeTest {
 
         @Override public void sendToolResult(ToolResult result) {
             receivedToolResult = result.success();
-            listener.onModelEvent(ModelEvent.text("宇宙有回訊息，但叫你先把作業寫完。"));
+            listener.onModelEvent(ModelEvent.text("{\"title\":\"測試\",\"analysis\":\"A\",\"translation\":\"B\",\"punchline\":\"C\",\"advice\":\"D\",\"shareText\":\"E\"}"));
             listener.onModelEvent(ModelEvent.turnCompleted());
         }
 
