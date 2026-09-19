@@ -185,7 +185,7 @@ public final class MainActivity extends Activity {
         styleRow.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(44), 1f));
         form.addView(styleRow, marginTop(6));
 
-        TextView styleHint = text("只改 AI 說話方式，不改命盤計算結果", 11, MUTED, false);
+        TextView styleHint = text("嚴謹：專業報告｜普通：白話平衡｜風趣：嘴得準但不傷人\n只改 AI 說話方式，不改命盤計算結果", 11, MUTED, false);
         form.addView(styleHint, marginTop(4));
 
         modeLabel = text("今天想算：八字\n四柱、十神、大運、流年\n以出生地當地民用時間排盤；目前不做真太陽時校正", 16, TEXT, true);
@@ -231,7 +231,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.3", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.4", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
