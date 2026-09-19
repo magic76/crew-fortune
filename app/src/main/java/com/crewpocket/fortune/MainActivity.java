@@ -34,6 +34,7 @@ import androidx.core.content.FileProvider;
 import com.magic76.crew.agent.AgentEvent;
 import com.magic76.crew.agent.AgentHarness;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -83,6 +84,7 @@ public final class MainActivity extends Activity {
     private TextView teacherInputText;
     private TextView teacherOutputText;
     private boolean pendingTeacherStart;
+    private String pendingTeacherQuestion = "";
     private int selectedResultTab = 0;
     private LinearLayout resultTabContent;
 
@@ -539,7 +541,7 @@ public final class MainActivity extends Activity {
             value.append("這次必須重新輸出一個完整、可解析的 JSON object。")
                     .append("不得輸出 markdown code fence、前言、後記或任何 JSON 外文字。")
                     .append("不得省略 title, overview, personality, career, wealth, relationships, ")
-                    .append("currentCycle, longTerm, keyYears, translation, punchline, advice, shareText。")
+                    .append("currentCycle, longTerm, keyYears, topTraits, followUps, translation, punchline, advice, shareText。")
                     .append("不要縮短內容來逃避欄位要求。\n");
         }
 
@@ -861,6 +863,10 @@ public final class MainActivity extends Activity {
                         + "\n個人月 " + currentFacts.detailText("personalMonth")
                         + "｜" + currentTarotYearSummary());
 
+        if (!aiLoading && aiCopy != null && !aiCopy.topTraits.isEmpty()) {
+            addTopTraits(panel);
+        }
+
         String summary;
         if (aiLoading) {
             summary = localReportSection("核心總覽");
@@ -1034,6 +1040,10 @@ public final class MainActivity extends Activity {
                 aiLoading);
         resultCard.addView(source, marginTop(aiLoading ? 5 : 6));
 
+        if (!aiLoading && aiCopy != null && !aiCopy.followUps.isEmpty()) {
+            addFollowUpQuestions();
+        }
+
         Button teacher = new Button(this);
         teacher.setText(aiLoading ? "老師跟我講解 · 整理中" : "老師跟我講解");
         teacher.setTextSize(15);
@@ -1055,6 +1065,77 @@ public final class MainActivity extends Activity {
             share.setOnClickListener(v -> shareResult());
         }
         resultCard.addView(share, fixedHeightTop(48, 6));
+    }
+
+    private void addTopTraits(LinearLayout panel) {
+        TextView title = text("最像你的 3 件事", 13, GOLD, true);
+        panel.addView(title, marginTop(10));
+
+        int index = 0;
+        for (String trait : aiCopy.topTraits) {
+            if (index >= 3) break;
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.TOP);
+            row.setPadding(dp(9), dp(8), dp(9), dp(8));
+            row.setBackground(roundBorder(
+                    Color.rgb(43, 33, 65),
+                    Color.rgb(80, 65, 111),
+                    13,
+                    1));
+
+            TextView number = text(
+                    index == 0 ? "①" : index == 1 ? "②" : "③",
+                    18,
+                    ACCENT,
+                    true);
+            LinearLayout.LayoutParams numberLp = new LinearLayout.LayoutParams(
+                    dp(30), LinearLayout.LayoutParams.WRAP_CONTENT);
+            numberLp.rightMargin = dp(5);
+            row.addView(number, numberLp);
+
+            TextView body = text(trait, 13, TEXT, true);
+            body.setLineSpacing(dp(2), 1f);
+            row.addView(body, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            panel.addView(row, marginTop(5));
+            index++;
+        }
+    }
+
+    private void addFollowUpQuestions() {
+        TextView title = text("你一定會想問", 13, GOLD, true);
+        resultCard.addView(title, marginTop(9));
+
+        int index = 0;
+        LinearLayout row = null;
+        for (final String question : aiCopy.followUps) {
+            if (index >= 4) break;
+            if (index % 2 == 0) {
+                row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                resultCard.addView(row, marginTop(5));
+            }
+
+            Button button = secondaryButton(question);
+            button.setTextSize(12);
+            button.setGravity(Gravity.CENTER);
+            button.setPadding(dp(7), dp(3), dp(7), dp(3));
+            button.setOnClickListener(v -> {
+                OperationLog.add(
+                        MainActivity.this,
+                        "TEACHER_FOLLOWUP_SELECTED",
+                        "chars=" + question.length());
+                startTeacherExplanation(question);
+            });
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    0, dp(58), 1f);
+            if (index % 2 == 0) lp.rightMargin = dp(5);
+            row.addView(button, lp);
+            index++;
+        }
     }
 
     private void addAiLoadingBanner(FortuneMode mode) {
@@ -1174,6 +1255,10 @@ public final class MainActivity extends Activity {
         Object luck = currentFacts.detail("currentLuckPillar");
         addPanelSection(panel, "目前大運", summaryLuck(luck));
         addPanelSection(panel, "今年流年", formatCurrentAnnual());
+
+        if (!aiLoading && aiCopy != null && !aiCopy.topTraits.isEmpty()) {
+            addTopTraits(panel);
+        }
 
         String aiSummary;
         if (aiLoading) {
@@ -2002,8 +2087,14 @@ public final class MainActivity extends Activity {
     }
 
     private void startTeacherExplanation() {
+        startTeacherExplanation("");
+    }
+
+    private void startTeacherExplanation(String initialQuestion) {
+        String question = initialQuestion == null ? "" : initialQuestion.trim();
         OperationLog.add(this, "TEACHER_REQUESTED",
-                selectedMode.name() + " · " + selectedAiStyle.name());
+                selectedMode.name() + " · " + selectedAiStyle.name()
+                        + (question.isEmpty() ? "" : " · followup"));
         if (currentFacts == null || currentResult == null) {
             Toast.makeText(this, "請先完成一次算命", Toast.LENGTH_SHORT).show();
             return;
@@ -2017,12 +2108,14 @@ public final class MainActivity extends Activity {
                 != PackageManager.PERMISSION_GRANTED) {
             OperationLog.add(this, "MIC_PERMISSION_REQUESTED", "");
             pendingTeacherStart = true;
+            pendingTeacherQuestion = question;
             requestPermissions(
                     new String[]{Manifest.permission.RECORD_AUDIO},
                     REQUEST_TEACHER_AUDIO);
             return;
         }
-        openTeacherDialog();
+        pendingTeacherQuestion = "";
+        openTeacherDialog(question);
     }
 
     @Override
@@ -2037,16 +2130,20 @@ public final class MainActivity extends Activity {
         if (pendingTeacherStart && granted) {
             OperationLog.add(this, "MIC_PERMISSION_GRANTED", "");
             pendingTeacherStart = false;
-            openTeacherDialog();
+            String question = pendingTeacherQuestion;
+            pendingTeacherQuestion = "";
+            openTeacherDialog(question);
         } else {
             OperationLog.add(this, "MIC_PERMISSION_DENIED", "");
             pendingTeacherStart = false;
+            pendingTeacherQuestion = "";
             Toast.makeText(this, "需要麥克風權限才能跟老師對話", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void openTeacherDialog() {
+    private void openTeacherDialog(String initialQuestion) {
         closeTeacher();
+        String directQuestion = initialQuestion == null ? "" : initialQuestion.trim();
 
         LinearLayout body = column();
         body.setPadding(dp(14), dp(14), dp(14), dp(12));
@@ -2057,7 +2154,9 @@ public final class MainActivity extends Activity {
         body.addView(title);
 
         TextView hint = text(
-                "老師會先講 60–90 秒重點。想插話時按「我要問」，老師會立刻停下來聽你說。",
+                directQuestion.isEmpty()
+                        ? "老師會先講 60–90 秒重點。想插話時按「我要問」，老師會立刻停下來聽你說。"
+                        : "已經把你點的問題帶給老師，會直接回答，不會重新從頭介紹命盤。",
                 13, MUTED, false);
         hint.setLineSpacing(dp(3), 1f);
         body.addView(hint, marginTop(6));
@@ -2067,7 +2166,9 @@ public final class MainActivity extends Activity {
 
         TextView youLabel = text("你剛剛說", 11, GOLD, true);
         body.addView(youLabel, marginTop(6));
-        teacherInputText = text("—", 14, TEXT, false);
+        teacherInputText = text(
+                directQuestion.isEmpty() ? "—" : directQuestion,
+                14, TEXT, false);
         teacherInputText.setLineSpacing(dp(2), 1f);
         body.addView(teacherInputText, marginTop(4));
 
@@ -2113,8 +2214,12 @@ public final class MainActivity extends Activity {
                 selectedAiStyle,
                 currentFacts,
                 nameInput.getText().toString());
-        String opening = FortuneTeacherPrompt.openingPrompt(
-                nameInput.getText().toString());
+        String opening = directQuestion.isEmpty()
+                ? FortuneTeacherPrompt.openingPrompt(nameInput.getText().toString())
+                : "使用者剛剛點選追問：「" + directQuestion + "」。"
+                + "不要做一般 60–90 秒開場，直接回答這個問題。"
+                + "先給白話結論，再講 2–4 個 deterministicFacts 裡的具體依據，"
+                + "最後補一句可以繼續追問的方向。";
 
         OperationLog.add(this, "TEACHER_START",
                 selectedMode.name() + " · media_audio");
@@ -2450,6 +2555,8 @@ public final class MainActivity extends Activity {
                     .put("currentCycle", copy.currentCycle)
                     .put("longTerm", copy.longTerm)
                     .put("keyYears", copy.keyYears)
+                    .put("topTraits", new JSONArray(copy.topTraits))
+                    .put("followUps", new JSONArray(copy.followUps))
                     .put("translation", copy.translation)
                     .put("punchline", copy.punchline)
                     .put("advice", copy.advice)
