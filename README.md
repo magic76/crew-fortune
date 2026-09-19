@@ -109,3 +109,12 @@ All readings are positioned as entertainment and reflection. Gemini writes the i
 - The first explanation is designed as a 60–90 second spoken summary, followed by open voice Q&A.
 - Voice persona follows the selected AI style: strict, normal or funny.
 - Microphone permission is requested only when starting the voice teacher.
+
+
+## v0.6.1 state, media audio and operation history
+
+- Gemini Live teacher playback uses Android media audio (`USAGE_MEDIA`, normal audio mode), so volume follows media volume rather than call volume.
+- `MainActivity` handles orientation/screen-size configuration changes without recreation, preserving the visible result and active Live teacher during rotation.
+- `onSaveInstanceState` provides a second recovery path for inputs, selected mode/style, deterministic result and AI copy if Android later recreates the activity.
+- A persistent local operation log keeps the most recent 200 important user/app actions. It never stores the Gemini API key or full voice transcript content.
+- The top-bar **記錄** entry displays and can clear local operation history.

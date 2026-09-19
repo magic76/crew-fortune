@@ -975,6 +975,7 @@ public final class MainActivity extends Activity {
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
+            OperationLog.add(this, "MIC_PERMISSION_REQUESTED", "");
             pendingTeacherStart = true;
             requestPermissions(
                     new String[]{Manifest.permission.RECORD_AUDIO},
@@ -994,9 +995,11 @@ public final class MainActivity extends Activity {
         boolean granted = grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
         if (pendingTeacherStart && granted) {
+            OperationLog.add(this, "MIC_PERMISSION_GRANTED", "");
             pendingTeacherStart = false;
             openTeacherDialog();
         } else {
+            OperationLog.add(this, "MIC_PERMISSION_DENIED", "");
             pendingTeacherStart = false;
             Toast.makeText(this, "需要麥克風權限才能跟老師對話", Toast.LENGTH_SHORT).show();
         }
@@ -1037,6 +1040,7 @@ public final class MainActivity extends Activity {
 
         Button interrupt = secondaryButton("我要問");
         interrupt.setOnClickListener(v -> {
+            OperationLog.add(this, "TEACHER_INTERRUPT", "");
             GeminiFortuneLiveSession session = teacherSession;
             if (session != null) session.interrupt();
         });
@@ -1366,6 +1370,7 @@ public final class MainActivity extends Activity {
                 .setPositiveButton("關閉", null)
                 .setNeutralButton("清除", (dialog, which) -> {
                     OperationLog.clear(this);
+                    OperationLog.add(this, "OPERATION_LOG_CLEARED", "");
                     Toast.makeText(this, "已清除操作記錄", Toast.LENGTH_SHORT).show();
                 })
                 .show();
@@ -1383,8 +1388,12 @@ public final class MainActivity extends Activity {
 
         DatePickerDialog dialog = new DatePickerDialog(
                 this,
-                (view, year, month, day) -> birthInput.setText(String.format(
-                        java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, day)),
+                (view, year, month, day) -> {
+                    String value = String.format(
+                            java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, day);
+                    birthInput.setText(value);
+                    OperationLog.add(this, "BIRTH_DATE_SELECTED", value);
+                },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH));
@@ -1406,8 +1415,12 @@ public final class MainActivity extends Activity {
         }
         new TimePickerDialog(
                 this,
-                (view, selectedHour, selectedMinute) -> birthTimeInput.setText(String.format(
-                        java.util.Locale.US, "%02d:%02d", selectedHour, selectedMinute)),
+                (view, selectedHour, selectedMinute) -> {
+                    String value = String.format(
+                            java.util.Locale.US, "%02d:%02d", selectedHour, selectedMinute);
+                    birthTimeInput.setText(value);
+                    OperationLog.add(this, "BIRTH_TIME_SELECTED", value);
+                },
                 hour,
                 minute,
                 true).show();
