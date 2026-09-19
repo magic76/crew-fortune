@@ -352,10 +352,22 @@ public final class MainActivity extends Activity {
     private void startAiCopy(FortuneProfile profile) {
         OperationLog.add(this, "AI_INTERPRETATION_START",
                 selectedMode.name() + " · " + selectedAiStyle.name());
+        startAiCopyAttempt(profile, 0, "");
+    }
+
+    private void startAiCopyAttempt(
+            FortuneProfile profile,
+            int attempt,
+            String retryReason) {
+        synchronized (aiBuffer) {
+            aiBuffer.setLength(0);
+        }
+
         try {
-            GeminiTextModelSession session = new GeminiTextModelSession(
+            final GeminiTextModelSession session = new GeminiTextModelSession(
                     AppConfig.getGeminiApiKey(this),
                     selectedAiStyle.temperature());
+
             activeHarness = FortuneAgentRuntime.createInterpretation(session, new AgentHarness.Listener() {
                 @Override public void onAgentEvent(AgentEvent event) {
                     if (event == null) return;
@@ -365,42 +377,113 @@ public final class MainActivity extends Activity {
                                 aiBuffer.append(event.text());
                             }
                             break;
+
                         case TURN_COMPLETED:
                             final String completed;
                             synchronized (aiBuffer) {
                                 completed = aiBuffer.toString().trim();
                             }
+
+                            final AiFortuneCopy parsed;
                             try {
-                                final AiFortuneCopy parsed = AiFortuneCopy.parse(completed);
-                                runOnUiThread(() -> {
-                                    aiCopy = parsed;
-                                    OperationLog.add(MainActivity.this,
-                                            "AI_INTERPRETATION_SUCCESS",
-                                            selectedAiStyle.name());
-                                    if (currentResult != null) renderResult(currentResult, false);
-                                });
+                                parsed = AiFortuneCopy.parse(completed);
                             } catch (IllegalArgumentException parseError) {
-                                OperationLog.add(MainActivity.this,
-                                        "AI_INTERPRETATION_FAILED", "parse_error");
-                                showAiFallback("AI 命理師講得太玄，格式跑掉了。先顯示本地結果。");
+                                String detail = "parse_error: "
+                                        + safeErrorMessage(parseError)
+                                        + " · attempt=" + (attempt + 1)
+                                        + " · finishReason=" + session.lastFinishReason()
+                                        + " · " + safeAiResponseSummary(completed);
+
+                                OperationLog.add(
+                                        MainActivity.this,
+                                        "AI_INTERPRETATION_PARSE_ERROR",
+                                        detail);
+
+                                if (attempt == 0) {
+                                    OperationLog.add(
+                                            MainActivity.this,
+                                            "AI_INTERPRETATION_RETRY",
+                                            detail);
+                                    closeAgent();
+                                    runOnUiThread(() ->
+                                            startAiCopyAttempt(profile, 1, detail));
+                                    return;
+                                }
+
+                                OperationLog.add(
+                                        MainActivity.this,
+                                        "AI_INTERPRETATION_FAILED",
+                                        detail);
+                                showAiFallback(
+                                        "AI 命理師回覆格式仍不完整，已保留本地完整結果。");
+                                closeAgent();
+                                return;
                             }
+
+                            String qualityIssues = parsed.qualityIssueSummary(selectedMode);
+                            if (!qualityIssues.isEmpty() && attempt == 0) {
+                                String detail = "quality_short: " + qualityIssues
+                                        + " · finishReason=" + session.lastFinishReason()
+                                        + " · " + safeAiResponseSummary(completed);
+                                OperationLog.add(
+                                        MainActivity.this,
+                                        "AI_INTERPRETATION_RETRY",
+                                        detail);
+                                closeAgent();
+                                runOnUiThread(() ->
+                                        startAiCopyAttempt(profile, 1, detail));
+                                return;
+                            }
+
+                            if (!qualityIssues.isEmpty()) {
+                                OperationLog.add(
+                                        MainActivity.this,
+                                        "AI_INTERPRETATION_QUALITY_WARNING",
+                                        qualityIssues);
+                            }
+
+                            runOnUiThread(() -> {
+                                aiCopy = parsed;
+                                OperationLog.add(
+                                        MainActivity.this,
+                                        "AI_INTERPRETATION_SUCCESS",
+                                        selectedAiStyle.name()
+                                                + " · attempt=" + (attempt + 1)
+                                                + " · chars=" + completed.length());
+                                if (currentResult != null) {
+                                    renderResult(currentResult, false);
+                                }
+                            });
                             closeAgent();
                             break;
+
                         case ERROR:
-                            OperationLog.add(MainActivity.this,
-                                    "AI_INTERPRETATION_FAILED", "model_error");
-                            showAiFallback("AI 命理師暫時去喝茶，先顯示本地結果。");
+                            OperationLog.add(
+                                    MainActivity.this,
+                                    "AI_INTERPRETATION_FAILED",
+                                    "model_error · attempt=" + (attempt + 1)
+                                            + " · finishReason="
+                                            + session.lastFinishReason());
+                            showAiFallback(
+                                    "AI 命理師暫時無法完成解讀，已保留本地完整結果。");
                             closeAgent();
                             break;
+
                         default:
                             break;
                     }
                 }
             }, selectedAiStyle);
+
             activeHarness.start();
-            activeHarness.submitText(buildAiRequest(profile));
+            activeHarness.submitText(
+                    buildAiRequest(profile, attempt, retryReason));
         } catch (Exception error) {
-            OperationLog.add(this, "AI_INTERPRETATION_FAILED", "startup_error");
+            OperationLog.add(
+                    this,
+                    "AI_INTERPRETATION_FAILED",
+                    "startup_error: " + safeErrorMessage(error)
+                            + " · attempt=" + (attempt + 1));
             showAiFallback("AI 模式啟動失敗，已使用本地結果。");
             closeAgent();
         }
@@ -414,21 +497,66 @@ public final class MainActivity extends Activity {
         });
     }
 
-    private String buildAiRequest(FortuneProfile profile) {
+    private String buildAiRequest(
+            FortuneProfile profile,
+            int attempt,
+            String retryReason) {
         if (currentFacts == null) {
             throw new IllegalStateException("deterministic facts are missing");
         }
+
         String factsJson = new JSONObject(currentFacts.details).toString();
         StringBuilder value = new StringBuilder();
-        value.append("請只解讀以下已由本機完成的 deterministic facts。不要重新計算，不要呼叫工具，不要修正輸入格式，也絕對不要使用預設值。\n");
+        value.append("請只解讀以下已由本機完成的 deterministic facts。")
+                .append("不要重新計算，不要呼叫工具，不要修正輸入格式，也絕對不要使用預設值。\n");
         value.append("mode=").append(selectedMode.name()).append('\n');
         value.append("displayName=").append(profile.name).append('\n');
         value.append("basis=").append(currentFacts.basis).append('\n');
         value.append("aiStyle=").append(selectedAiStyle.name()).append('\n');
         value.append("deterministicFacts=").append(factsJson).append('\n');
+
+        if (attempt > 0) {
+            value.append("RETRY_MODE=JSON_REPAIR_AND_EXPANSION\n");
+            value.append("上一次回覆不符合格式或內容過短。原因摘要：")
+                    .append(retryReason == null ? "" : retryReason)
+                    .append('\n');
+            value.append("這次必須重新輸出一個完整、可解析的 JSON object。")
+                    .append("不得輸出 markdown code fence、前言、後記或任何 JSON 外文字。")
+                    .append("不得省略 title, overview, personality, career, wealth, relationships, ")
+                    .append("currentCycle, longTerm, keyYears, translation, punchline, advice, shareText。")
+                    .append("不要縮短內容來逃避欄位要求。\n");
+        }
+
         value.append("creativeVariant=").append(System.nanoTime()).append('\n');
-        value.append("creativeVariant 只允許改變措辭與笑點。所有數字、干支、十神、大運、流年、塔羅牌、天賦數都必須逐字遵守 deterministicFacts。");
+        value.append("creativeVariant 只允許改變措辭與笑點。")
+                .append("所有數字、干支、十神、大運、流年、塔羅牌、天賦數")
+                .append("都必須逐字遵守 deterministicFacts。");
         return value.toString();
+    }
+
+    private String safeAiResponseSummary(String raw) {
+        String source = raw == null ? "" : raw;
+        String clean = source
+                .replace('\n', ' ')
+                .replace('\r', ' ')
+                .replaceAll("\\d{4}-\\d{2}-\\d{2}", "[date]")
+                .replaceAll("(?<!\\d)\\d{1,2}:\\d{2}(?!\\d)", "[time]")
+                .replaceAll("\\s+", " ")
+                .trim();
+        String preview = clean.length() <= 300
+                ? clean
+                : clean.substring(0, 300) + "…";
+        return "len=" + source.length() + " · preview=" + preview;
+    }
+
+    private String safeErrorMessage(Throwable error) {
+        if (error == null) return "unknown";
+        String value = error.getMessage();
+        if (value == null || value.trim().isEmpty()) {
+            value = error.getClass().getSimpleName();
+        }
+        value = value.replace('\n', ' ').replace('\r', ' ').trim();
+        return value.length() <= 220 ? value : value.substring(0, 220) + "…";
     }
 
     private void renderResult(FortuneResult result, boolean aiLoading) {
