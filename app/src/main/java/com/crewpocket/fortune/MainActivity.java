@@ -1,10 +1,12 @@
 package com.crewpocket.fortune;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class MainActivity extends Activity {
+    private static final int REQUEST_TEACHER_AUDIO = 4101;
     private static final int BG = Color.rgb(23, 17, 38);
     private static final int CARD = Color.rgb(39, 30, 60);
     private static final int CARD_2 = Color.rgb(50, 38, 76);
@@ -62,6 +65,12 @@ public final class MainActivity extends Activity {
     private FortuneFacts currentFacts;
     private AiFortuneCopy aiCopy;
     private AgentHarness activeHarness;
+    private GeminiFortuneLiveSession teacherSession;
+    private AlertDialog teacherDialog;
+    private TextView teacherStatusText;
+    private TextView teacherInputText;
+    private TextView teacherOutputText;
+    private boolean pendingTeacherStart;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -75,6 +84,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        closeTeacher();
         closeAgent();
         super.onDestroy();
     }
@@ -233,7 +243,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.5.2", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.6.0", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -259,6 +269,7 @@ public final class MainActivity extends Activity {
     }
 
     private void calculate() {
+        closeTeacher();
         closeAgent();
         FortuneProfile profile = new FortuneProfile(
                 nameInput.getText().toString(),
@@ -422,6 +433,19 @@ public final class MainActivity extends Activity {
                 : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
                 12, MUTED, false);
         resultCard.addView(source, marginTop(16));
+
+        Button teacher = new Button(this);
+        teacher.setText("老師跟我講解");
+        teacher.setTextSize(15);
+        teacher.setAllCaps(false);
+        teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        teacher.setTextColor(Color.rgb(30, 22, 46));
+        teacher.setBackground(round(GOLD, 18));
+        teacher.setOnClickListener(v -> startTeacherExplanation());
+        LinearLayout.LayoutParams teacherLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(52));
+        teacherLp.topMargin = dp(16);
+        resultCard.addView(teacher, teacherLp);
 
         Button share = new Button(this);
         share.setText("分享這個荒謬但有點準的結果");
@@ -879,6 +903,182 @@ public final class MainActivity extends Activity {
         TextView b = text(body, 16, TEXT, false);
         b.setLineSpacing(dp(3), 1f);
         resultCard.addView(b, marginTop(5));
+    }
+
+    private void startTeacherExplanation() {
+        if (currentFacts == null || currentResult == null) {
+            Toast.makeText(this, "請先完成一次算命", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!AppConfig.hasGeminiApiKey(this)) {
+            Toast.makeText(this, "先設定 Gemini Key 才能使用語音老師", Toast.LENGTH_SHORT).show();
+            showApiKeyDialog();
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            pendingTeacherStart = true;
+            requestPermissions(
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    REQUEST_TEACHER_AUDIO);
+            return;
+        }
+        openTeacherDialog();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQUEST_TEACHER_AUDIO) return;
+        boolean granted = grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+        if (pendingTeacherStart && granted) {
+            pendingTeacherStart = false;
+            openTeacherDialog();
+        } else {
+            pendingTeacherStart = false;
+            Toast.makeText(this, "需要麥克風權限才能跟老師對話", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openTeacherDialog() {
+        closeTeacher();
+
+        LinearLayout body = column();
+        body.setPadding(dp(20), dp(14), dp(20), dp(10));
+
+        TextView title = text("命理老師", 22, TEXT, true);
+        body.addView(title);
+
+        TextView hint = text(
+                "老師會先講 60–90 秒重點。講完後直接開口追問，不需要按住麥克風。",
+                13, MUTED, false);
+        hint.setLineSpacing(dp(3), 1f);
+        body.addView(hint, marginTop(6));
+
+        teacherStatusText = text("正在準備…", 13, ACCENT, true);
+        body.addView(teacherStatusText, marginTop(14));
+
+        TextView youLabel = text("你剛剛說", 11, GOLD, true);
+        body.addView(youLabel, marginTop(16));
+        teacherInputText = text("—", 14, TEXT, false);
+        teacherInputText.setLineSpacing(dp(3), 1f);
+        body.addView(teacherInputText, marginTop(4));
+
+        TextView teacherLabel = text("老師正在講", 11, GOLD, true);
+        body.addView(teacherLabel, marginTop(14));
+        teacherOutputText = text("等待老師上線…", 15, TEXT, false);
+        teacherOutputText.setLineSpacing(dp(4), 1f);
+        body.addView(teacherOutputText, marginTop(4));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button interrupt = secondaryButton("我要問");
+        interrupt.setOnClickListener(v -> {
+            GeminiFortuneLiveSession session = teacherSession;
+            if (session != null) session.interrupt();
+        });
+        LinearLayout.LayoutParams interruptLp =
+                new LinearLayout.LayoutParams(0, dp(48), 1f);
+        interruptLp.rightMargin = dp(8);
+        actions.addView(interrupt, interruptLp);
+
+        Button close = secondaryButton("結束");
+        close.setOnClickListener(v -> {
+            AlertDialog dialog = teacherDialog;
+            if (dialog != null) dialog.dismiss();
+        });
+        actions.addView(close, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        body.addView(actions, marginTop(18));
+
+        teacherDialog = new AlertDialog.Builder(this)
+                .setView(body)
+                .create();
+        teacherDialog.setOnDismissListener(dialog -> closeTeacherSessionOnly());
+        teacherDialog.show();
+
+        String teacherPrompt = FortuneTeacherPrompt.systemPrompt(
+                selectedMode, selectedAiStyle, currentFacts);
+        String opening = FortuneTeacherPrompt.openingPrompt(
+                nameInput.getText().toString());
+
+        teacherSession = new GeminiFortuneLiveSession(
+                this,
+                AppConfig.getGeminiApiKey(this),
+                FortuneTeacherPrompt.voiceName(selectedAiStyle),
+                teacherPrompt,
+                opening,
+                new GeminiFortuneLiveSession.Listener() {
+                    @Override public void onStatus(String status) {
+                        runOnUiThread(() -> {
+                            if (teacherStatusText != null) teacherStatusText.setText(status);
+                        });
+                    }
+
+                    @Override public void onReady() {
+                        runOnUiThread(() -> {
+                            if (teacherStatusText != null) {
+                                teacherStatusText.setText("老師正在看你的命盤…");
+                            }
+                        });
+                    }
+
+                    @Override public void onInputTranscript(String textValue) {
+                        runOnUiThread(() -> {
+                            if (teacherInputText != null) teacherInputText.setText(textValue);
+                        });
+                    }
+
+                    @Override public void onOutputTranscript(String textValue) {
+                        runOnUiThread(() -> {
+                            if (teacherOutputText != null) teacherOutputText.setText(textValue);
+                        });
+                    }
+
+                    @Override public void onSpeakingChanged(boolean speaking) {
+                        runOnUiThread(() -> {
+                            if (teacherStatusText != null) {
+                                teacherStatusText.setText(
+                                        speaking ? "老師正在講…" : "你可以直接追問");
+                            }
+                        });
+                    }
+
+                    @Override public void onError(String message) {
+                        runOnUiThread(() -> {
+                            if (teacherStatusText != null) {
+                                teacherStatusText.setText("語音老師暫時無法使用");
+                            }
+                            if (teacherOutputText != null) teacherOutputText.setText(message);
+                        });
+                    }
+                });
+        teacherSession.start();
+    }
+
+    private void closeTeacher() {
+        AlertDialog dialog = teacherDialog;
+        teacherDialog = null;
+        if (dialog != null && dialog.isShowing()) {
+            dialog.setOnDismissListener(null);
+            dialog.dismiss();
+        }
+        closeTeacherSessionOnly();
+    }
+
+    private void closeTeacherSessionOnly() {
+        GeminiFortuneLiveSession session = teacherSession;
+        teacherSession = null;
+        if (session != null) {
+            try { session.close(); } catch (Exception ignored) {}
+        }
+        teacherStatusText = null;
+        teacherInputText = null;
+        teacherOutputText = null;
     }
 
     private void shareResult() {
