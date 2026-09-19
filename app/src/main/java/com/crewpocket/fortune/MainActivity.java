@@ -388,11 +388,13 @@ public final class MainActivity extends Activity {
                             try {
                                 parsed = AiFortuneCopy.parse(completed);
                             } catch (IllegalArgumentException parseError) {
-                                String detail = "parse_error: "
+                                String retryCause = "parse_error: "
                                         + safeErrorMessage(parseError)
+                                        + " · finishReason=" + session.lastFinishReason();
+                                String detail = retryCause
                                         + " · attempt=" + (attempt + 1)
-                                        + " · finishReason=" + session.lastFinishReason()
-                                        + " · " + safeAiResponseSummary(completed);
+                                        + " · " + safeAiResponseSummary(
+                                                completed, profile.name);
 
                                 OperationLog.add(
                                         MainActivity.this,
@@ -406,7 +408,7 @@ public final class MainActivity extends Activity {
                                             detail);
                                     closeAgent();
                                     runOnUiThread(() ->
-                                            startAiCopyAttempt(profile, 1, detail));
+                                            startAiCopyAttempt(profile, 1, retryCause));
                                     return;
                                 }
 
@@ -422,16 +424,18 @@ public final class MainActivity extends Activity {
 
                             String qualityIssues = parsed.qualityIssueSummary(selectedMode);
                             if (!qualityIssues.isEmpty() && attempt == 0) {
-                                String detail = "quality_short: " + qualityIssues
+                                String retryCause = "quality_short: " + qualityIssues;
+                                String detail = retryCause
                                         + " · finishReason=" + session.lastFinishReason()
-                                        + " · " + safeAiResponseSummary(completed);
+                                        + " · " + safeAiResponseSummary(
+                                                completed, profile.name);
                                 OperationLog.add(
                                         MainActivity.this,
                                         "AI_INTERPRETATION_RETRY",
                                         detail);
                                 closeAgent();
                                 runOnUiThread(() ->
-                                        startAiCopyAttempt(profile, 1, detail));
+                                        startAiCopyAttempt(profile, 1, retryCause));
                                 return;
                             }
 
@@ -534,15 +538,21 @@ public final class MainActivity extends Activity {
         return value.toString();
     }
 
-    private String safeAiResponseSummary(String raw) {
+    private String safeAiResponseSummary(String raw, String displayName) {
         String source = raw == null ? "" : raw;
         String clean = source
                 .replace('\n', ' ')
                 .replace('\r', ' ')
                 .replaceAll("\\d{4}-\\d{2}-\\d{2}", "[date]")
                 .replaceAll("(?<!\\d)\\d{1,2}:\\d{2}(?!\\d)", "[time]")
+                .replaceAll("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[email]")
+                .replaceAll("(?<!\\d)\\d{8,15}(?!\\d)", "[number]")
+                .replaceAll("[A-Za-z0-9_\\-]{24,}", "[token]")
                 .replaceAll("\\s+", " ")
                 .trim();
+        if (displayName != null && !displayName.trim().isEmpty()) {
+            clean = clean.replace(displayName.trim(), "[name]");
+        }
         String preview = clean.length() <= 300
                 ? clean
                 : clean.substring(0, 300) + "…";
