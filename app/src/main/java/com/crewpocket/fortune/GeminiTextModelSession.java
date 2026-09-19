@@ -40,6 +40,7 @@ public final class GeminiTextModelSession implements ModelSession {
     };
 
     private final String apiKey;
+    private final double temperature;
     private final OkHttpClient client;
     private final JSONArray history = new JSONArray();
     private final Map<String, String> pendingCallNames = new LinkedHashMap<String, String>();
@@ -53,7 +54,12 @@ public final class GeminiTextModelSession implements ModelSession {
     private volatile int preferredModelIndex;
 
     public GeminiTextModelSession(String apiKey) {
+        this(apiKey, 0.82);
+    }
+
+    public GeminiTextModelSession(String apiKey, double temperature) {
         this.apiKey = apiKey == null ? "" : apiKey.trim();
+        this.temperature = Math.max(0.1, Math.min(1.4, temperature));
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(20, TimeUnit.SECONDS)
                 .readTimeout(40, TimeUnit.SECONDS)
@@ -208,7 +214,7 @@ public final class GeminiTextModelSession implements ModelSession {
                 .put("tools", new JSONArray().put(new JSONObject()
                         .put("functionDeclarations", functionDeclarations())))
                 .put("generationConfig", new JSONObject()
-                        .put("temperature", 0.88)
+                        .put("temperature", temperature)
                         .put("maxOutputTokens", 2400));
 
         if (forceFortuneTool) {
