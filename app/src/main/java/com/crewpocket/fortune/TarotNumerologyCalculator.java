@@ -27,6 +27,10 @@ public final class TarotNumerologyCalculator {
     };
 
     public Map<String, Object> calculate(String birthDate, Date now) {
+        return calculate(birthDate, "", now);
+    }
+
+    public Map<String, Object> calculate(String birthDate, String birthNameLatin, Date now) {
         int[] d = parseDate(birthDate);
         int year = d[0];
         int month = d[1];
@@ -67,6 +71,18 @@ public final class TarotNumerologyCalculator {
 
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         result.put("methodVersion", METHOD_VERSION);
+
+        if (birthNameLatin != null && !birthNameLatin.trim().isEmpty()) {
+            Map<String, Object> nameNumbers = new NameNumerologyCalculator().calculate(birthNameLatin);
+            result.putAll(nameNumbers);
+            Map<String, Object> coreFive = new LinkedHashMap<String, Object>();
+            coreFive.put("lifePath", masterDisplay(lifePath));
+            coreFive.put("birthday", String.valueOf(day));
+            coreFive.put("expression", nameNumbers.get("expressionDisplay"));
+            coreFive.put("soulUrge", nameNumbers.get("soulUrgeDisplay"));
+            coreFive.put("personality", nameNumbers.get("personalityDisplay"));
+            result.put("coreFive", coreFive);
+        }
         result.put("lifePathNumber", lifePath);
         result.put("lifePathDisplay", masterDisplay(lifePath));
         result.put("birthdayNumber", day);
@@ -90,7 +106,8 @@ public final class TarotNumerologyCalculator {
                 "態度數：出生月 + 出生日，化為 1–9",
                 "個人年：出生月 + 出生日 + 當年度，化為 1–9",
                 "出生牌：採 Tarot School 的 MM + DD + century + YY 公式與牌組配對",
-                "Rider-Waite-Smith 編號：8=力量、11=正義；出生牌組不把 0 愚者列為配對牌"));
+                "Rider-Waite-Smith 編號：8=力量、11=正義；出生牌組不把 0 愚者列為配對牌",
+                "姓名靈數：Pythagorean 1–9；Expression=全部字母、Soul Urge=母音、Personality=子音；11/22/33 保留主數"));
         result.put("note", containsCard(birthCards, 13)
                 ? "死神牌在此代表轉化與階段更替，不是死亡預測。"
                 : "塔羅生命靈數作為娛樂與自我反思用途，不代表必然命運。");
