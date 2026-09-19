@@ -17,6 +17,16 @@ public final class AiStyleTest {
         assertTrue(prompt.contains("concrete fact -> serious interpretation"));
         assertTrue(prompt.contains("被看穿了，但很好笑"));
         assertTrue(prompt.contains("Avoid fortune-cookie filler"));
+        assertTrue(prompt.contains("220-360"));
+        assertTrue(prompt.contains("one memorable roast AND one concrete everyday scene"));
+    }
+
+    @Test public void interpretationPromptDisablesToolsAndDefaults() {
+        FortuneAgentSpec spec = new FortuneAgentSpec(AiStyle.FUNNY, false);
+        assertTrue(spec.tools().isEmpty());
+        String prompt = spec.systemPrompt();
+        assertTrue(prompt.contains("Do NOT call any tool"));
+        assertTrue(prompt.contains("NEVER substitute defaults"));
     }
 
     @Test public void strictPromptExplicitlyAvoidsJokes() {

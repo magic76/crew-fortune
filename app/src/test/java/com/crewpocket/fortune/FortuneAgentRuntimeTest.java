@@ -38,6 +38,51 @@ public final class FortuneAgentRuntimeTest {
         assertTrue(events.contains(AgentEvent.Type.TURN_COMPLETED));
     }
 
+    @Test public void interpretationRuntimeDoesNotExposeCalculationTool() {
+        DirectSession model = new DirectSession();
+        final List<AgentEvent.Type> events = new ArrayList<AgentEvent.Type>();
+        AgentHarness harness = FortuneAgentRuntime.createInterpretation(
+                model,
+                new AgentHarness.Listener() {
+                    @Override public void onAgentEvent(AgentEvent event) {
+                        events.add(event.type());
+                    }
+                },
+                AiStyle.FUNNY);
+
+        harness.start();
+        harness.submitText("deterministicFacts={\"personalityCardNumber\":9}");
+
+        assertTrue(model.startedWithoutTools);
+        assertTrue(model.receivedFacts);
+        assertTrue(events.contains(AgentEvent.Type.MODEL_TEXT));
+        assertTrue(events.contains(AgentEvent.Type.TURN_COMPLETED));
+    }
+
+    private static final class DirectSession implements ModelSession {
+        Listener listener;
+        boolean startedWithoutTools;
+        boolean receivedFacts;
+
+        @Override public void start(SessionConfig config, Listener listener) {
+            this.listener = listener;
+            startedWithoutTools = config.tools().isEmpty();
+        }
+
+        @Override public void sendUserText(String text) {
+            receivedFacts = text.contains("deterministicFacts");
+            listener.onModelEvent(ModelEvent.text("{\"title\":\"測試\",\"analysis\":\"A\",\"translation\":\"B\",\"punchline\":\"C\",\"advice\":\"D\",\"shareText\":\"E\"}"));
+            listener.onModelEvent(ModelEvent.turnCompleted());
+        }
+
+        @Override public void sendUserAudio(byte[] audio) {}
+        @Override public void sendToolResult(ToolResult result) {
+            throw new AssertionError("interpretation runtime must not send tool results");
+        }
+        @Override public void interrupt() {}
+        @Override public void close() {}
+    }
+
     private static final class FakeSession implements ModelSession {
         Listener listener;
         boolean receivedToolResult;

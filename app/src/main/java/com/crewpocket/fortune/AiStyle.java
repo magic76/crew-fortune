@@ -32,7 +32,9 @@ public enum AiStyle {
                         + "Avoid fortune-cookie filler such as '宇宙在提醒你', '命運正在安排', '近期可能會有轉機', '相信自己', or vague statements that could fit anyone. "
                         + "Avoid canned jokes like '你的錢包在哭' unless a concrete wealth-related fact makes it unusually apt. "
                         + "Do not insult appearance, intelligence, worth, family, identity or trauma. Do not be vulgar, cruel, humiliating or hostile. "
-                        + "Do not make every sentence a joke: keep the calculation credible, then land one sharp line. "
+                        + "Do not make every sentence a joke: keep the calculation credible, then land sharp lines. "
+                        + "For overview, personality, careerWealth, relationships and timing, include at least one memorable roast AND one concrete everyday scene when the facts support it. "
+                        + "In translation, give 3-5 short, quotable observations that feel specific enough to screenshot. "
                         + "The reader should feel '被看穿了，但很好笑', not '被罵了'. ";
             case NORMAL:
             default:
