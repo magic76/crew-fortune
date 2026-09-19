@@ -291,8 +291,18 @@ public final class MainActivity extends Activity {
     }
 
     private void selectMode(FortuneMode mode) {
+        FortuneMode previous = selectedMode;
         selectedMode = mode;
         OperationLog.add(this, "MODE_SELECTED", mode.name());
+        if (previous != mode && currentResult != null) {
+            closeTeacher();
+            closeAgent();
+            currentResult = null;
+            currentFacts = null;
+            aiCopy = null;
+            selectedResultTab = 0;
+            if (resultCard != null) resultCard.setVisibility(View.GONE);
+        }
         boolean isBaZi = mode == FortuneMode.BA_ZI;
         birthTimeInput.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
         genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
@@ -1212,6 +1222,36 @@ public final class MainActivity extends Activity {
             return out.toString();
         }
         return indent + String.valueOf(value);
+    }
+
+    private String displayFactKey(String key) {
+        if ("ganZhi".equals(key)) return "干支";
+        if ("startYear".equals(key)) return "起始年";
+        if ("endYear".equals(key)) return "結束年";
+        if ("startAge".equals(key)) return "起始年齡";
+        if ("endAge".equals(key)) return "結束年齡";
+        if ("xunKong".equals(key)) return "旬空";
+        if ("stemTenGod".equals(key)) return "天干十神";
+        if ("stemTenGodMeaning".equals(key)) return "十神白話";
+        if ("branchTenGods".equals(key)) return "地支藏干十神";
+        if ("hiddenStems".equals(key)) return "藏干";
+        if ("element".equals(key)) return "五行";
+        if ("interactionsWithNatal".equals(key)) return "與本命互動";
+        if ("natalInteractions".equals(key)) return "與本命互動";
+        if ("themes".equals(key)) return "主題";
+        if ("plainSummary".equals(key)) return "白話重點";
+        if ("year".equals(key)) return "年份";
+        if ("nominalAge".equals(key)) return "虛歲";
+        if ("luckPillar".equals(key)) return "所屬大運";
+        if ("luckInteraction".equals(key)) return "大運互動";
+        if ("personalYear".equals(key)) return "個人流年";
+        if ("personalMonth".equals(key)) return "個人月";
+        if ("month".equals(key)) return "月份";
+        if ("cardName".equals(key)) return "對應塔羅牌";
+        if ("keywords".equals(key)) return "關鍵字";
+        if ("spousePalaceInteraction".equals(key)) return "配偶宮互動";
+        if ("partnerGodActive".equals(key)) return "財官訊號";
+        return key;
     }
 
     private String localReportSection(String key) {
