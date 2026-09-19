@@ -242,3 +242,13 @@ Crew Fortune now uses the approved purple-and-gold cat / crystal-ball artwork as
 ## v0.9.4 launcher alignment
 
 The adaptive launcher foreground is now centered and rendered at 132dp inside the 108dp adaptive-icon viewport. This intentionally crops the baked outer margin from the artwork so Samsung/Android launcher masks no longer show the Crew Fortune icon as a smaller inset tile.
+
+
+## v0.9.5 adaptive launcher artwork
+
+Android 8.0+ now uses a dedicated adaptive-icon foreground instead of the full poster-style logo.
+
+- Foreground keeps the centered cat, crystal ball, 八字 and 塔羅 motifs.
+- The bottom Crew Fortune / 命運研究所 wordmark is excluded from the adaptive foreground because launchers already render the app label separately.
+- The artwork fills the 108dp adaptive viewport directly, avoiding the previous double-inset effect on Samsung launchers.
+- Legacy launchers continue using the full square artwork.
