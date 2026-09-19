@@ -5,13 +5,16 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
@@ -26,11 +29,15 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.FileProvider;
+
 import com.magic76.crew.agent.AgentEvent;
 import com.magic76.crew.agent.AgentHarness;
 
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -1037,7 +1044,7 @@ public final class MainActivity extends Activity {
         }
         resultCard.addView(teacher, fixedHeightTop(48, 8));
 
-        Button share = secondaryButton(aiLoading ? "分享結果 · 整理中" : "分享結果");
+        Button share = secondaryButton(aiLoading ? "分享圖片 · 整理中" : "分享圖片");
         share.setEnabled(!aiLoading);
         share.setAlpha(aiLoading ? 0.48f : 1f);
         if (!aiLoading) {
@@ -2194,15 +2201,78 @@ public final class MainActivity extends Activity {
     }
 
     private void shareResult() {
-        if (currentResult == null) return;
-        OperationLog.add(this, "SHARE_RESULT", selectedMode.name());
-        String payload = aiCopy == null
-                ? currentResult.shareText()
-                : aiCopy.shareText(currentResult);
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_TEXT, payload);
-        startActivity(Intent.createChooser(intent, "分享你的命運"));
+        if (currentResult == null || currentFacts == null) return;
+        if (activeHarness != null && aiCopy == null) {
+            Toast.makeText(this, "AI 還在整理，完成後再產生分享圖片", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final FortuneMode mode = selectedMode;
+        final FortuneFacts facts = currentFacts;
+        final FortuneResult result = currentResult;
+        final AiFortuneCopy copy = aiCopy;
+        final String displayName = nameInput == null
+                ? "" : nameInput.getText().toString().trim();
+
+        OperationLog.add(this, "SHARE_IMAGE_START", mode.name());
+        Toast.makeText(this, "正在產生分享卡…", Toast.LENGTH_SHORT).show();
+
+        new Thread(() -> {
+            Bitmap bitmap = null;
+            try {
+                FortuneShareCardData data = FortuneShareCardData.from(
+                        mode, facts, result, copy, displayName);
+                bitmap = FortuneShareCardRenderer.render(data);
+
+                File directory = new File(getCacheDir(), "share");
+                if (!directory.exists() && !directory.mkdirs()) {
+                    throw new IllegalStateException("Cannot create share cache");
+                }
+
+                File image = new File(directory, "crew_fortune_share.png");
+                FileOutputStream stream = new FileOutputStream(image, false);
+                try {
+                    if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
+                        throw new IllegalStateException("PNG encode failed");
+                    }
+                    stream.flush();
+                } finally {
+                    try { stream.close(); } catch (Exception ignored) {}
+                }
+
+                Uri uri = FileProvider.getUriForFile(
+                        MainActivity.this,
+                        getPackageName() + ".fileprovider",
+                        image);
+
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.setType("image/png");
+                intent.putExtra(Intent.EXTRA_STREAM, uri);
+                intent.setClipData(ClipData.newRawUri("Crew Fortune", uri));
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                OperationLog.add(
+                        MainActivity.this,
+                        "SHARE_IMAGE_READY",
+                        mode.name() + " · 1080x1350 · privacy_safe");
+
+                runOnUiThread(() -> startActivity(
+                        Intent.createChooser(intent, "分享你的命運")));
+            } catch (Exception error) {
+                OperationLog.add(
+                        MainActivity.this,
+                        "SHARE_IMAGE_FAILED",
+                        safeErrorMessage(error));
+                runOnUiThread(() -> Toast.makeText(
+                        MainActivity.this,
+                        "分享圖片產生失敗，請再試一次",
+                        Toast.LENGTH_SHORT).show());
+            } finally {
+                if (bitmap != null && !bitmap.isRecycled()) {
+                    bitmap.recycle();
+                }
+            }
+        }, "fortune-share-card").start();
     }
 
     private void showApiKeyDialog() {
