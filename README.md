@@ -237,3 +237,8 @@ Crew Fortune now uses the approved purple-and-gold cat / crystal-ball artwork as
 - Android 8.0+ uses an adaptive icon wrapper with a deep-purple background.
 - `android:icon` and `android:roundIcon` are both configured in the manifest.
 - The source artwork remains visually consistent with the in-app Crew Fortune branding.
+
+
+## v0.9.4 launcher alignment
+
+The adaptive launcher foreground is now centered and rendered at 132dp inside the 108dp adaptive-icon viewport. This intentionally crops the baked outer margin from the artwork so Samsung/Android launcher masks no longer show the Crew Fortune icon as a smaller inset tile.
