@@ -53,6 +53,7 @@ public final class FortuneAgentRuntimeTest {
             args.put("mode", "TAROT_NUMEROLOGY");
             args.put("name", "小明");
             args.put("birthDate", "1950-02-21");
+            args.put("birthNameLatin", "JOHN DOE");
             requestedToolName = "calculate_fortune";
             listener.onModelEvent(ModelEvent.toolCall(
                     new ToolCall("call-1", requestedToolName, args)));

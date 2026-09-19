@@ -11,12 +11,14 @@ public final class FortuneEngineTest {
     private final FortuneEngine engine = new FortuneEngine();
 
     @Test public void sameTarotInputProducesSameCoreFacts() {
-        FortuneProfile profile = new FortuneProfile("小明", "1990-02-14", "", "");
+        FortuneProfile profile = new FortuneProfile("小明", "1990-02-14", "", "", "JOHN DOE");
         Date now = new Date(1760000000000L);
         FortuneFacts first = engine.calculateFacts(FortuneMode.TAROT_NUMEROLOGY, profile, now);
         FortuneFacts second = engine.calculateFacts(FortuneMode.TAROT_NUMEROLOGY, profile, now);
         assertEquals(first.detailText("lifePathNumber"), second.detailText("lifePathNumber"));
         assertEquals(first.detailText("birthCardDisplay"), second.detailText("birthCardDisplay"));
+        assertEquals(first.detailText("soulUrgeNumber"), second.detailText("soulUrgeNumber"));
+        assertEquals(first.detailText("personalityNumber"), second.detailText("personalityNumber"));
     }
 
     @Test public void sameBaziInputProducesSameFourPillars() {
