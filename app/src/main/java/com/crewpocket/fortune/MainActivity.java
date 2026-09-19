@@ -1,11 +1,13 @@
 package com.crewpocket.fortune;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -15,6 +17,10 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.magic76.crew.agent.AgentEvent;
+import com.magic76.crew.agent.AgentHarness;
+
 import java.util.Date;
 
 public final class MainActivity extends Activity {
@@ -27,19 +33,30 @@ public final class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(255, 214, 128);
 
     private final FortuneEngine engine = new FortuneEngine();
+    private final StringBuilder aiBuffer = new StringBuilder();
+
     private FortuneMode selectedMode = FortuneMode.TODAY;
     private EditText nameInput;
     private EditText birthInput;
     private EditText secondInput;
     private TextView modeLabel;
+    private TextView aiStatus;
     private LinearLayout resultCard;
     private FortuneResult currentResult;
+    private String aiNarration = "";
+    private AgentHarness activeHarness;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         setContentView(buildScreen());
+        refreshAiStatus();
+    }
+
+    @Override protected void onDestroy() {
+        closeAgent();
+        super.onDestroy();
     }
 
     private View buildScreen() {
@@ -51,14 +68,25 @@ public final class MainActivity extends Activity {
         root.setPadding(dp(20), dp(24), dp(20), dp(40));
         scroll.addView(root);
 
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
         TextView eyebrow = text("CREW FORTUNE · 命運研究所", 13, GOLD, true);
-        root.addView(eyebrow);
+        top.addView(eyebrow, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        aiStatus = text("", 13, ACCENT, true);
+        aiStatus.setGravity(Gravity.END);
+        aiStatus.setPadding(dp(12), dp(8), 0, dp(8));
+        aiStatus.setOnClickListener(v -> showApiKeyDialog());
+        top.addView(aiStatus);
+        root.addView(top);
 
         TextView title = text("很認真算，\n別太認真信。", 34, TEXT, true);
         title.setLineSpacing(0, 1.04f);
         root.addView(title, marginTop(8));
 
-        TextView sub = text("把命理算得有條理，把人生講得有笑點。\n結果不好也沒關係，至少文案要好笑。", 15, MUTED, false);
+        TextView sub = text("把命理算得有條理，把人生講得有笑點。\nAI 只負責補刀，不准偷改命盤。", 15, MUTED, false);
         sub.setLineSpacing(dp(4), 1f);
         root.addView(sub, marginTop(10));
 
@@ -119,7 +147,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 不預測死亡、重大疾病、懷孕、犯罪或災難", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · AI 失敗時自動退回本地結果", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -132,19 +160,83 @@ public final class MainActivity extends Activity {
     }
 
     private void calculate() {
+        closeAgent();
         FortuneProfile profile = new FortuneProfile(
                 nameInput.getText().toString(),
                 birthInput.getText().toString(),
                 secondInput.getText().toString());
         try {
             currentResult = engine.calculate(selectedMode, profile, new Date());
-            renderResult(currentResult);
+            aiNarration = "";
+            aiBuffer.setLength(0);
+            boolean useAi = AppConfig.hasGeminiApiKey(this);
+            renderResult(currentResult, useAi);
+            if (useAi) startAiNarration(profile);
         } catch (IllegalArgumentException error) {
             Toast.makeText(this, error.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void renderResult(FortuneResult result) {
+    private void startAiNarration(FortuneProfile profile) {
+        try {
+            GeminiTextModelSession session = new GeminiTextModelSession(AppConfig.getGeminiApiKey(this));
+            activeHarness = FortuneAgentRuntime.create(session, new AgentHarness.Listener() {
+                @Override public void onAgentEvent(AgentEvent event) {
+                    if (event == null) return;
+                    switch (event.type()) {
+                        case MODEL_TEXT:
+                            synchronized (aiBuffer) {
+                                aiBuffer.append(event.text());
+                            }
+                            break;
+                        case TURN_COMPLETED:
+                            final String completed;
+                            synchronized (aiBuffer) {
+                                completed = aiBuffer.toString().trim();
+                            }
+                            runOnUiThread(() -> {
+                                aiNarration = completed;
+                                if (currentResult != null) renderResult(currentResult, false);
+                            });
+                            closeAgent();
+                            break;
+                        case ERROR:
+                            runOnUiThread(() -> {
+                                if (currentResult != null) renderResult(currentResult, false);
+                                Toast.makeText(MainActivity.this,
+                                        "AI 命理師暫時去喝茶，先顯示本地結果。",
+                                        Toast.LENGTH_SHORT).show();
+                            });
+                            closeAgent();
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            });
+            activeHarness.start();
+            activeHarness.submitText(buildAiRequest(profile));
+        } catch (Exception error) {
+            renderResult(currentResult, false);
+            Toast.makeText(this, "AI 模式啟動失敗，已使用本地結果。", Toast.LENGTH_SHORT).show();
+            closeAgent();
+        }
+    }
+
+    private String buildAiRequest(FortuneProfile profile) {
+        StringBuilder value = new StringBuilder();
+        value.append("請為這次算命產生繁體中文幽默加碼。你必須先呼叫 calculate_fortune。\n");
+        value.append("mode=").append(selectedMode.name()).append('\n');
+        value.append("name=").append(profile.name).append('\n');
+        value.append("birthDate=").append(profile.birthDate).append('\n');
+        if (!profile.secondaryName.isEmpty()) {
+            value.append("secondaryName=").append(profile.secondaryName).append('\n');
+        }
+        value.append("請維持工具算出的核心結論，不要自行改分數。");
+        return value.toString();
+    }
+
+    private void renderResult(FortuneResult result, boolean aiLoading) {
         resultCard.removeAllViews();
 
         TextView badge = text(result.mode.title().toUpperCase(), 12, GOLD, true);
@@ -163,6 +255,15 @@ public final class MainActivity extends Activity {
         addSection("翻譯成人話", result.translation);
         addSection("命理師補充", result.punchline);
         addSection("今日忠告", result.advice);
+
+        if (aiLoading) {
+            TextView loading = text("✦ AI 命理師正在讀取宇宙資料，順便想一個夠好笑的說法…",
+                    14, ACCENT, true);
+            loading.setLineSpacing(dp(3), 1f);
+            resultCard.addView(loading, marginTop(20));
+        } else if (!aiNarration.isEmpty()) {
+            addSection("AI 命理師加碼", aiNarration);
+        }
 
         Button share = new Button(this);
         share.setText("分享這個荒謬但有點準的結果");
@@ -188,10 +289,51 @@ public final class MainActivity extends Activity {
 
     private void shareResult() {
         if (currentResult == null) return;
+        String payload = currentResult.shareText();
+        if (!aiNarration.isEmpty()) {
+            payload += "\n\nAI 命理師加碼：\n" + aiNarration;
+        }
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_TEXT, currentResult.shareText());
+        intent.putExtra(Intent.EXTRA_TEXT, payload);
         startActivity(Intent.createChooser(intent, "分享你的命運"));
+    }
+
+    private void showApiKeyDialog() {
+        final EditText keyInput = new EditText(this);
+        keyInput.setSingleLine(true);
+        keyInput.setHint("Gemini API Key");
+        keyInput.setText(AppConfig.getGeminiApiKey(this));
+        keyInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        keyInput.setPadding(dp(16), dp(8), dp(16), dp(8));
+
+        new AlertDialog.Builder(this)
+                .setTitle("AI 幽默模式")
+                .setMessage("填入 Gemini API Key 後，固定命盤會再交給 AI 補刀。Key 儲存在此 App 的本機設定；清空即可停用。")
+                .setView(keyInput)
+                .setPositiveButton("儲存", (dialog, which) -> {
+                    AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
+                    refreshAiStatus();
+                })
+                .setNegativeButton("取消", null)
+                .setNeutralButton("清除", (dialog, which) -> {
+                    AppConfig.setGeminiApiKey(this, "");
+                    refreshAiStatus();
+                })
+                .show();
+    }
+
+    private void refreshAiStatus() {
+        if (aiStatus == null) return;
+        aiStatus.setText(AppConfig.hasGeminiApiKey(this) ? "AI：ON ⚙" : "AI：OFF ⚙");
+    }
+
+    private void closeAgent() {
+        AgentHarness harness = activeHarness;
+        activeHarness = null;
+        if (harness != null) {
+            try { harness.close(); } catch (Exception ignored) {}
+        }
     }
 
     private EditText input(String hint) {
