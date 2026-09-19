@@ -2,6 +2,8 @@ package com.crewpocket.fortune;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -22,7 +24,9 @@ import android.widget.Toast;
 import com.magic76.crew.agent.AgentEvent;
 import com.magic76.crew.agent.AgentHarness;
 
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 public final class MainActivity extends Activity {
@@ -59,6 +63,7 @@ public final class MainActivity extends Activity {
         getWindow().setNavigationBarColor(BG);
         setContentView(buildScreen());
         refreshAiStatus();
+        restoreLastProfile();
     }
 
     @Override protected void onDestroy() {
@@ -118,7 +123,14 @@ public final class MainActivity extends Activity {
         form.addView(label("先交代一下你的基本資料"));
         nameInput = input("你的名字");
         birthInput = input("生日，例如 1985-07-22");
+        birthInput.setFocusable(false);
+        birthInput.setClickable(true);
+        birthInput.setOnClickListener(v -> showDatePicker());
+
         birthTimeInput = input("出生地當地時間，例如 14:30");
+        birthTimeInput.setFocusable(false);
+        birthTimeInput.setClickable(true);
+        birthTimeInput.setOnClickListener(v -> showTimePicker());
         form.addView(nameInput, marginTop(12));
         form.addView(birthInput, marginTop(10));
         form.addView(birthTimeInput, marginTop(10));
@@ -134,6 +146,18 @@ public final class MainActivity extends Activity {
         genderRow.addView(maleButton, genderLp);
         genderRow.addView(femaleButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
         form.addView(genderRow, marginTop(10));
+
+        LinearLayout presetRow = new LinearLayout(this);
+        presetRow.setOrientation(LinearLayout.HORIZONTAL);
+        Button choosePreset = secondaryButton("常用資料");
+        Button savePreset = secondaryButton("儲存 preset");
+        choosePreset.setOnClickListener(v -> showPresetPicker());
+        savePreset.setOnClickListener(v -> saveCurrentPreset());
+        LinearLayout.LayoutParams presetLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
+        presetLp.rightMargin = dp(8);
+        presetRow.addView(choosePreset, presetLp);
+        presetRow.addView(savePreset, new LinearLayout.LayoutParams(0, dp(46), 1f));
+        form.addView(presetRow, marginTop(10));
 
         modeLabel = text("今天想算：八字\n四柱、十神、大運、流年\n以出生地當地民用時間排盤；目前不做真太陽時校正", 16, TEXT, true);
         root.addView(modeLabel, marginTop(24));
@@ -178,7 +202,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.0", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.1", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -213,6 +237,7 @@ public final class MainActivity extends Activity {
         try {
             currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
             currentResult = engine.calculate(selectedMode, profile, new Date());
+            FortunePresetStore.saveLast(this, currentPreset());
             aiCopy = null;
             synchronized (aiBuffer) {
                 aiBuffer.setLength(0);
@@ -784,6 +809,130 @@ public final class MainActivity extends Activity {
         if (harness != null) {
             try { harness.close(); } catch (Exception ignored) {}
         }
+    }
+
+    private FortunePreset currentPreset() {
+        return new FortunePreset(
+                nameInput.getText().toString(),
+                birthInput.getText().toString(),
+                birthTimeInput.getText().toString(),
+                selectedGender,
+                selectedMode);
+    }
+
+    private void restoreLastProfile() {
+        FortunePreset preset = FortunePresetStore.loadLast(this);
+        if (preset != null) applyPreset(preset);
+    }
+
+    private void saveCurrentPreset() {
+        FortunePreset preset = currentPreset();
+        if (preset.name.isEmpty()) {
+            Toast.makeText(this, "先輸入名字再儲存 preset", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (preset.birthDate.isEmpty()) {
+            Toast.makeText(this, "先選生日再儲存 preset", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (preset.mode == FortuneMode.BA_ZI && preset.birthTime.isEmpty()) {
+            Toast.makeText(this, "八字 preset 需要出生時間", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (preset.mode == FortuneMode.BA_ZI && preset.gender.isEmpty()) {
+            Toast.makeText(this, "八字 preset 需要選擇性別", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        FortunePresetStore.savePreset(this, preset);
+        Toast.makeText(this, "已儲存：" + preset.label(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void showPresetPicker() {
+        final List<FortunePreset> presets = FortunePresetStore.loadPresets(this);
+        if (presets.isEmpty()) {
+            Toast.makeText(this, "目前還沒有 preset", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] labels = new String[presets.size()];
+        for (int i = 0; i < presets.size(); i++) labels[i] = presets.get(i).label();
+
+        new AlertDialog.Builder(this)
+                .setTitle("選擇常用資料")
+                .setItems(labels, (dialog, which) -> applyPreset(presets.get(which)))
+                .setNeutralButton("清除全部", (dialog, which) -> {
+                    FortunePresetStore.clearPresets(this);
+                    Toast.makeText(this, "已清除 presets", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void applyPreset(FortunePreset preset) {
+        if (preset == null) return;
+        nameInput.setText(preset.name);
+        birthInput.setText(preset.birthDate);
+        birthTimeInput.setText(preset.birthTime);
+        selectMode(preset.mode);
+        if (!preset.gender.isEmpty()) selectGender(preset.gender);
+        else {
+            selectedGender = "";
+            maleButton.setBackground(round(CARD_2, 14));
+            femaleButton.setBackground(round(CARD_2, 14));
+            maleButton.setTextColor(TEXT);
+            femaleButton.setTextColor(TEXT);
+        }
+    }
+
+    private void showDatePicker() {
+        Calendar calendar = Calendar.getInstance();
+        String raw = birthInput.getText().toString().trim();
+        if (raw.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            try {
+                String[] p = raw.split("-");
+                calendar.set(Integer.parseInt(p[0]), Integer.parseInt(p[1]) - 1, Integer.parseInt(p[2]));
+            } catch (Exception ignored) {}
+        }
+
+        DatePickerDialog dialog = new DatePickerDialog(
+                this,
+                (view, year, month, day) -> birthInput.setText(String.format(
+                        java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, day)),
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH));
+        dialog.getDatePicker().setMaxDate(System.currentTimeMillis());
+        dialog.show();
+    }
+
+    private void showTimePicker() {
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+        String raw = birthTimeInput.getText().toString().trim();
+        if (raw.matches("\\d{2}:\\d{2}")) {
+            try {
+                String[] p = raw.split(":");
+                hour = Integer.parseInt(p[0]);
+                minute = Integer.parseInt(p[1]);
+            } catch (Exception ignored) {}
+        }
+        new TimePickerDialog(
+                this,
+                (view, selectedHour, selectedMinute) -> birthTimeInput.setText(String.format(
+                        java.util.Locale.US, "%02d:%02d", selectedHour, selectedMinute)),
+                hour,
+                minute,
+                true).show();
+    }
+
+    private Button secondaryButton(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        button.setTextSize(13);
+        button.setAllCaps(false);
+        button.setTextColor(TEXT);
+        button.setBackground(round(CARD_2, 14));
+        return button;
     }
 
     private Button genderButton(String value) {
