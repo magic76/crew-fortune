@@ -4,6 +4,7 @@ import com.magic76.crew.agent.ToolCall;
 import com.magic76.crew.agent.ToolExecutor;
 import com.magic76.crew.agent.ToolRegistry;
 import com.magic76.crew.agent.ToolResult;
+
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -21,32 +22,15 @@ public final class FortuneToolRegistry {
                             text(args.get("name")),
                             text(args.get("birthDate")),
                             text(args.get("birthTime")),
-                            text(args.get("secondaryName")));
+                            text(args.get("gender")));
                     FortuneFacts facts = engine.calculateFacts(mode, profile, new Date());
 
                     Map<String, Object> payload = new LinkedHashMap<String, Object>();
                     payload.put("mode", facts.mode.name());
-                    payload.put("score", facts.score);
                     payload.put("basis", facts.basis);
-                    payload.put("dayKey", facts.dayKey);
-
-                    if (mode == FortuneMode.BA_ZI || mode == FortuneMode.TAROT_NUMEROLOGY) {
-                        payload.put("details", facts.details);
-                    } else {
-                        payload.put("lifeNumber", facts.lifeNumber);
-                        payload.put("zodiac", facts.zodiac);
-                        payload.put("nameNumber", facts.nameNumber);
-                        if (facts.secondaryNameNumber > 0) {
-                            payload.put("secondaryNameNumber", facts.secondaryNameNumber);
-                        }
-                        payload.put("momentum", facts.momentum);
-                        payload.put("stability", facts.stability);
-                        payload.put("social", facts.social);
-                        payload.put("impulse", facts.impulse);
-                    }
-
+                    payload.put("details", facts.details);
                     payload.put("interpretationRule",
-                            "These are deterministic calculation facts. Never change the numeric values, pillars, cards, stems, branches, elements or ten-god labels. Create fresh wording only.");
+                            "All returned calculations are immutable. Explain them in fresh Traditional Chinese wording; never invent or alter pillars, gods, luck cycles, numerology numbers, or tarot cards.");
                     completion.complete(ToolResult.success(call.id(), payload));
                 } catch (Exception error) {
                     completion.complete(ToolResult.failure(call.id(), "FORTUNE_INPUT_ERROR",
