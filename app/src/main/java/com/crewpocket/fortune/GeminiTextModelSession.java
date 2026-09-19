@@ -52,6 +52,7 @@ public final class GeminiTextModelSession implements ModelSession {
     private volatile boolean closed;
     private volatile boolean interrupted;
     private volatile int preferredModelIndex;
+    private volatile String lastFinishReason = "";
 
     public GeminiTextModelSession(String apiKey) {
         this(apiKey, 0.82);
@@ -213,7 +214,7 @@ public final class GeminiTextModelSession implements ModelSession {
                 .put("contents", contents)
                 .put("generationConfig", new JSONObject()
                         .put("temperature", temperature)
-                        .put("maxOutputTokens", 6000)
+                        .put("maxOutputTokens", 9000)
                         .put("responseMimeType", "application/json"));
 
         JSONArray declarations = functionDeclarations();
@@ -249,6 +250,7 @@ public final class GeminiTextModelSession implements ModelSession {
             throw new IllegalStateException("Gemini returned no candidates");
         }
         JSONObject candidate = candidates.getJSONObject(0);
+        lastFinishReason = candidate.optString("finishReason", "");
         JSONObject modelContent = candidate.optJSONObject("content");
         if (modelContent == null) throw new IllegalStateException("Gemini returned no content");
 
@@ -284,6 +286,10 @@ public final class GeminiTextModelSession implements ModelSession {
             }
         }
         if (!requestedTool) emit(ModelEvent.turnCompleted());
+    }
+
+    public String lastFinishReason() {
+        return lastFinishReason == null ? "" : lastFinishReason;
     }
 
     private static JSONObject content(String role, JSONObject singlePart) throws Exception {
