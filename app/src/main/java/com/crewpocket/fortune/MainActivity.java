@@ -71,6 +71,7 @@ public final class MainActivity extends Activity {
         nameInput = input("你的名字");
         birthInput = input("生日，例如 1985-07-22");
         secondInput = input("朋友 / 對象名字（合盤時填）");
+        secondInput.setVisibility(View.GONE);
         form.addView(nameInput, marginTop(12));
         form.addView(birthInput, marginTop(10));
         form.addView(secondInput, marginTop(10));

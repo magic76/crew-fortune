@@ -144,7 +144,7 @@ public final class FortuneEngine {
     private FortuneResult result(FortuneMode mode, int score, int seed, String basis,
                                  String[] titles, String[] analysis, String[] translation,
                                  String[] punchline, String[] advice) {
-        int i = Math.abs(seed);
+        int i = seed & Integer.MAX_VALUE;
         return new FortuneResult(mode, score,
                 titles[i % titles.length],
                 basis,
