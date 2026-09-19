@@ -14,11 +14,20 @@ public final class AiStyleTest {
     @Test public void funnyPromptChangesWholeReportStyle() {
         String prompt = new FortuneAgentSpec(AiStyle.FUNNY).systemPrompt();
         assertTrue(prompt.contains("STYLE=FUNNY"));
-        assertTrue(prompt.contains("concrete fact -> serious interpretation"));
+        assertTrue(prompt.contains("hook-first rhythm"));
         assertTrue(prompt.contains("被看穿了，但很好笑"));
         assertTrue(prompt.contains("Avoid fortune-cookie filler"));
         assertTrue(prompt.contains("500-800"));
         assertTrue(prompt.contains("career, wealth"));
+        assertTrue(prompt.contains("topTraits"));
+        assertTrue(prompt.contains("followUps"));
+    }
+
+    @Test public void normalAndStrictUseDifferentNarrativeRhythms() {
+        String normal = new FortuneAgentSpec(AiStyle.NORMAL).systemPrompt();
+        String strict = new FortuneAgentSpec(AiStyle.STRICT).systemPrompt();
+        assertTrue(normal.contains("conclusion-first rhythm"));
+        assertTrue(strict.contains("evidence-first rhythm"));
     }
 
     @Test public void interpretationPromptDisablesToolsAndDefaults() {
