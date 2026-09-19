@@ -7,13 +7,24 @@ public final class FortunePreset {
     public final String birthDate;
     public final String birthTime;
     public final String gender;
+    public final String birthNameLatin;
     public final FortuneMode mode;
 
     public FortunePreset(String name, String birthDate, String birthTime, String gender, FortuneMode mode) {
+        this(name, birthDate, birthTime, gender, "", mode);
+    }
+
+    public FortunePreset(String name,
+                         String birthDate,
+                         String birthTime,
+                         String gender,
+                         String birthNameLatin,
+                         FortuneMode mode) {
         this.name = clean(name);
         this.birthDate = clean(birthDate);
         this.birthTime = clean(birthTime);
         this.gender = clean(gender);
+        this.birthNameLatin = clean(birthNameLatin);
         this.mode = mode == null ? FortuneMode.BA_ZI : mode;
     }
 
@@ -25,7 +36,7 @@ public final class FortunePreset {
     }
 
     public String key() {
-        return name + "|" + birthDate + "|" + birthTime + "|" + gender;
+        return name + "|" + birthDate + "|" + birthTime + "|" + gender + "|" + birthNameLatin;
     }
 
     public JSONObject toJson() {
@@ -35,6 +46,7 @@ public final class FortunePreset {
             object.put("birthDate", birthDate);
             object.put("birthTime", birthTime);
             object.put("gender", gender);
+            object.put("birthNameLatin", birthNameLatin);
             object.put("mode", mode.name());
         } catch (Exception ignored) {}
         return object;
@@ -49,6 +61,7 @@ public final class FortunePreset {
                     object.optString("birthDate", ""),
                     object.optString("birthTime", ""),
                     object.optString("gender", ""),
+                    object.optString("birthNameLatin", ""),
                     mode);
         } catch (Exception ignored) {
             return null;
