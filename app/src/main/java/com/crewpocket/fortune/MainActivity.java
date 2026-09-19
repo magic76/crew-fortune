@@ -283,7 +283,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.6.2", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.6.3", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;

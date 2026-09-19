@@ -61,7 +61,9 @@ public final class GeminiFortuneLiveSession {
     private volatile boolean recording;
     private volatile boolean speaking;
     private volatile boolean manualBargeIn;
+    private volatile boolean startNewOutputTranscript = true;
     private volatile long micSuppressedUntilMs;
+    private final StringBuilder outputTranscriptBuffer = new StringBuilder();
     private AudioRecord recorder;
     private AudioTrack player;
     private AcousticEchoCanceler echoCanceler;
@@ -129,6 +131,10 @@ public final class GeminiFortuneLiveSession {
         running = false;
         ready = false;
         manualBargeIn = false;
+        startNewOutputTranscript = true;
+        synchronized (this) {
+            outputTranscriptBuffer.setLength(0);
+        }
         sendAudioStreamEnd();
         stopAudio();
         if (webSocket != null) {
@@ -220,8 +226,9 @@ public final class GeminiFortuneLiveSession {
         JSONObject output = server.optJSONObject("outputTranscription");
         if (output == null) output = server.optJSONObject("output_transcription");
         if (output != null && listener != null) {
-            String value = output.optString("text", "").trim();
-            if (!value.isEmpty()) listener.onOutputTranscript(value);
+            String value = output.optString("text", "");
+            String merged = mergeOutputTranscript(value);
+            if (!merged.isEmpty()) listener.onOutputTranscript(merged);
         }
 
         JSONObject turn = server.optJSONObject("modelTurn");
@@ -253,6 +260,7 @@ public final class GeminiFortuneLiveSession {
         }
 
         if (server.optBoolean("turnComplete", server.optBoolean("turn_complete", false))) {
+            startNewOutputTranscript = true;
             setSpeaking(false);
             status("你可以繼續追問");
         }
@@ -367,6 +375,43 @@ public final class GeminiFortuneLiveSession {
             long suppressedUntilMs,
             long nowMs) {
         return manualBargeIn || (!speaking && nowMs >= suppressedUntilMs);
+    }
+
+    synchronized String mergeOutputTranscript(String raw) {
+        String chunk = normalizeTranscriptChunk(raw);
+        if (chunk.isEmpty()) return outputTranscriptBuffer.toString();
+
+        if (startNewOutputTranscript) {
+            outputTranscriptBuffer.setLength(0);
+            startNewOutputTranscript = false;
+        }
+
+        if (outputTranscriptBuffer.length() > 0
+                && needsAsciiWordSpace(
+                        outputTranscriptBuffer.charAt(outputTranscriptBuffer.length() - 1),
+                        chunk.charAt(0))) {
+            outputTranscriptBuffer.append(' ');
+        }
+        outputTranscriptBuffer.append(chunk);
+        return outputTranscriptBuffer.toString();
+    }
+
+    static String normalizeTranscriptChunk(String raw) {
+        if (raw == null) return "";
+        return raw.replace('\r', ' ')
+                .replace('\n', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private static boolean needsAsciiWordSpace(char left, char right) {
+        return isAsciiWord(left) && isAsciiWord(right);
+    }
+
+    private static boolean isAsciiWord(char value) {
+        return (value >= 'A' && value <= 'Z')
+                || (value >= 'a' && value <= 'z')
+                || (value >= '0' && value <= '9');
     }
 
     private void sendAudio(byte[] bytes) {
