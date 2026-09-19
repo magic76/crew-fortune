@@ -6,6 +6,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public final class FortuneEngine {
     public FortuneFacts calculateFacts(FortuneMode mode, FortuneProfile profile, Date now) {
@@ -20,21 +22,35 @@ public final class FortuneEngine {
                 ? new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now == null ? new Date() : now)
                 : "stable";
         int seed = stableHash(mode.name() + "|" + profile.name + "|" + profile.birthDate + "|"
-                + profile.secondaryName + "|" + dayKey);
+                + profile.birthTime + "|" + profile.secondaryName + "|" + dayKey);
 
         int secondaryNameNumber = 0;
         int score = 42 + Math.abs(seed % 55);
-        if (mode == FortuneMode.COMPATIBILITY) {
-            if (profile.secondaryName.isEmpty()) {
-                throw new IllegalArgumentException("合盤需要第二個名字");
-            }
-            secondaryNameNumber = digitalRootCodePoints(profile.secondaryName);
-            score = 55 + (9 - Math.abs(nameNumber - secondaryNameNumber)) * 5;
-            score = Math.max(45, Math.min(96, score + (seed % 7)));
-        }
+        Map<String, Object> details = new LinkedHashMap<String, Object>();
+        String basis;
 
-        String basis = "生命靈數 " + life + " · " + zodiac + " · 名字數 " + nameNumber;
-        if (secondaryNameNumber > 0) basis += " · 對方名字數 " + secondaryNameNumber;
+        if (mode == FortuneMode.BA_ZI) {
+            details.putAll(new BaZiCalculator().calculate(profile.birthDate, profile.birthTime));
+            score = intValue(details.get("fiveElementBalance"), 50);
+            basis = "四柱 " + details.get("fourPillars")
+                    + " · 日主 " + details.get("dayMaster") + details.get("dayMasterElement");
+        } else if (mode == FortuneMode.TAROT_NUMEROLOGY) {
+            details.putAll(new TarotNumerologyCalculator().calculate(profile.birthDate));
+            score = intValue(details.get("lifePathNumber"), life);
+            basis = "生命靈數 " + details.get("lifePathNumber")
+                    + " · 出生牌 " + details.get("birthCardNumber") + " " + details.get("birthCardName");
+        } else {
+            if (mode == FortuneMode.COMPATIBILITY) {
+                if (profile.secondaryName.isEmpty()) {
+                    throw new IllegalArgumentException("合盤需要第二個名字");
+                }
+                secondaryNameNumber = digitalRootCodePoints(profile.secondaryName);
+                score = 55 + (9 - Math.abs(nameNumber - secondaryNameNumber)) * 5;
+                score = Math.max(45, Math.min(96, score + (seed % 7)));
+            }
+            basis = "生命靈數 " + life + " · " + zodiac + " · 名字數 " + nameNumber;
+            if (secondaryNameNumber > 0) basis += " · 對方名字數 " + secondaryNameNumber;
+        }
 
         return new FortuneFacts(
                 mode,
@@ -48,7 +64,8 @@ public final class FortuneEngine {
                 dimension(seed, 23),
                 dimension(seed, 37),
                 dimension(seed, 53),
-                dayKey);
+                dayKey,
+                details);
     }
 
     public FortuneResult calculate(FortuneMode mode, FortuneProfile profile, Date now) {
@@ -59,6 +76,10 @@ public final class FortuneEngine {
         switch (mode) {
             case TODAY:
                 return today(facts.score, seed, facts.basis);
+            case BA_ZI:
+                return baZiFallback(facts, seed);
+            case TAROT_NUMEROLOGY:
+                return tarotFallback(facts, seed);
             case PERSONALITY:
                 return personality(facts.score, seed, facts.basis, facts.lifeNumber);
             case WEALTH:
@@ -70,6 +91,39 @@ public final class FortuneEngine {
             default:
                 throw new IllegalStateException("unsupported mode");
         }
+    }
+
+    private FortuneResult baZiFallback(FortuneFacts facts, int seed) {
+        String dayMaster = facts.detailText("dayMaster");
+        String element = facts.detailText("dayMasterElement");
+        String strongest = facts.detailText("strongestVisibleElement");
+        String weakest = facts.detailText("weakestVisibleElement");
+        String pillars = facts.detailText("fourPillars");
+        return new FortuneResult(
+                FortuneMode.BA_ZI,
+                facts.score,
+                "你的日主是「" + dayMaster + element + "」",
+                facts.basis,
+                "四柱為 " + pillars + "。目前先以可驗證的四柱、可見五行、藏干與十神結構做基礎解讀，不把門派差異很大的喜用神硬算成唯一答案。",
+                "表面上是在排八字，實際上宇宙只是把你的設定檔拆成四欄給你看。",
+                "可見五行目前以「" + strongest + "」較多、「" + weakest + "」較少；這是分布描述，不等於吉凶判決。",
+                "先把命盤當成觀察自己的另一種語言，不要拿它代替現實決策。");
+    }
+
+    private FortuneResult tarotFallback(FortuneFacts facts, int seed) {
+        String card = facts.detailText("birthCardName");
+        String number = facts.detailText("birthCardNumber");
+        String keywords = facts.detailText("birthCardKeywords");
+        String lifePath = facts.detailText("lifePathNumber");
+        return new FortuneResult(
+                FortuneMode.TAROT_NUMEROLOGY,
+                facts.score,
+                "你的出生牌：(" + number + ") " + card,
+                facts.basis,
+                "生命靈數為 " + lifePath + "，塔羅出生牌核心關鍵字是「" + keywords + "」。這是固定生日計算，不是每次隨機抽牌。",
+                "你的人生不是被一張牌控制，只是這張牌很會搶著當你的年度形象顧問。",
+                "同一個生日會得到同一張出生牌；今天抽到什麼心情，則是另一回事。",
+                "把牌義當成反思提示，不要當成宇宙替你簽好的合約。");
     }
 
     private FortuneResult today(int score, int seed, String basis) {
@@ -213,6 +267,11 @@ public final class FortuneEngine {
             number = next;
         }
         return number == 0 ? 9 : number;
+    }
+
+    private int intValue(Object value, int fallback) {
+        if (value instanceof Number) return ((Number) value).intValue();
+        try { return Integer.parseInt(String.valueOf(value)); } catch (Exception ignored) { return fallback; }
     }
 
     private int dimension(int seed, int salt) {
