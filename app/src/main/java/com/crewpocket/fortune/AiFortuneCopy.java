@@ -1,9 +1,11 @@
 package com.crewpocket.fortune;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class AiFortuneCopy {
@@ -18,6 +20,8 @@ public final class AiFortuneCopy {
     public final String longTerm;
     public final String keyYears;
     public final String timing;
+    public final List<String> topTraits;
+    public final List<String> followUps;
     public final String translation;
     public final String punchline;
     public final String advice;
@@ -33,6 +37,8 @@ public final class AiFortuneCopy {
             String currentCycle,
             String longTerm,
             String keyYears,
+            List<String> topTraits,
+            List<String> followUps,
             String translation,
             String punchline,
             String advice,
@@ -48,6 +54,8 @@ public final class AiFortuneCopy {
         this.longTerm = longTerm;
         this.keyYears = keyYears;
         this.timing = combineTiming(currentCycle, longTerm, keyYears);
+        this.topTraits = immutable(topTraits);
+        this.followUps = immutable(followUps);
         this.translation = translation;
         this.punchline = punchline;
         this.advice = advice;
@@ -112,6 +120,15 @@ public final class AiFortuneCopy {
                 optional(object, "importantYears"),
                 optional(object, "yearHighlights"));
 
+        List<String> topTraits = firstNonEmptyList(
+                optionalList(object, "topTraits"),
+                optionalList(object, "topInsights"),
+                optionalList(object, "mostLikeYou"));
+        List<String> followUps = firstNonEmptyList(
+                optionalList(object, "followUps"),
+                optionalList(object, "suggestedQuestions"),
+                optionalList(object, "questions"));
+
         String translation = firstNonEmpty(
                 optional(object, "translation"),
                 optional(object, "plainLanguage"),
@@ -138,6 +155,8 @@ public final class AiFortuneCopy {
                 currentCycle,
                 longTerm,
                 keyYears,
+                topTraits,
+                followUps,
                 translation,
                 punchline,
                 advice,
@@ -155,6 +174,8 @@ public final class AiFortuneCopy {
         requireLength(issues, "longTerm", longTerm,
                 mode == FortuneMode.BA_ZI ? 320 : 260);
         requireLength(issues, "keyYears", keyYears, 220);
+        requireListSize(issues, "topTraits", topTraits, 3);
+        requireListSize(issues, "followUps", followUps, 4);
         requireLength(issues, "advice", advice, 100);
         return join(issues, ", ");
     }
@@ -214,6 +235,44 @@ public final class AiFortuneCopy {
         return String.valueOf(raw).trim();
     }
 
+    private static List<String> optionalList(JSONObject object, String key) {
+        Object raw = object.opt(key);
+        List<String> out = new ArrayList<String>();
+        if (raw == null || raw == JSONObject.NULL) return out;
+
+        if (raw instanceof JSONArray) {
+            JSONArray array = (JSONArray) raw;
+            for (int i = 0; i < array.length(); i++) {
+                String value = String.valueOf(array.opt(i)).trim();
+                if (!value.isEmpty() && !"null".equalsIgnoreCase(value)) out.add(value);
+            }
+            return out;
+        }
+
+        String text = String.valueOf(raw).trim();
+        if (text.isEmpty()) return out;
+        String[] parts = text.split("\\r?\\n|\\s*\\|\\s*");
+        for (String part : parts) {
+            String value = part.replaceFirst("^[•·\\-*\\d.、)）(（\\s]+", "").trim();
+            if (!value.isEmpty()) out.add(value);
+        }
+        return out;
+    }
+
+    @SafeVarargs
+    private static List<String> firstNonEmptyList(List<String>... values) {
+        if (values == null) return new ArrayList<String>();
+        for (List<String> value : values) {
+            if (value != null && !value.isEmpty()) return value;
+        }
+        return new ArrayList<String>();
+    }
+
+    private static List<String> immutable(List<String> values) {
+        if (values == null || values.isEmpty()) return Collections.emptyList();
+        return Collections.unmodifiableList(new ArrayList<String>(values));
+    }
+
     private static String firstNonEmpty(String... values) {
         if (values == null) return "";
         for (String value : values) {
@@ -251,6 +310,14 @@ public final class AiFortuneCopy {
         int length = value == null ? 0 : value.trim().length();
         if (length < minimum) {
             issues.add(field + "=" + length + "<" + minimum);
+        }
+    }
+
+    private static void requireListSize(
+            List<String> issues, String field, List<String> value, int minimum) {
+        int size = value == null ? 0 : value.size();
+        if (size < minimum) {
+            issues.add(field + "=" + size + "<" + minimum);
         }
     }
 
