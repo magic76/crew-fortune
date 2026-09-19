@@ -37,11 +37,14 @@ public final class MainActivity extends Activity {
     private final FortuneEngine engine = new FortuneEngine();
     private final StringBuilder aiBuffer = new StringBuilder();
 
-    private FortuneMode selectedMode = FortuneMode.TODAY;
+    private FortuneMode selectedMode = FortuneMode.BA_ZI;
     private EditText nameInput;
     private EditText birthInput;
     private EditText birthTimeInput;
-    private EditText secondInput;
+    private LinearLayout genderRow;
+    private Button maleButton;
+    private Button femaleButton;
+    private String selectedGender = "";
     private TextView modeLabel;
     private TextView aiStatus;
     private LinearLayout resultCard;
@@ -115,16 +118,24 @@ public final class MainActivity extends Activity {
         form.addView(label("先交代一下你的基本資料"));
         nameInput = input("你的名字");
         birthInput = input("生日，例如 1985-07-22");
-        birthTimeInput = input("出生地當地時間，例如 14:30（八字使用）");
-        birthTimeInput.setVisibility(View.GONE);
-        secondInput = input("朋友 / 對象名字（合盤時填）");
-        secondInput.setVisibility(View.GONE);
+        birthTimeInput = input("出生地當地時間，例如 14:30");
         form.addView(nameInput, marginTop(12));
         form.addView(birthInput, marginTop(10));
         form.addView(birthTimeInput, marginTop(10));
-        form.addView(secondInput, marginTop(10));
 
-        modeLabel = text("今天想算：今日運勢", 16, TEXT, true);
+        genderRow = new LinearLayout(this);
+        genderRow.setOrientation(LinearLayout.HORIZONTAL);
+        maleButton = genderButton("男");
+        femaleButton = genderButton("女");
+        maleButton.setOnClickListener(v -> selectGender("male"));
+        femaleButton.setOnClickListener(v -> selectGender("female"));
+        LinearLayout.LayoutParams genderLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
+        genderLp.rightMargin = dp(8);
+        genderRow.addView(maleButton, genderLp);
+        genderRow.addView(femaleButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
+        form.addView(genderRow, marginTop(10));
+
+        modeLabel = text("今天想算：八字\n四柱、十神、大運、流年\n以出生地當地民用時間排盤；目前不做真太陽時校正", 16, TEXT, true);
         root.addView(modeLabel, marginTop(24));
 
         HorizontalScrollView chipsScroll = new HorizontalScrollView(this);
@@ -167,7 +178,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 八字與塔羅皆揭露計算規則 · v0.2.1", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.0", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -175,13 +186,21 @@ public final class MainActivity extends Activity {
 
     private void selectMode(FortuneMode mode) {
         selectedMode = mode;
-        modeLabel.setText("今天想算：" + mode.title() + "\n" + mode.subtitle());
-        birthTimeInput.setVisibility(mode == FortuneMode.BA_ZI ? View.VISIBLE : View.GONE);
-        secondInput.setVisibility(mode == FortuneMode.COMPATIBILITY ? View.VISIBLE : View.GONE);
-        if (mode == FortuneMode.BA_ZI) {
-            modeLabel.setText("今天想算：" + mode.title() + "\n" + mode.subtitle()
-                    + "\n以出生地當地民用時間排盤；目前不做真太陽時校正");
-        }
+        boolean isBaZi = mode == FortuneMode.BA_ZI;
+        birthTimeInput.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
+        genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
+        modeLabel.setText("今天想算：" + mode.title() + "\n" + mode.subtitle()
+                + (isBaZi ? "\n以出生地當地民用時間排盤；目前不做真太陽時校正"
+                : "\n固定生日計算，不是隨機抽牌"));
+    }
+
+    private void selectGender(String gender) {
+        selectedGender = gender;
+        boolean male = "male".equals(gender);
+        maleButton.setBackground(round(male ? ACCENT : CARD_2, 14));
+        femaleButton.setBackground(round(!male ? ACCENT : CARD_2, 14));
+        maleButton.setTextColor(male ? Color.rgb(30, 22, 46) : TEXT);
+        femaleButton.setTextColor(!male ? Color.rgb(30, 22, 46) : TEXT);
     }
 
     private void calculate() {
@@ -190,7 +209,7 @@ public final class MainActivity extends Activity {
                 nameInput.getText().toString(),
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
-                secondInput.getText().toString());
+                selectedGender);
         try {
             currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
             currentResult = engine.calculate(selectedMode, profile, new Date());
@@ -268,8 +287,8 @@ public final class MainActivity extends Activity {
         if (!profile.birthTime.isEmpty()) {
             value.append("birthTime=").append(profile.birthTime).append('\n');
         }
-        if (!profile.secondaryName.isEmpty()) {
-            value.append("secondaryName=").append(profile.secondaryName).append('\n');
+        if (!profile.gender.isEmpty()) {
+            value.append("gender=").append(profile.gender).append('\n');
         }
         value.append("creativeVariant=").append(System.nanoTime()).append('\n');
         value.append("這個 creativeVariant 只用來避免重複措辭，絕對不可改變工具算出的數字或命理依據。");
@@ -346,10 +365,10 @@ public final class MainActivity extends Activity {
 
     private String primaryMetric(FortuneResult result) {
         if (currentFacts != null && result.mode == FortuneMode.BA_ZI) {
-            return "五行均衡度 " + currentFacts.score + " / 100";
+            return "日主強弱指標 " + currentFacts.detailText("strengthIndex") + " / 100";
         }
         if (currentFacts != null && result.mode == FortuneMode.TAROT_NUMEROLOGY) {
-            return "生命靈數 " + currentFacts.detailText("lifePathNumber");
+            return "生命靈數 " + currentFacts.detailText("lifePathDisplay");
         }
         return result.score + " / 100";
     }
@@ -377,9 +396,10 @@ public final class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         LinearLayout balance = column();
-        TextView balanceLabel = text("五行均衡度", 12, MUTED, true);
+        TextView balanceLabel = text("日主強弱", 12, MUTED, true);
         balanceLabel.setGravity(Gravity.END);
-        TextView balanceValue = text(currentFacts.score + " / 100", 22, ACCENT, true);
+        TextView balanceValue = text(currentFacts.detailText("dayMasterStrength")
+                + " · " + currentFacts.detailText("strengthIndex"), 20, ACCENT, true);
         balanceValue.setGravity(Gravity.END);
         balance.addView(balanceLabel);
         balance.addView(balanceValue, marginTop(2));
@@ -429,6 +449,41 @@ public final class MainActivity extends Activity {
         TextView tenGods = text(formatTenGods(), 14, TEXT, false);
         tenGods.setLineSpacing(dp(3), 1f);
         panel.addView(tenGods, marginTop(6));
+
+        TextView tenDistTitle = text("十神分布", 12, GOLD, true);
+        panel.addView(tenDistTitle, marginTop(18));
+        TextView tenDist = text(formatMap(currentFacts.detail("tenGodDistribution")), 13, TEXT, false);
+        tenDist.setLineSpacing(dp(2), 1f);
+        panel.addView(tenDist, marginTop(6));
+
+        TextView strengthTitle = text("旺衰與平衡", 12, GOLD, true);
+        panel.addView(strengthTitle, marginTop(18));
+        TextView strength = text(
+                currentFacts.detailText("dayMasterStrength")
+                        + "｜扶身比 " + currentFacts.detailText("strengthIndex") + "/100"
+                        + "\n平衡參考元素：" + currentFacts.detailText("balancingElements")
+                        + "\n" + currentFacts.detailText("strengthMethod"),
+                13, TEXT, false);
+        strength.setLineSpacing(dp(3), 1f);
+        panel.addView(strength, marginTop(6));
+
+        TextView interactionTitle = text("命局合沖刑害", 12, GOLD, true);
+        panel.addView(interactionTitle, marginTop(18));
+        TextView interactions = text(formatList(currentFacts.detail("natalInteractions")), 13, TEXT, false);
+        interactions.setLineSpacing(dp(3), 1f);
+        panel.addView(interactions, marginTop(6));
+
+        TextView luckTitle = text("大運", 12, GOLD, true);
+        panel.addView(luckTitle, marginTop(18));
+        TextView luck = text(formatLuckPillars(), 13, TEXT, false);
+        luck.setLineSpacing(dp(3), 1f);
+        panel.addView(luck, marginTop(6));
+
+        TextView annualTitle = text("今年流年", 12, GOLD, true);
+        panel.addView(annualTitle, marginTop(18));
+        TextView annual = text(formatCurrentAnnual(), 13, TEXT, false);
+        annual.setLineSpacing(dp(3), 1f);
+        panel.addView(annual, marginTop(6));
 
         TextView convention = text(
                 "排盤規則｜" + currentFacts.detailText("timeConvention"),
@@ -523,40 +578,45 @@ public final class MainActivity extends Activity {
         panel.setBackground(background);
         resultCard.addView(panel, marginTop(16));
 
-        TextView number = text(currentFacts.detailText("birthCardNumber"), 18, GOLD, true);
-        number.setGravity(Gravity.CENTER);
-        panel.addView(number);
-
-        TextView card = text(currentFacts.detailText("birthCardName"), 34, TEXT, true);
+        TextView card = text(currentFacts.detailText("birthCardDisplay"), 27, TEXT, true);
         card.setGravity(Gravity.CENTER);
-        panel.addView(card, marginTop(4));
+        panel.addView(card);
 
-        TextView keywords = text(currentFacts.detailText("birthCardKeywords"), 15, MUTED, false);
-        keywords.setGravity(Gravity.CENTER);
-        panel.addView(keywords, marginTop(8));
-
-        TextView lifePath = text(
-                "生命靈數 " + currentFacts.detailText("lifePathNumber"),
-                22, ACCENT, true);
+        TextView lifePath = text("生命靈數 " + currentFacts.detailText("lifePathDisplay"),
+                23, ACCENT, true);
         lifePath.setGravity(Gravity.CENTER);
-        panel.addView(lifePath, marginTop(18));
+        panel.addView(lifePath, marginTop(14));
 
-        String soul = currentFacts.detailText("reducedSoulCardName");
-        if (!soul.isEmpty()) {
-            TextView soulView = text(
-                    "延伸靈魂牌｜" + currentFacts.detailText("reducedSoulNumber")
-                            + " " + soul + " · " + currentFacts.detailText("reducedSoulCardKeywords"),
-                    13, MUTED, false);
-            soulView.setGravity(Gravity.CENTER);
-            soulView.setLineSpacing(dp(2), 1f);
-            panel.addView(soulView, marginTop(12));
-        }
+        TextView core = text(
+                "生日數 " + currentFacts.detailText("birthdayNumber")
+                        + "　·　核心 " + currentFacts.detailText("birthdayCore")
+                        + "\n態度數 " + currentFacts.detailText("attitudeNumber")
+                        + "　·　個人年 " + currentFacts.detailText("personalYear")
+                        + "　·　個人月 " + currentFacts.detailText("personalMonth"),
+                14, MUTED, false);
+        core.setGravity(Gravity.CENTER);
+        core.setLineSpacing(dp(3), 1f);
+        panel.addView(core, marginTop(14));
 
-        TextView method = text(
-                "固定出生牌 · 同一生日會得到相同結果",
-                11, MUTED, false);
-        method.setGravity(Gravity.CENTER);
-        panel.addView(method, marginTop(16));
+        addPanelSection(panel, "出生牌組", formatBirthCards());
+        addPanelSection(panel, "四大巔峰", formatPairedLists(
+                currentFacts.detail("pinnacles"), currentFacts.detail("pinnacleTiming")));
+        addPanelSection(panel, "四大挑戰", formatList(currentFacts.detail("challenges")));
+        addPanelSection(panel, "人生三大週期", formatList(currentFacts.detail("periodCycles")));
+        addPanelSection(panel, "計算規則", formatList(currentFacts.detail("calculationNotes")));
+
+        TextView note = text(currentFacts.detailText("note"), 11, MUTED, false);
+        note.setGravity(Gravity.CENTER);
+        note.setLineSpacing(dp(2), 1f);
+        panel.addView(note, marginTop(16));
+    }
+
+    private void addPanelSection(LinearLayout panel, String heading, String body) {
+        TextView h = text(heading, 12, GOLD, true);
+        panel.addView(h, marginTop(18));
+        TextView b = text(body, 13, TEXT, false);
+        b.setLineSpacing(dp(3), 1f);
+        panel.addView(b, marginTop(5));
     }
 
     private String formatTenGods() {
@@ -565,6 +625,89 @@ public final class MainActivity extends Activity {
                 + "\n月｜" + mapValue(source, "monthStem") + " · " + mapValue(source, "monthBranch")
                 + "\n日｜日主 · " + mapValue(source, "dayBranch")
                 + "\n時｜" + mapValue(source, "timeStem") + " · " + mapValue(source, "timeBranch");
+    }
+
+    private String formatLuckPillars() {
+        Object value = currentFacts == null ? null : currentFacts.detail("luckPillars");
+        if (!(value instanceof java.util.List)) return "";
+        StringBuilder out = new StringBuilder();
+        Object current = currentFacts.detail("currentLuckPillar");
+        String currentGanZhi = mapValue(current, "ganZhi");
+        for (Object item : (java.util.List<?>) value) {
+            String ganZhi = mapValue(item, "ganZhi");
+            if (out.length() > 0) out.append("\n");
+            if (ganZhi.equals(currentGanZhi)) out.append("● ");
+            else out.append("○ ");
+            out.append(ganZhi)
+                    .append("　")
+                    .append(mapValue(item, "startAge")).append("–")
+                    .append(mapValue(item, "endAge")).append("歲　")
+                    .append(mapValue(item, "startYear")).append("–")
+                    .append(mapValue(item, "endYear"));
+        }
+        return "起運：" + currentFacts.detailText("luckStartAge")
+                + " · " + currentFacts.detailText("luckDirection")
+                + "\n" + out;
+    }
+
+    private String formatCurrentAnnual() {
+        Object annual = currentFacts == null ? null : currentFacts.detail("currentAnnual");
+        if (!(annual instanceof Map)) return "";
+        return mapValue(annual, "year") + " " + mapValue(annual, "ganZhi")
+                + "｜十神 " + mapValue(annual, "tenGod")
+                + "｜五行 " + mapValue(annual, "element")
+                + "\n" + formatList(((Map<?, ?>) annual).get("interactions"));
+    }
+
+    private String formatBirthCards() {
+        Object value = currentFacts == null ? null : currentFacts.detail("birthCards");
+        if (!(value instanceof java.util.List)) return "";
+        StringBuilder out = new StringBuilder();
+        for (Object item : (java.util.List<?>) value) {
+            if (out.length() > 0) out.append("\n");
+            out.append(mapValue(item, "number"))
+                    .append(" ").append(mapValue(item, "name"))
+                    .append("｜").append(mapValue(item, "keywords"));
+        }
+        return out.toString();
+    }
+
+    private String formatPairedLists(Object first, Object second) {
+        if (!(first instanceof java.util.List) || !(second instanceof java.util.List)) {
+            return formatList(first);
+        }
+        java.util.List<?> a = (java.util.List<?>) first;
+        java.util.List<?> b = (java.util.List<?>) second;
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < a.size(); i++) {
+            if (out.length() > 0) out.append("\n");
+            out.append("第").append(i + 1).append("階段：")
+                    .append(a.get(i));
+            if (i < b.size()) out.append("　(").append(b.get(i)).append("歲)");
+        }
+        return out.toString();
+    }
+
+    private String formatList(Object value) {
+        if (!(value instanceof java.util.List)) return value == null ? "" : String.valueOf(value);
+        StringBuilder out = new StringBuilder();
+        for (Object item : (java.util.List<?>) value) {
+            if (out.length() > 0) out.append("\n");
+            out.append("• ").append(String.valueOf(item));
+        }
+        return out.toString();
+    }
+
+    private String formatMap(Object value) {
+        if (!(value instanceof Map)) return value == null ? "" : String.valueOf(value);
+        StringBuilder out = new StringBuilder();
+        for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+            Object raw = entry.getValue();
+            if (raw instanceof Number && ((Number) raw).intValue() == 0) continue;
+            if (out.length() > 0) out.append("　");
+            out.append(entry.getKey()).append(" ").append(raw);
+        }
+        return out.toString();
     }
 
     private String mapValue(Object source, String key) {
@@ -641,6 +784,16 @@ public final class MainActivity extends Activity {
         if (harness != null) {
             try { harness.close(); } catch (Exception ignored) {}
         }
+    }
+
+    private Button genderButton(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        button.setTextSize(14);
+        button.setAllCaps(false);
+        button.setTextColor(TEXT);
+        button.setBackground(round(CARD_2, 14));
+        return button;
     }
 
     private EditText input(String hint) {
