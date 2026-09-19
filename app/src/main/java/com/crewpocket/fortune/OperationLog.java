@@ -84,10 +84,17 @@ public final class OperationLog {
             this.detail = detail;
         }
 
-        public String display() {
-            String stamp = new SimpleDateFormat(
+        public String timeText() {
+            return new SimpleDateFormat(
                     "MM-dd HH:mm:ss", Locale.getDefault()).format(new Date(time));
-            return stamp + "  " + action
+        }
+
+        public String listLabel() {
+            return timeText() + "  ·  " + action.replace('_', ' ');
+        }
+
+        public String display() {
+            return listLabel()
                     + (detail == null || detail.isEmpty() ? "" : "\n" + detail);
         }
     }

@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
@@ -282,7 +283,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.6.1", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.6.2", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -1009,13 +1010,15 @@ public final class MainActivity extends Activity {
         closeTeacher();
 
         LinearLayout body = column();
-        body.setPadding(dp(20), dp(14), dp(20), dp(10));
+        body.setPadding(dp(20), dp(18), dp(20), dp(16));
+        body.setBackground(roundBorder(
+                CARD, Color.rgb(92, 73, 127), 24, 1));
 
         TextView title = text("命理老師", 22, TEXT, true);
         body.addView(title);
 
         TextView hint = text(
-                "老師會先講 60–90 秒重點。講完後直接開口追問，不需要按住麥克風。",
+                "老師會先講 60–90 秒重點。想插話時按「我要問」，老師會立刻停下來聽你說。",
                 13, MUTED, false);
         hint.setLineSpacing(dp(3), 1f);
         body.addView(hint, marginTop(6));
@@ -1039,6 +1042,8 @@ public final class MainActivity extends Activity {
         actions.setOrientation(LinearLayout.HORIZONTAL);
 
         Button interrupt = secondaryButton("我要問");
+        interrupt.setTextColor(Color.rgb(30, 22, 46));
+        interrupt.setBackground(round(ACCENT, 14));
         interrupt.setOnClickListener(v -> {
             OperationLog.add(this, "TEACHER_INTERRUPT", "");
             GeminiFortuneLiveSession session = teacherSession;
@@ -1062,9 +1067,13 @@ public final class MainActivity extends Activity {
                 .create();
         teacherDialog.setOnDismissListener(dialog -> closeTeacherSessionOnly());
         teacherDialog.show();
+        styleDarkDialog(teacherDialog);
 
         String teacherPrompt = FortuneTeacherPrompt.systemPrompt(
-                selectedMode, selectedAiStyle, currentFacts);
+                selectedMode,
+                selectedAiStyle,
+                currentFacts,
+                nameInput.getText().toString());
         String opening = FortuneTeacherPrompt.openingPrompt(
                 nameInput.getText().toString());
 
@@ -1348,32 +1357,103 @@ public final class MainActivity extends Activity {
     private void showOperationLog() {
         OperationLog.add(this, "OPEN_OPERATION_LOG", "");
         List<OperationLog.Entry> entries = OperationLog.list(this);
+
+        LinearLayout panel = column();
+        panel.setPadding(dp(18), dp(18), dp(18), dp(16));
+        panel.setBackground(roundBorder(
+                CARD, Color.rgb(92, 73, 127), 24, 1));
+
+        TextView title = text("操作記錄", 22, TEXT, true);
+        panel.addView(title);
+
+        TextView hint = text("最近 200 筆 · 點任一筆查看完整內容", 12, MUTED, false);
+        panel.addView(hint, marginTop(4));
+
         LinearLayout body = column();
-        body.setPadding(dp(18), dp(10), dp(18), dp(10));
+        body.setPadding(0, dp(4), 0, dp(8));
 
         if (entries.isEmpty()) {
-            body.addView(text("目前還沒有操作記錄", 14, MUTED, false));
+            body.addView(text("目前還沒有操作記錄", 14, MUTED, false), marginTop(14));
         } else {
-            for (OperationLog.Entry entry : entries) {
-                TextView item = text(entry.display(), 13, TEXT, false);
-                item.setLineSpacing(dp(2), 1f);
-                body.addView(item, marginTop(10));
+            for (final OperationLog.Entry entry : entries) {
+                TextView item = text(entry.listLabel(), 13, TEXT, true);
+                item.setPadding(dp(12), dp(11), dp(12), dp(11));
+                item.setBackground(roundBorder(
+                        CARD_2, Color.rgb(80, 65, 111), 14, 1));
+                item.setClickable(true);
+                item.setOnClickListener(v -> {
+                    OperationLog.add(this, "OPERATION_LOG_ITEM_OPENED", entry.action);
+                    showOperationLogDetail(entry);
+                });
+                body.addView(item, marginTop(8));
             }
         }
 
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
         scroll.addView(body);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(430));
+        scrollLp.topMargin = dp(8);
+        panel.addView(scroll, scrollLp);
 
-        new AlertDialog.Builder(this)
-                .setTitle("操作記錄")
-                .setView(scroll)
-                .setPositiveButton("關閉", null)
-                .setNeutralButton("清除", (dialog, which) -> {
-                    OperationLog.clear(this);
-                    OperationLog.add(this, "OPERATION_LOG_CLEARED", "");
-                    Toast.makeText(this, "已清除操作記錄", Toast.LENGTH_SHORT).show();
-                })
-                .show();
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        Button clear = secondaryButton("清除記錄");
+        Button close = secondaryButton("關閉");
+        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        actionLp.rightMargin = dp(8);
+        actions.addView(clear, actionLp);
+        actions.addView(close, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        panel.addView(actions, marginTop(12));
+
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(panel)
+                .create();
+        clear.setOnClickListener(v -> {
+            OperationLog.clear(this);
+            Toast.makeText(this, "已清除操作記錄", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        styleDarkDialog(dialog);
+    }
+
+    private void showOperationLogDetail(OperationLog.Entry entry) {
+        LinearLayout panel = column();
+        panel.setPadding(dp(20), dp(18), dp(20), dp(16));
+        panel.setBackground(roundBorder(
+                CARD, Color.rgb(92, 73, 127), 24, 1));
+
+        TextView title = text(entry.action.replace('_', ' '), 20, TEXT, true);
+        panel.addView(title);
+
+        TextView time = text(entry.timeText(), 12, MUTED, false);
+        panel.addView(time, marginTop(4));
+
+        TextView detailLabel = text("內容", 11, GOLD, true);
+        panel.addView(detailLabel, marginTop(18));
+
+        String detailValue = entry.detail == null || entry.detail.isEmpty()
+                ? "這筆事件沒有額外內容"
+                : entry.detail;
+        TextView detail = text(detailValue, 14, TEXT, false);
+        detail.setLineSpacing(dp(3), 1f);
+        detail.setPadding(dp(12), dp(12), dp(12), dp(12));
+        detail.setBackground(roundBorder(
+                CARD_2, Color.rgb(80, 65, 111), 14, 1));
+        panel.addView(detail, marginTop(6));
+
+        Button close = secondaryButton("關閉");
+        panel.addView(close, marginTop(16));
+
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(panel)
+                .create();
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        styleDarkDialog(dialog);
     }
 
     private void showDatePicker() {
@@ -1513,6 +1593,22 @@ public final class MainActivity extends Activity {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(dp);
         return lp;
+    }
+
+    private void styleDarkDialog(AlertDialog dialog) {
+        if (dialog == null || dialog.getWindow() == null) return;
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.getWindow().setDimAmount(0.68f);
+    }
+
+    private GradientDrawable roundBorder(
+            int fillColor,
+            int strokeColor,
+            int radiusDp,
+            int strokeDp) {
+        GradientDrawable drawable = round(fillColor, radiusDp);
+        drawable.setStroke(dp(strokeDp), strokeColor);
+        return drawable;
     }
 
     private GradientDrawable round(int color, int radiusDp) {
