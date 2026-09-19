@@ -57,6 +57,8 @@ public final class MainActivity extends Activity {
     private Button femaleButton;
     private String selectedGender = "";
     private TextView modeLabel;
+    private Button baZiModeButton;
+    private Button tarotModeButton;
     private TextView aiStatus;
     private Button strictStyleButton;
     private Button normalStyleButton;
@@ -73,8 +75,8 @@ public final class MainActivity extends Activity {
     private TextView teacherInputText;
     private TextView teacherOutputText;
     private boolean pendingTeacherStart;
-    private int selectedBaZiTab = 0;
-    private LinearLayout baZiTabContent;
+    private int selectedResultTab = 0;
+    private LinearLayout resultTabContent;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -117,7 +119,7 @@ public final class MainActivity extends Activity {
         outState.putString("state_mode", selectedMode.name());
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
-        outState.putInt("state_bazi_tab", selectedBaZiTab);
+        outState.putInt("state_result_tab", selectedResultTab);
         if (aiCopy != null) outState.putString("state_ai_copy", serializeAiCopy(aiCopy));
         OperationLog.add(this, "STATE_SAVED",
                 currentResult == null ? "no_result" : "result_saved");
@@ -181,7 +183,25 @@ public final class MainActivity extends Activity {
         form.setBackground(round(CARD, 22));
         root.addView(form, marginTop(24));
 
-        form.addView(label("先交代一下你的基本資料"));
+        form.addView(label("選擇算命方式"));
+
+        LinearLayout modeRow = new LinearLayout(this);
+        modeRow.setOrientation(LinearLayout.HORIZONTAL);
+        baZiModeButton = modeButton("八字");
+        tarotModeButton = modeButton("塔羅生命靈數");
+        baZiModeButton.setOnClickListener(v -> selectMode(FortuneMode.BA_ZI));
+        tarotModeButton.setOnClickListener(v -> selectMode(FortuneMode.TAROT_NUMEROLOGY));
+        LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, dp(50), 1f);
+        modeLp.rightMargin = dp(8);
+        modeRow.addView(baZiModeButton, modeLp);
+        modeRow.addView(tarotModeButton, new LinearLayout.LayoutParams(0, dp(50), 1f));
+        form.addView(modeRow, marginTop(8));
+
+        modeLabel = text("", 12, MUTED, false);
+        modeLabel.setLineSpacing(dp(3), 1f);
+        form.addView(modeLabel, marginTop(7));
+
+        form.addView(label("基本資料"), marginTop(18));
         nameInput = input("你的名字");
         birthInput = input("生日，例如 1985-07-22");
         birthInput.setFocusable(false);
@@ -243,30 +263,6 @@ public final class MainActivity extends Activity {
         TextView styleHint = text("嚴謹：專業報告｜普通：白話平衡｜風趣：嘴得準但不傷人\n只改 AI 說話方式，不改命盤計算結果", 11, MUTED, false);
         form.addView(styleHint, marginTop(4));
 
-        modeLabel = text("今天想算：八字\n四柱、十神、大運、流年\n以出生地當地民用時間排盤；目前不做真太陽時校正", 16, TEXT, true);
-        root.addView(modeLabel, marginTop(24));
-
-        HorizontalScrollView chipsScroll = new HorizontalScrollView(this);
-        chipsScroll.setHorizontalScrollBarEnabled(false);
-        LinearLayout chips = new LinearLayout(this);
-        chips.setOrientation(LinearLayout.HORIZONTAL);
-        chipsScroll.addView(chips);
-        for (final FortuneMode mode : FortuneMode.values()) {
-            Button chip = new Button(this);
-            chip.setText(mode.title());
-            chip.setTextSize(14);
-            chip.setAllCaps(false);
-            chip.setTextColor(TEXT);
-            chip.setBackground(round(CARD_2, 18));
-            chip.setPadding(dp(14), 0, dp(14), 0);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, dp(48));
-            lp.rightMargin = dp(8);
-            chips.addView(chip, lp);
-            chip.setOnClickListener(v -> selectMode(mode));
-        }
-        root.addView(chipsScroll, marginTop(10));
-
         Button calculate = new Button(this);
         calculate.setText("開始算命");
         calculate.setTextSize(17);
@@ -286,6 +282,8 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
+        updateModeSelectionUi();
+
         TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.7.0", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
@@ -298,9 +296,7 @@ public final class MainActivity extends Activity {
         boolean isBaZi = mode == FortuneMode.BA_ZI;
         birthTimeInput.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
         genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
-        modeLabel.setText("今天想算：" + mode.title() + "\n" + mode.subtitle()
-                + (isBaZi ? "\n以出生地當地民用時間排盤；目前不做真太陽時校正"
-                : "\n只用生日：算生命道路、內靈數、外靈數與塔羅出生牌"));
+        updateModeSelectionUi();
     }
 
     private void selectGender(String gender) {
@@ -314,7 +310,7 @@ public final class MainActivity extends Activity {
     }
 
     private void calculate() {
-        selectedBaZiTab = 0;
+        selectedResultTab = 0;
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         closeTeacher();
         closeAgent();
@@ -445,8 +441,9 @@ public final class MainActivity extends Activity {
         TextView title = text(titleValue, 25, TEXT, true);
         resultCard.addView(title, marginTop(8));
 
-        if (result.mode == FortuneMode.BA_ZI) {
-            addBaZiTabbedResult(result, aiLoading);
+        if (result.mode == FortuneMode.BA_ZI
+                || result.mode == FortuneMode.TAROT_NUMEROLOGY) {
+            addUnifiedTabbedResult(result, aiLoading);
             resultCard.setVisibility(View.VISIBLE);
             return;
         }
@@ -529,7 +526,7 @@ public final class MainActivity extends Activity {
     }
 
 
-    private void addBaZiTabbedResult(FortuneResult result, boolean aiLoading) {
+    private void addUnifiedTabbedResult(FortuneResult result, boolean aiLoading) {
         TextView basis = text("計算依據｜" + result.basis, 12, MUTED, false);
         resultCard.addView(basis, marginTop(6));
 
@@ -539,21 +536,21 @@ public final class MainActivity extends Activity {
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabScroll.addView(tabs);
 
-        final String[] labels = {"總覽", "命盤", "大運・流年", "主題分析", "老師解讀"};
+        final String[] labels = {"總覽", "本命", "流年", "主題"};
         for (int i = 0; i < labels.length; i++) {
             final int index = i;
             Button tab = new Button(this);
             tab.setText(labels[i]);
             tab.setTextSize(13);
             tab.setAllCaps(false);
-            boolean selected = selectedBaZiTab == i;
+            boolean selected = selectedResultTab == i;
             tab.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
             tab.setTextColor(selected ? Color.rgb(30, 22, 46) : TEXT);
             tab.setBackground(round(selected ? ACCENT : CARD_2, 15));
             tab.setPadding(dp(14), 0, dp(14), 0);
             tab.setOnClickListener(v -> {
-                selectedBaZiTab = index;
-                OperationLog.add(this, "BAZI_TAB_SELECTED", labels[index]);
+                selectedResultTab = index;
+                OperationLog.add(this, "RESULT_TAB_SELECTED", labels[index]);
                 renderResult(currentResult, activeHarness != null && aiCopy == null);
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -563,31 +560,47 @@ public final class MainActivity extends Activity {
         }
         resultCard.addView(tabScroll, marginTop(16));
 
-        baZiTabContent = column();
-        resultCard.addView(baZiTabContent, marginTop(8));
-        renderBaZiTab(result, aiLoading);
+        resultTabContent = column();
+        resultCard.addView(resultTabContent, marginTop(8));
+        renderUnifiedTab(result, aiLoading);
+        addSharedResultActions();
     }
 
-    private void renderBaZiTab(FortuneResult result, boolean aiLoading) {
-        if (baZiTabContent == null) return;
-        baZiTabContent.removeAllViews();
-        switch (selectedBaZiTab) {
-            case 1:
-                addBaZiResultPanel();
-                break;
-            case 2:
-                addBaZiLuckTimelineTab();
-                break;
-            case 3:
-                addBaZiTopicAnalysisTab();
-                break;
-            case 4:
-                addBaZiTeacherTab(result, aiLoading);
-                break;
-            case 0:
-            default:
-                addBaZiOverviewTab(result, aiLoading);
-                break;
+    private void renderUnifiedTab(FortuneResult result, boolean aiLoading) {
+        if (resultTabContent == null) return;
+        resultTabContent.removeAllViews();
+        if (result.mode == FortuneMode.BA_ZI) {
+            switch (selectedResultTab) {
+                case 1:
+                    addBaZiResultPanel();
+                    break;
+                case 2:
+                    addBaZiLuckTimelineTab();
+                    break;
+                case 3:
+                    addBaZiTopicAnalysisTab();
+                    break;
+                case 0:
+                default:
+                    addBaZiOverviewTab(result, aiLoading);
+                    break;
+            }
+        } else {
+            switch (selectedResultTab) {
+                case 1:
+                    addTarotResultPanel();
+                    break;
+                case 2:
+                    addTarotTimelineTab();
+                    break;
+                case 3:
+                    addTarotTopicAnalysisTab();
+                    break;
+                case 0:
+                default:
+                    addTarotOverviewTab(result, aiLoading);
+                    break;
+            }
         }
     }
 
@@ -822,7 +835,7 @@ public final class MainActivity extends Activity {
         panel.setPadding(dp(14), dp(16), dp(14), dp(16));
         panel.setBackground(roundBorder(
                 CARD_2, Color.rgb(86, 70, 119), 20, 1));
-        baZiTabContent.addView(panel, marginTop(8));
+        resultTabContent.addView(panel, marginTop(8));
         return panel;
     }
 
@@ -1024,7 +1037,7 @@ public final class MainActivity extends Activity {
         LinearLayout panel = column();
         panel.setPadding(dp(14), dp(16), dp(14), dp(16));
         panel.setBackground(round(CARD_2, 20));
-        LinearLayout host = baZiTabContent == null ? resultCard : baZiTabContent;
+        LinearLayout host = resultTabContent == null ? resultCard : resultTabContent;
         host.addView(panel, marginTop(16));
 
         LinearLayout hero = new LinearLayout(this);
@@ -1229,7 +1242,8 @@ public final class MainActivity extends Activity {
         GradientDrawable background = round(CARD_2, 22);
         background.setStroke(dp(1), Color.rgb(87, 69, 121));
         panel.setBackground(background);
-        resultCard.addView(panel, marginTop(16));
+        LinearLayout host = resultTabContent == null ? resultCard : resultTabContent;
+        host.addView(panel, marginTop(16));
 
         TextView coreTitle = text("生日核心數", 12, GOLD, true);
         coreTitle.setGravity(Gravity.CENTER);
@@ -1802,7 +1816,7 @@ public final class MainActivity extends Activity {
                     state.getString("state_mode", FortuneMode.BA_ZI.name()));
             selectedAiStyle = AiStyle.valueOf(
                     state.getString("state_ai_style", AiStyle.FUNNY.name()));
-            selectedBaZiTab = state.getInt("state_bazi_tab", 0);
+            selectedResultTab = state.getInt("state_result_tab", 0);
 
             selectMode(selectedMode);
             if (!selectedGender.isEmpty()) selectGender(selectedGender);
@@ -2024,6 +2038,39 @@ public final class MainActivity extends Activity {
         button.setBackground(round(selected ? ACCENT : CARD_2, 14));
         button.setTextColor(selected ? Color.rgb(30, 22, 46) : TEXT);
         button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
+    }
+
+    private Button modeButton(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        button.setTextSize(14);
+        button.setAllCaps(false);
+        button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        button.setPadding(dp(10), 0, dp(10), 0);
+        return button;
+    }
+
+    private void updateModeSelectionUi() {
+        boolean bazi = selectedMode == FortuneMode.BA_ZI;
+        if (baZiModeButton != null) {
+            baZiModeButton.setBackground(roundBorder(
+                    bazi ? ACCENT : CARD_2,
+                    bazi ? ACCENT : Color.rgb(80, 65, 111),
+                    16, 1));
+            baZiModeButton.setTextColor(bazi ? Color.rgb(30, 22, 46) : TEXT);
+        }
+        if (tarotModeButton != null) {
+            tarotModeButton.setBackground(roundBorder(
+                    !bazi ? ACCENT : CARD_2,
+                    !bazi ? ACCENT : Color.rgb(80, 65, 111),
+                    16, 1));
+            tarotModeButton.setTextColor(!bazi ? Color.rgb(30, 22, 46) : TEXT);
+        }
+        if (modeLabel != null) {
+            modeLabel.setText(bazi
+                    ? "四柱、十神、大運、逐年流年 · 需要出生時間與性別\n以出生地當地民用時間排盤，目前不做真太陽時校正"
+                    : "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n只使用生日，不使用姓名或出生時間計算");
+        }
     }
 
     private Button styleButton(String value) {
