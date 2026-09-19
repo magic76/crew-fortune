@@ -99,3 +99,13 @@ All readings are positioned as entertainment and reflection. Gemini writes the i
 - Deterministic fallback reports now include multiple interpretive chapters instead of a few stock sentences.
 - Gemini report output expands to overview, personality/talents, career/wealth, relationships, current timing, human-language translation, punchline and practical advice.
 - Gemini text generation output budget is increased so the structured calculation is not compressed into a horoscope-length answer.
+
+
+## v0.6.0 live fortune teacher
+
+- Result pages include a **老師跟我講解** action.
+- Voice conversation uses Gemini 3.8 Live with native audio.
+- The teacher receives only locally calculated deterministic facts; it cannot recalculate birth data or substitute defaults.
+- The first explanation is designed as a 60–90 second spoken summary, followed by open voice Q&A.
+- Voice persona follows the selected AI style: strict, normal or funny.
+- Microphone permission is requested only when starting the voice teacher.
