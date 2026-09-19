@@ -252,3 +252,38 @@ Android 8.0+ now uses a dedicated adaptive-icon foreground instead of the full p
 - The bottom Crew Fortune / 命運研究所 wordmark is excluded from the adaptive foreground because launchers already render the app label separately.
 - The artwork fills the 108dp adaptive viewport directly, avoiding the previous double-inset effect on Samsung launchers.
 - Legacy launchers continue using the full square artwork.
+
+
+## v0.10.0 engaging fortune experience
+
+The AI layer now focuses on recognition and follow-up instead of only producing a long report.
+
+### Three strongest observations
+
+AI output includes `topTraits`, exactly three concise fact-grounded observations designed to answer “what feels most like me?” first.
+
+Both BaZi and Tarot overview tabs show these observations before the long AI interpretation.
+
+### One-tap follow-up questions
+
+AI output includes four personalized `followUps` based on the deterministic facts. They are shown as compact “你一定會想問” actions below the result.
+
+Tapping a follow-up:
+- opens the Gemini Live teacher
+- carries the selected question into the session
+- skips the generic 60–90 second opening
+- asks for a direct conclusion plus 2–4 deterministic pieces of evidence
+
+Microphone permission flow preserves the selected question across the permission prompt.
+
+### Distinct AI personas
+
+The three AI styles now use different narrative structures rather than only different temperatures:
+
+- **嚴謹**: evidence → interpretation → practical implication
+- **普通**: plain conclusion → concrete facts → practical meaning
+- **風趣**: recognizable observation → evidence → explanation → one restrained dry punchline
+
+The Live teacher uses the same persona distinction.
+
+This release does not change deterministic BaZi or Tarot calculation rules.
