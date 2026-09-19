@@ -45,9 +45,22 @@ public final class FortuneTeacherPromptTest {
         assertEquals("Charon", FortuneTeacherPrompt.voiceName(AiStyle.STRICT));
     }
 
-    @Test public void openingInvitesFocusedExplanation() {
-        String prompt = FortuneTeacherPrompt.openingPrompt("小明");
-        assertTrue(prompt.startsWith("小明，"));
-        assertTrue(prompt.contains("最值得知道的重點"));
+    @Test public void teacherKeepsUserNameSeparateFromTeacherIdentity() {
+        FortuneFacts facts = engine.calculateFacts(
+                FortuneMode.TAROT_NUMEROLOGY,
+                new FortuneProfile("小楊", "1985-07-06", "", ""),
+                new Date(1789766400000L));
+
+        String system = FortuneTeacherPrompt.systemPrompt(
+                FortuneMode.TAROT_NUMEROLOGY,
+                AiStyle.FUNNY,
+                facts,
+                "小楊");
+        String opening = FortuneTeacherPrompt.openingPrompt("小楊");
+
+        assertTrue(system.contains("使用者的名字是「小楊」"));
+        assertTrue(system.contains("你絕對不能說『我是小楊』"));
+        assertTrue(opening.contains("你是命理老師，不是「小楊」"));
+        assertTrue(opening.contains("最值得知道的重點"));
     }
 }
