@@ -60,6 +60,7 @@ public final class GeminiFortuneLiveSession {
     private volatile boolean ready;
     private volatile boolean recording;
     private volatile boolean speaking;
+    private volatile boolean manualBargeIn;
     private volatile long micSuppressedUntilMs;
     private AudioRecord recorder;
     private AudioTrack player;
@@ -127,6 +128,7 @@ public final class GeminiFortuneLiveSession {
         if (!running) return;
         running = false;
         ready = false;
+        manualBargeIn = false;
         sendAudioStreamEnd();
         stopAudio();
         if (webSocket != null) {
@@ -136,10 +138,13 @@ public final class GeminiFortuneLiveSession {
         status("已結束");
     }
 
-    public void interrupt() {
+    public synchronized void interrupt() {
+        manualBargeIn = true;
         flushPlayback();
-        setSpeaking(false);
-        status("請直接說，我在聽");
+        speaking = false;
+        micSuppressedUntilMs = 0L;
+        if (listener != null) listener.onSpeakingChanged(false);
+        status("我停下來了，現在請直接說");
     }
 
     public boolean isRunning() {
@@ -196,14 +201,20 @@ public final class GeminiFortuneLiveSession {
     private void handleServerContent(JSONObject server) throws Exception {
         if (server.optBoolean("interrupted", false)) {
             flushPlayback();
-            setSpeaking(false);
+            speaking = false;
+            micSuppressedUntilMs = 0L;
+            if (listener != null) listener.onSpeakingChanged(false);
         }
 
         JSONObject input = server.optJSONObject("inputTranscription");
         if (input == null) input = server.optJSONObject("input_transcription");
-        if (input != null && listener != null) {
+        if (input != null) {
             String value = input.optString("text", "").trim();
-            if (!value.isEmpty()) listener.onInputTranscript(value);
+            if (!value.isEmpty()) {
+                manualBargeIn = false;
+                status("聽到了，老師在回答");
+                if (listener != null) listener.onInputTranscript(value);
+            }
         }
 
         JSONObject output = server.optJSONObject("outputTranscription");
@@ -227,7 +238,7 @@ public final class GeminiFortuneLiveSession {
                     String mime = inline.optString("mimeType", "");
                     if (!mime.startsWith("audio/pcm")) continue;
                     byte[] pcm = Base64.decode(inline.optString("data", ""), Base64.DEFAULT);
-                    if (pcm.length > 0) {
+                    if (pcm.length > 0 && !manualBargeIn) {
                         ensurePlayer();
                         setSpeaking(true);
                         final byte[] frame = pcm;
@@ -340,11 +351,22 @@ public final class GeminiFortuneLiveSession {
                 break;
             }
             if (read <= 0) continue;
-            if (speaking || SystemClock.elapsedRealtime() < micSuppressedUntilMs) continue;
+            long now = SystemClock.elapsedRealtime();
+            if (!shouldSendCapturedAudio(manualBargeIn, speaking, micSuppressedUntilMs, now)) {
+                continue;
+            }
             byte[] frame = new byte[read];
             System.arraycopy(buffer, 0, frame, 0, read);
             sendAudio(frame);
         }
+    }
+
+    static boolean shouldSendCapturedAudio(
+            boolean manualBargeIn,
+            boolean speaking,
+            long suppressedUntilMs,
+            long nowMs) {
+        return manualBargeIn || (!speaking && nowMs >= suppressedUntilMs);
     }
 
     private void sendAudio(byte[] bytes) {

@@ -6,11 +6,24 @@ public final class FortuneTeacherPrompt {
     private FortuneTeacherPrompt() {}
 
     public static String systemPrompt(FortuneMode mode, AiStyle style, FortuneFacts facts) {
+        return systemPrompt(mode, style, facts, "");
+    }
+
+    public static String systemPrompt(
+            FortuneMode mode,
+            AiStyle style,
+            FortuneFacts facts,
+            String displayName) {
         if (facts == null) throw new IllegalArgumentException("facts are required");
         AiStyle safeStyle = style == null ? AiStyle.NORMAL : style;
         String factsJson = new JSONObject(facts.details).toString();
+        String userName = displayName == null ? "" : displayName.trim();
 
         return "你是命運研究所的真人感命理老師，使用繁體中文口語和使用者直接對談。"
+                + (userName.isEmpty() ? ""
+                : "使用者的名字是「" + userName + "」。這個名字只屬於使用者，不是你的名字。"
+                + "你絕對不能說『我是" + userName + "』、『我叫" + userName + "』或把自己當成" + userName + "。"
+                + "你可以自然地稱呼使用者為「" + userName + "」。")
                 + "這是一個娛樂與自我反思體驗，不把命理說成必然事實。"
                 + "你只能使用下面 deterministicFacts；這份資料已由 App 本機算完。"
                 + "禁止重新排盤、禁止自行換算法、禁止補預設生日/時間/性別、禁止改任何數字、干支、十神、大運、流年或塔羅牌。"
@@ -26,8 +39,11 @@ public final class FortuneTeacherPrompt {
 
     public static String openingPrompt(String displayName) {
         String name = displayName == null ? "" : displayName.trim();
-        return (name.isEmpty() ? "" : name + "，")
-                + "請開始講解這次的命盤。先挑最值得知道的重點，不要逐欄念資料。";
+        return (name.isEmpty()
+                ? "你是命理老師，請以老師身份開始講解這次的命盤。"
+                : "使用者名字是「" + name + "」。你是命理老師，不是「" + name + "」。"
+                + "請以老師身份直接對「" + name + "」開始講解這次命盤。")
+                + "先挑最值得知道的重點，不要逐欄念資料。";
     }
 
     public static String voiceName(AiStyle style) {
