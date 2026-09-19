@@ -202,7 +202,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.1", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.2", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -802,6 +802,7 @@ public final class MainActivity extends Activity {
                 .setPositiveButton("儲存", (dialog, which) -> {
                     AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
                     refreshAiStatus();
+                    Toast.makeText(this, "Gemini Key 已儲存於本機", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("取消", null)
                 .setNeutralButton("清除", (dialog, which) -> {

@@ -88,3 +88,14 @@ Initial Android MVP scaffold in progress.
 - Personal Year follows the calendar-year method; Personal Month derives from the Personal Year plus the current month.
 
 All readings are positioned as entertainment and reflection. Gemini writes the interpretation; deterministic calculators remain the source of truth.
+
+
+## v0.3.2 UX and report depth
+
+- Gemini BYOK key persists locally through app restarts and normal app upgrades.
+- Birth date and birth time use Android date/time pickers instead of free-form typing.
+- The last successfully calculated profile is restored on the next launch.
+- Users can save up to 12 reusable presets containing name, birth date, birth time, gender and fortune system.
+- Deterministic fallback reports now include multiple interpretive chapters instead of a few stock sentences.
+- Gemini report output expands to overview, personality/talents, career/wealth, relationships, current timing, human-language translation, punchline and practical advice.
+- Gemini text generation output budget is increased so the structured calculation is not compressed into a horoscope-length answer.
