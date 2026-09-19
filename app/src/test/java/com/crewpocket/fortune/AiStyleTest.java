@@ -17,8 +17,8 @@ public final class AiStyleTest {
         assertTrue(prompt.contains("concrete fact -> serious interpretation"));
         assertTrue(prompt.contains("被看穿了，但很好笑"));
         assertTrue(prompt.contains("Avoid fortune-cookie filler"));
-        assertTrue(prompt.contains("220-360"));
-        assertTrue(prompt.contains("one memorable roast AND one concrete everyday scene"));
+        assertTrue(prompt.contains("500-800"));
+        assertTrue(prompt.contains("career, wealth"));
     }
 
     @Test public void interpretationPromptDisablesToolsAndDefaults() {
