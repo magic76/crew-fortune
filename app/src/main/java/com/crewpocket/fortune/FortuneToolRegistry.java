@@ -20,6 +20,7 @@ public final class FortuneToolRegistry {
                     FortuneProfile profile = new FortuneProfile(
                             text(args.get("name")),
                             text(args.get("birthDate")),
+                            text(args.get("birthTime")),
                             text(args.get("secondaryName")));
                     FortuneFacts facts = engine.calculateFacts(mode, profile, new Date());
 
@@ -27,19 +28,25 @@ public final class FortuneToolRegistry {
                     payload.put("mode", facts.mode.name());
                     payload.put("score", facts.score);
                     payload.put("basis", facts.basis);
-                    payload.put("lifeNumber", facts.lifeNumber);
-                    payload.put("zodiac", facts.zodiac);
-                    payload.put("nameNumber", facts.nameNumber);
-                    if (facts.secondaryNameNumber > 0) {
-                        payload.put("secondaryNameNumber", facts.secondaryNameNumber);
-                    }
-                    payload.put("momentum", facts.momentum);
-                    payload.put("stability", facts.stability);
-                    payload.put("social", facts.social);
-                    payload.put("impulse", facts.impulse);
                     payload.put("dayKey", facts.dayKey);
+
+                    if (mode == FortuneMode.BA_ZI || mode == FortuneMode.TAROT_NUMEROLOGY) {
+                        payload.put("details", facts.details);
+                    } else {
+                        payload.put("lifeNumber", facts.lifeNumber);
+                        payload.put("zodiac", facts.zodiac);
+                        payload.put("nameNumber", facts.nameNumber);
+                        if (facts.secondaryNameNumber > 0) {
+                            payload.put("secondaryNameNumber", facts.secondaryNameNumber);
+                        }
+                        payload.put("momentum", facts.momentum);
+                        payload.put("stability", facts.stability);
+                        payload.put("social", facts.social);
+                        payload.put("impulse", facts.impulse);
+                    }
+
                     payload.put("interpretationRule",
-                            "These values are deterministic facts. Create fresh wording from them; do not change numeric values.");
+                            "These are deterministic calculation facts. Never change the numeric values, pillars, cards, stems, branches, elements or ten-god labels. Create fresh wording only.");
                     completion.complete(ToolResult.success(call.id(), payload));
                 } catch (Exception error) {
                     completion.complete(ToolResult.failure(call.id(), "FORTUNE_INPUT_ERROR",
