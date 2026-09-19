@@ -204,3 +204,26 @@ BaZi long-term interpretation is required to synthesize the upcoming decade from
 - Operation history records the exact parser reason, Gemini finish reason, response length and a redacted 300-character response preview. API keys are never logged.
 
 The deterministic fortune calculators are unchanged by this release.
+
+
+## v0.9.2 image sharing
+
+Result sharing now creates a local 1080×1350 PNG card instead of sending the full report as text.
+
+The share card contains only a concise summary:
+- mode and brand
+- core natal identity
+- current cycle
+- next three years
+- one memorable AI/local interpretation line
+
+BaZi cards show Day Master / strength, current Luck Pillar and upcoming annual rows.
+Tarot cards show Personality Card / Soul Card / Life Path, current Personal Year and the next three Personal Years.
+
+Privacy rules:
+- full name is not shown
+- birth date and birth time are not shown
+- raw deterministic facts are never embedded
+- name/date/time references inside the quote are redacted before rendering
+
+The PNG is generated in app cache and shared through Android FileProvider with temporary read permission. No server or public URL is used.
