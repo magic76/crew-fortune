@@ -53,7 +53,10 @@ public final class BaZiInsightBuilder {
             item.put("element", text(LunarUtil.WU_XING_GAN.get(gan))
                     + text(LunarUtil.WU_XING_ZHI.get(zhi)));
             item.put("interactionsWithNatal", interactions);
-            item.put("themes", themes(god(eight.getDayGan(), gan), branchGods, interactions));
+            List<String> itemThemes = themes(god(eight.getDayGan(), gan), branchGods, interactions);
+            item.put("themes", itemThemes);
+            item.put("plainSummary", plainSummary(itemThemes));
+            item.put("stemTenGodMeaning", godMeaning(god(eight.getDayGan(), gan)));
         }
     }
 
@@ -79,7 +82,10 @@ public final class BaZiInsightBuilder {
             item.put("natalInteractions", interactions);
             Map<String, Object> luck = luckForYear(result.get("luckPillars"), year);
             if (luck != null) item.put("luckPillar", luck.get("ganZhi"));
-            item.put("themes", themes(stemGod, branchGods, interactions));
+            List<String> itemThemes = themes(stemGod, branchGods, interactions);
+            item.put("themes", itemThemes);
+            item.put("plainSummary", plainSummary(itemThemes));
+            item.put("stemTenGodMeaning", godMeaning(stemGod));
             out.add(item);
         }
         return out;
@@ -187,6 +193,40 @@ public final class BaZiInsightBuilder {
         if (joined.contains("刑") || joined.contains("害")) out.add("摩擦／調整");
         if (out.isEmpty()) out.add("常態推進");
         return out;
+    }
+
+    private static String plainSummary(List<String> themes) {
+        List<String> parts = new ArrayList<String>();
+        if (themes.contains("財星／資源")) parts.add("金錢、資源與現實成果議題較容易被放大");
+        if (themes.contains("責任／規範")) parts.add("工作責任、制度要求或角色壓力較明顯");
+        if (themes.contains("學習／支援")) parts.add("學習、資格、資源支援與整理能力較重要");
+        if (themes.contains("輸出／表達")) parts.add("輸出、表達、作品與把想法做出來的需求增加");
+        if (themes.contains("自我／同儕")) parts.add("自主性、競爭、合作分工與同儕關係更值得注意");
+        if (themes.contains("變動")) parts.add("合沖訊號帶來較強的調整與變動感");
+        if (themes.contains("合作／連結")) parts.add("合作、關係連結或資源整合機會增加");
+        if (themes.contains("摩擦／調整")) parts.add("容易出現卡點，適合提早調整節奏與界線");
+        if (parts.isEmpty()) return "這段以穩定推進為主，沒有特別突出的主題訊號";
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < parts.size() && i < 3; i++) {
+            if (out.length() > 0) out.append("；");
+            out.append(parts.get(i));
+        }
+        return out.toString();
+    }
+
+    private static String godMeaning(String god) {
+        String g = trad(god);
+        if ("正財".equals(g)) return "穩定收入、資源管理、現實責任";
+        if ("偏財".equals(g)) return "機會型資源、人脈、彈性收入";
+        if ("正官".equals(g)) return "責任、規範、職位與制度";
+        if ("七殺".equals(g)) return "壓力、競爭、決斷與高要求";
+        if ("正印".equals(g)) return "學習、支援、資格與保護";
+        if ("偏印".equals(g)) return "研究、洞察、非典型學習";
+        if ("食神".equals(g)) return "穩定輸出、創造、享受與表達";
+        if ("傷官".equals(g)) return "強表達、突破、質疑與創新";
+        if ("比肩".equals(g)) return "自主、同儕、競爭與自我主張";
+        if ("劫財".equals(g)) return "合作競爭、資源分配與人際拉扯";
+        return "";
     }
 
     private static List<String> branchGods(String dayGan, String branch) {
