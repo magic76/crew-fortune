@@ -23,10 +23,10 @@ public final class FortuneEngine {
         } else {
             details.putAll(new TarotNumerologyCalculator().calculate(profile.birthDate, now));
             score = intValue(details.get("lifePathNumber"), 1);
-            basis = "生命道路 " + details.get("lifePathDisplay")
-                    + " · 內靈數 " + details.get("innerNumber")
-                    + " · 外靈數 " + details.get("outerNumber")
-                    + " · 出生牌 " + details.get("birthCardDisplay");
+            basis = "外在人格牌 " + details.get("personalityCardNumber") + " " + details.get("personalityCardName")
+                    + " · 內在靈魂牌 " + details.get("soulCardNumber") + " " + details.get("soulCardName")
+                    + " · 天賦 " + details.get("talentNumbers")
+                    + " · 流年 " + details.get("personalYear") + " " + details.get("personalYearCardName");
         }
 
         return new FortuneFacts(
@@ -54,7 +54,7 @@ public final class FortuneEngine {
                 facts.score,
                 facts.detailText("birthCardDisplay"),
                 facts.basis,
-                "生命道路、內靈數、外靈數、生日數、態度數、出生牌組、巔峰、挑戰與今年週期已完成計算。",
+                "外在人格牌、內在靈魂牌、天賦數、生命道路、態度數、出生牌組、巔峰、挑戰與今年流年已完成計算。",
                 "這次只看生日，不再叫你的名字去兼差當數學題。",
                 "同一個生日會得到同一組核心數字與出生牌。",
                 "把數字和牌義當成反思提示，不要當成宇宙合約。");

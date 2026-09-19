@@ -64,34 +64,34 @@ public final class FortuneLocalReport {
     private static LinkedHashMap<String, String> tarot(FortuneFacts f) {
         LinkedHashMap<String, String> out = new LinkedHashMap<String, String>();
         int life = intValue(f.detail("lifePathNumber"));
-        int inner = intValue(f.detail("innerNumber"));
-        int outer = intValue(f.detail("outerNumber"));
+        int soul = intValue(f.detail("soulCardNumber"));
+        int personality = intValue(f.detail("personalityCardNumber"));
         String[] lifeMeanings = numberMeaning(life);
-        String[] innerMeanings = numberMeaning(inner);
-        String[] outerMeanings = numberMeaning(outer);
+        String[] soulMeanings = numberMeaning(soul);
+        String[] personalityMeanings = numberMeaning(personality > 9 ? reduceForMeaning(personality) : personality);
         String cards = f.detailText("birthCardDisplay");
 
         out.put("核心總覽",
-                "生命道路數是 " + f.detailText("lifePathDisplay")
-                        + "，內靈數 " + inner
-                        + "，外靈數 " + outer
-                        + "，出生牌組是「" + cards + "」。"
-                        + " 生日數 " + f.detailText("birthdayNumber")
-                        + "、態度數 " + f.detailText("attitudeNumber")
-                        + " 會補充你怎麼表現與回應環境。 "
-                        + lifeMeanings[0]);
+                "外在人格牌是 " + personality + "「" + f.detailText("personalityCardName") + "」，"
+                        + "內在靈魂牌是 " + soul + "「" + f.detailText("soulCardName") + "」。"
+                        + " 天賦拆解為 " + f.detailText("talentNumbers")
+                        + "，生命道路數是 " + f.detailText("lifePathDisplay")
+                        + "，出生牌組是「" + cards + "」。");
 
         out.put("內在 vs 外在",
-                "內靈數 " + inner + " 代表這套生日流派裡較偏內在的核心心性；"
-                        + "外靈數 " + outer + " 則看出生日，描述較容易被別人看到的外顯特質。"
-                        + " 內在層：" + innerMeanings[1]
-                        + " 外在層：" + outerMeanings[1]
-                        + " 如果兩者差異大，常見感覺就是「自己心裡明明不是那樣，別人卻一直先看到另一面」。");
+                "人格牌描述比較容易被外界看到的表現與生命課題；靈魂牌則描述較深層、比較私人的核心動機。"
+                        + " 外在層：" + personalityMeanings[1]
+                        + " 內在層：" + soulMeanings[1]
+                        + (personality == soul
+                        ? " 你的兩張牌相同，這套系統會把它解讀成內外主題高度一致。"
+                        : " 兩張牌不同時，最值得看的通常就是外在角色和內在需求如何拉扯。"));
 
         out.put("性格與天賦",
                 lifeMeanings[1]
-                        + " 出生牌組關鍵字為：" + birthCardKeywords(f.detail("birthCards"))
-                        + "。生命道路數看長期主題，內／外靈數則補充內心與外顯表現的差異。");
+                        + " 天賦數 " + f.detailText("talentNumbers")
+                        + " 是從生日原始總和 " + f.detailText("talentSource")
+                        + " 拆出的延伸觀察；它不是 Mary K. Greer 人格牌／靈魂牌系統的核心標準，所以只作輔助，不蓋過兩張主牌。"
+                        + " 出生牌組關鍵字：" + birthCardKeywords(f.detail("birthCards")) + "。");
 
         out.put("工作與財務",
                 lifeMeanings[2]
@@ -101,25 +101,39 @@ public final class FortuneLocalReport {
 
         out.put("感情與人際",
                 lifeMeanings[3]
-                        + " 外靈數 " + outer + " 比較接近別人第一眼接收到的互動風格，"
-                        + "內靈數 " + inner + " 則可拿來對照你真正重視的需求。"
+                        + " 關係中可以特別對照人格牌「" + f.detailText("personalityCardName")
+                        + "」與靈魂牌「" + f.detailText("soulCardName") + "」："
+                        + "一個偏向別人先看到的你，一個偏向相處久了才浮出的你。"
                         + " 四大挑戰數 " + f.detailText("challenges")
                         + " 可視為反覆出現的人際與自我調整題目。");
 
         out.put("目前週期",
-                "目前個人年為 " + f.detailText("personalYear")
-                        + "，個人月為 " + f.detailText("personalMonth") + "。"
+                "目前個人流年為 " + f.detailText("personalYearCalendarYear")
+                        + " 年的 " + f.detailText("personalYear")
+                        + "「" + f.detailText("personalYearCardName") + "」，個人月為 "
+                        + f.detailText("personalMonth") + "。"
                         + personalYearMeaning(intValue(f.detail("personalYear")))
-                        + " 四大巔峰時程為 " + f.detailText("pinnacleTiming")
-                        + "，用來看長週期；個人年與個人月則偏向短期節奏。");
+                        + " 四大巔峰時程為 " + f.detailText("pinnacleTiming") + "。");
 
         out.put("解讀邊界",
-                "內外靈數有多種流派。本 App 固定採生日型算法："
-                        + "內靈數＝西元出生年月日全部數字加總至 1–9；"
-                        + "外靈數＝西元出生日化至 1–9。"
-                        + " 不使用姓名，也不把出生時間混入生命靈數；出生時間只用於八字。"
-                        + " 它適合當作自我反思與娛樂工具，不是事件預言。");
+                "本 App 的人格牌／靈魂牌固定採生日總和 → ≤22 → 再化到 1–9 的規則。"
+                        + " 天賦數採原始生日總和拆位，是中文圈常見的延伸解讀，不視為唯一標準。"
+                        + " 個人流年則採當年數字＋出生月日化至 1–9，再對應大牌。"
+                        + " 不使用姓名，也不使用出生時間；出生時間只供八字排盤。");
         return out;
+    }
+
+    private static int reduceForMeaning(int value) {
+        int v = Math.abs(value);
+        while (v > 9) {
+            int sum = 0;
+            while (v > 0) {
+                sum += v % 10;
+                v /= 10;
+            }
+            v = sum;
+        }
+        return v;
     }
 
     private static String elementPersonality(String e) {
