@@ -14,7 +14,9 @@ public final class AiStyleTest {
     @Test public void funnyPromptChangesWholeReportStyle() {
         String prompt = new FortuneAgentSpec(AiStyle.FUNNY).systemPrompt();
         assertTrue(prompt.contains("STYLE=FUNNY"));
-        assertTrue(prompt.contains("Each major section"));
+        assertTrue(prompt.contains("concrete fact -> serious interpretation"));
+        assertTrue(prompt.contains("被看穿了，但很好笑"));
+        assertTrue(prompt.contains("Avoid fortune-cookie filler"));
     }
 
     @Test public void strictPromptExplicitlyAvoidsJokes() {
