@@ -170,3 +170,37 @@ Tarot Numerology now exposes:
 - Human-readable Personal Year and Personal Month summaries.
 
 Gemini text and Live teacher prompts use these timelines for follow-up questions instead of only knowing the current year.
+
+
+## v0.9.0 expanded AI reports and resilient JSON parsing
+
+AI interpretation now uses a richer report schema instead of compressing work, wealth and timing into two short fields.
+
+Generated sections:
+- `overview`
+- `personality`
+- `career`
+- `wealth`
+- `relationships`
+- `currentCycle`
+- `longTerm`
+- `keyYears`
+- `translation`
+- `punchline`
+- `advice`
+- `shareText`
+
+BaZi long-term interpretation is required to synthesize the upcoming decade from deterministic `annualTimeline` plus Luck Pillars. Tarot long-term interpretation uses upcoming Personal Years together with Pinnacle / Challenge context.
+
+### AI quality and format recovery
+
+- Gemini output budget is increased to 9000 tokens.
+- The parser accepts JSON inside markdown fences and JSON surrounded by extra text.
+- Legacy `analysis`, `careerWealth` and `timing` fields remain readable for backward compatibility.
+- Only `title` and `overview/analysis` are core parser requirements. Non-core missing fields use safe fallbacks or remain optional.
+- A parsed but substantially under-sized report triggers one expansion retry.
+- Malformed JSON triggers one restricted JSON-only retry.
+- A second failure falls back to the deterministic local report without crashing.
+- Operation history records the exact parser reason, Gemini finish reason, response length and a redacted 300-character response preview. API keys are never logged.
+
+The deterministic fortune calculators are unchanged by this release.
