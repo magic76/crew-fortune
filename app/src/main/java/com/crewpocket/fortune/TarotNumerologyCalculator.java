@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class TarotNumerologyCalculator {
-    public static final String METHOD_VERSION = "tarot-school-birth-cards-plus-birthdate-numerology-v2";
+    public static final String METHOD_VERSION = "tarot-school-birth-cards-plus-core-five-numerology-v3";
 
     private static final String[] CARD_NAMES = {
             "愚者", "魔術師", "女祭司", "皇后", "皇帝", "教皇", "戀人", "戰車",
@@ -74,7 +74,10 @@ public final class TarotNumerologyCalculator {
 
         if (birthNameLatin != null && !birthNameLatin.trim().isEmpty()) {
             Map<String, Object> nameNumbers = new NameNumerologyCalculator().calculate(birthNameLatin);
+            Object nameMethodVersion = nameNumbers.get("methodVersion");
             result.putAll(nameNumbers);
+            result.put("nameNumerologyMethodVersion", nameMethodVersion);
+            result.put("methodVersion", METHOD_VERSION);
             Map<String, Object> coreFive = new LinkedHashMap<String, Object>();
             coreFive.put("lifePath", masterDisplay(lifePath));
             coreFive.put("birthday", String.valueOf(day));
