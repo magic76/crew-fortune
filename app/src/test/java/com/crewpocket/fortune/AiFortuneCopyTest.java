@@ -105,7 +105,7 @@ public final class AiFortuneCopyTest {
     @Test public void malformedJsonHasIdentifiableError() {
         try {
             AiFortuneCopy.parse(
-                    "{\"title\":\"壞格式\",\"overview\": invalid}");
+                    "{\"title\":\"壞格式\",\"overview\":[}");
             fail("Expected parser failure");
         } catch (IllegalArgumentException error) {
             assertTrue(error.getMessage().contains("Invalid JSON"));
