@@ -604,6 +604,204 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void addTarotOverviewTab(FortuneResult result, boolean aiLoading) {
+        LinearLayout panel = baZiPanel();
+
+        LinearLayout identities = new LinearLayout(this);
+        identities.setOrientation(LinearLayout.HORIZONTAL);
+        identities.setGravity(Gravity.CENTER);
+        addNumerologyIdentityCard(
+                identities,
+                "外在人格牌",
+                currentFacts.detailText("personalityCardNumber"),
+                currentFacts.detailText("personalityCardName"));
+        addNumerologyIdentityCard(
+                identities,
+                "內在靈魂牌",
+                currentFacts.detailText("soulCardNumber"),
+                currentFacts.detailText("soulCardName"));
+        panel.addView(identities);
+
+        addPanelSection(panel, "核心數字",
+                "生命道路 " + currentFacts.detailText("lifePathDisplay")
+                        + "　·　天賦 " + currentFacts.detailText("talentNumbers")
+                        + "\n生日數 " + currentFacts.detailText("birthdayNumber")
+                        + "　·　態度數 " + currentFacts.detailText("attitudeNumber"));
+
+        addPanelSection(panel, "目前流年",
+                currentFacts.detailText("personalYearCalendarYear")
+                        + " 年｜個人流年 " + currentFacts.detailText("personalYear")
+                        + "「" + currentFacts.detailText("personalYearCardName") + "」"
+                        + "\n個人月 " + currentFacts.detailText("personalMonth")
+                        + "｜" + currentTarotYearSummary());
+
+        String summary;
+        if (aiLoading) {
+            summary = "AI 命理師正在整理人格牌、靈魂牌、生命道路與目前流年的關係…";
+        } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
+            summary = aiCopy.overview;
+        } else {
+            summary = localReportSection("核心總覽");
+        }
+        if (!summary.isEmpty()) addPanelSection(panel, "重點解讀", summary);
+    }
+
+    private void addTarotTimelineTab() {
+        LinearLayout panel = baZiPanel();
+
+        TextView intro = text(
+                "個人流年看每一年的主題循環；個人月則把今年拆成 12 個月。數字每 9 年循環一次，所以重點是當年的課題與節奏，不是吉凶分數。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addPanelSection(panel, "今年",
+                currentFacts.detailText("personalYearCalendarYear")
+                        + "｜流年 " + currentFacts.detailText("personalYear")
+                        + "「" + currentFacts.detailText("personalYearCardName") + "」"
+                        + "\n" + currentTarotYearSummary());
+
+        TextView yearsTitle = text(
+                "年度時間軸 · " + currentFacts.detailText("personalYearTimelineStartYear")
+                        + "–" + currentFacts.detailText("personalYearTimelineEndYear"),
+                13, GOLD, true);
+        panel.addView(yearsTitle, marginTop(20));
+
+        Object yearsRaw = currentFacts.detail("personalYearTimeline");
+        if (yearsRaw instanceof List) {
+            for (Object raw : (List<?>) yearsRaw) {
+                if (!(raw instanceof Map)) continue;
+                final Map<?, ?> year = (Map<?, ?>) raw;
+                String title = mapValue(year, "year")
+                        + "　流年 " + mapValue(year, "personalYear")
+                        + "「" + mapValue(year, "cardName") + "」";
+                String summary = mapValue(year, "plainSummary")
+                        + "\n關鍵字：" + mapValue(year, "keywords");
+                addClickableFactCard(panel, title, summary,
+                        () -> showFactDetailDialog(
+                                mapValue(year, "year") + " 個人流年", year));
+            }
+        }
+
+        TextView monthTitle = text("今年 12 個個人月", 13, GOLD, true);
+        panel.addView(monthTitle, marginTop(22));
+
+        Object monthsRaw = currentFacts.detail("personalMonthTimeline");
+        if (monthsRaw instanceof List) {
+            for (Object raw : (List<?>) monthsRaw) {
+                if (!(raw instanceof Map)) continue;
+                final Map<?, ?> month = (Map<?, ?>) raw;
+                String title = mapValue(month, "month") + " 月　"
+                        + mapValue(month, "personalMonth")
+                        + "「" + mapValue(month, "cardName") + "」";
+                String summary = mapValue(month, "plainSummary")
+                        + "　·　" + mapValue(month, "keywords");
+                addClickableFactCard(panel, title, summary,
+                        () -> showFactDetailDialog(
+                                mapValue(month, "month") + " 月個人月", month));
+            }
+        }
+
+        addPanelSection(panel, "人生階段",
+                "四大巔峰：" + compactValue(currentFacts.detail("pinnacles"))
+                        + "\n時程：" + compactValue(currentFacts.detail("pinnacleTiming"))
+                        + "\n四大挑戰：" + compactValue(currentFacts.detail("challenges"))
+                        + "\n三大週期：" + compactValue(currentFacts.detail("periodCycles")));
+    }
+
+    private void addTarotTopicAnalysisTab() {
+        LinearLayout panel = baZiPanel();
+
+        TextView intro = text(
+                "塔羅生命靈數的主題分析會把本命數字、年度循環與 AI 解讀放在一起。先看依據，再看解讀。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        LinearLayout personality = topicCard(panel, "個性與內外", "人格牌 × 靈魂牌 × 生命道路");
+        addTopicLine(personality, "本命",
+                "外在 " + currentFacts.detailText("personalityCardNumber")
+                        + "「" + currentFacts.detailText("personalityCardName") + "」"
+                        + "　·　內在 " + currentFacts.detailText("soulCardNumber")
+                        + "「" + currentFacts.detailText("soulCardName") + "」"
+                        + "\n生命道路 " + currentFacts.detailText("lifePathDisplay")
+                        + "　·　天賦 " + currentFacts.detailText("talentNumbers"));
+        addTopicLine(personality, "解讀",
+                aiCopy != null && !aiCopy.personality.isEmpty()
+                        ? aiCopy.personality
+                        : localReportSection("內在 vs 外在"));
+
+        LinearLayout career = topicCard(panel, "工作與資源", "生命道路 × 態度數 × 巔峰 × 當前流年");
+        addTopicLine(career, "依據",
+                "生命道路 " + currentFacts.detailText("lifePathDisplay")
+                        + "　·　態度數 " + currentFacts.detailText("attitudeNumber")
+                        + "\n四大巔峰 " + compactValue(currentFacts.detail("pinnacles"))
+                        + "\n目前流年 " + currentFacts.detailText("personalYear")
+                        + "「" + currentFacts.detailText("personalYearCardName") + "」");
+        addTopicLine(career, "時間",
+                currentTarotYearSummary());
+        addTopicLine(career, "解讀",
+                aiCopy != null && !aiCopy.careerWealth.isEmpty()
+                        ? aiCopy.careerWealth
+                        : localReportSection("工作與財務"));
+
+        LinearLayout relationship = topicCard(panel, "感情與人際", "內外牌 × 挑戰數 × 年度節奏");
+        addTopicLine(relationship, "依據",
+                "外在人格牌 " + currentFacts.detailText("personalityCardNumber")
+                        + "　·　內在靈魂牌 " + currentFacts.detailText("soulCardNumber")
+                        + "\n四大挑戰 " + compactValue(currentFacts.detail("challenges")));
+        addTopicLine(relationship, "時間",
+                "目前流年 " + currentFacts.detailText("personalYear")
+                        + "「" + currentFacts.detailText("personalYearCardName") + "」"
+                        + "　·　個人月 " + currentFacts.detailText("personalMonth"));
+        addTopicLine(relationship, "解讀",
+                aiCopy != null && !aiCopy.relationships.isEmpty()
+                        ? aiCopy.relationships
+                        : localReportSection("感情與人際"));
+
+        TextView boundary = text(
+                "塔羅生命靈數用於娛樂與自我反思；流年表示主題循環，不代表特定事件一定發生。",
+                11, MUTED, false);
+        boundary.setLineSpacing(dp(2), 1f);
+        panel.addView(boundary, marginTop(14));
+    }
+
+    private String currentTarotYearSummary() {
+        Object years = currentFacts == null ? null : currentFacts.detail("personalYearTimeline");
+        String current = currentFacts == null ? "" : currentFacts.detailText("personalYearCalendarYear");
+        if (years instanceof List) {
+            for (Object raw : (List<?>) years) {
+                if (!(raw instanceof Map)) continue;
+                if (current.equals(mapValue(raw, "year"))) {
+                    return mapValue(raw, "plainSummary");
+                }
+            }
+        }
+        return "";
+    }
+
+    private void addSharedResultActions() {
+        TextView source = text(aiCopy == null
+                ? "本地完整資料 · AI 可選"
+                : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
+                12, MUTED, false);
+        resultCard.addView(source, marginTop(16));
+
+        Button teacher = new Button(this);
+        teacher.setText("老師跟我講解");
+        teacher.setTextSize(15);
+        teacher.setAllCaps(false);
+        teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        teacher.setTextColor(Color.rgb(30, 22, 46));
+        teacher.setBackground(round(GOLD, 18));
+        teacher.setOnClickListener(v -> startTeacherExplanation());
+        resultCard.addView(teacher, fixedHeightTop(52, 12));
+
+        Button share = secondaryButton("分享結果");
+        share.setOnClickListener(v -> shareResult());
+        resultCard.addView(share, fixedHeightTop(52, 10));
+    }
+
     private void addBaZiOverviewTab(FortuneResult result, boolean aiLoading) {
         LinearLayout panel = baZiPanel();
 
@@ -664,6 +862,11 @@ public final class MainActivity extends Activity {
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
 
+        addPanelSection(panel, "怎麼看",
+                "大運＝約十年的背景；流年＝某一年的放大鏡。\n"
+                        + "先看「白話」知道主題，再看十神與合沖了解依據。"
+                        + " 有財星不等於一定賺錢、有沖也不等於一定出事。");
+
         addPanelSection(panel, "目前大運", summaryLuck(currentFacts.detail("currentLuckPillar")));
 
         TextView luckTitle = text("大運時間軸", 13, GOLD, true);
@@ -679,7 +882,9 @@ public final class MainActivity extends Activity {
                 String title = (gz.equals(currentGanZhi) ? "● " : "○ ")
                         + gz + "　" + mapValue(item, "startYear")
                         + "–" + mapValue(item, "endYear");
-                String summary = "十神 " + mapValue(item, "stemTenGod")
+                String summary = mapValue(item, "plainSummary")
+                        + "\n十神 " + mapValue(item, "stemTenGod")
+                        + "（" + mapValue(item, "stemTenGodMeaning") + "）"
                         + "　·　五行 " + mapValue(item, "element")
                         + "\n主題 " + compactValue(item.get("themes"));
                 addClickableFactCard(panel, title, summary,
@@ -701,8 +906,10 @@ public final class MainActivity extends Activity {
                 String title = mapValue(year, "year") + "　"
                         + mapValue(year, "ganZhi")
                         + "　" + mapValue(year, "stemTenGod");
-                String summary = "大運 " + mapValue(year, "luckPillar")
-                        + "　·　主題 " + compactValue(year.get("themes"))
+                String summary = mapValue(year, "plainSummary")
+                        + "\n大運 " + mapValue(year, "luckPillar")
+                        + "　·　十神 " + mapValue(year, "stemTenGod")
+                        + "（" + mapValue(year, "stemTenGodMeaning") + "）"
                         + "\n" + firstMeaningfulInteraction(year.get("natalInteractions"));
                 addClickableFactCard(panel, title, summary,
                         () -> showFactDetailDialog(
@@ -918,7 +1125,9 @@ public final class MainActivity extends Activity {
         if (!(value instanceof Map)) return "目前沒有對應的大運資料";
         return mapValue(value, "ganZhi")
                 + "　" + mapValue(value, "startYear") + "–" + mapValue(value, "endYear")
+                + "\n白話｜" + mapValue(value, "plainSummary")
                 + "\n十神 " + mapValue(value, "stemTenGod")
+                + "（" + mapValue(value, "stemTenGodMeaning") + "）"
                 + "　·　五行 " + mapValue(value, "element")
                 + "\n主題 " + compactValue(mapObjectValue(value, "themes"))
                 + "\n" + firstMeaningfulInteraction(mapObjectValue(value, "interactionsWithNatal"));
