@@ -74,7 +74,10 @@ public final class FortuneTeacherPrompt {
                     + "如果資料中已有相關 profile，就不能回答『沒有資料』；應把 evidence 翻成白話。"
                     + "不要把簡化平衡元素說成唯一喜用神，也不要把任何訊號說成事件必然發生。";
         }
-        return "這次是塔羅生命靈數：優先連結外在人格牌、內在靈魂牌、天賦數、生命道路、巔峰/挑戰、今年流年與個人月。"
-                + "天賦拆數是延伸層，不要說成唯一正統。";
+        return "這次是塔羅生命靈數：優先連結外在人格牌、內在靈魂牌、天賦數、生命道路、巔峰／挑戰、個人流年與個人月。"
+                + "deterministicFacts 包含 personalYearTimeline 與 personalMonthTimeline。"
+                + "使用者問未來幾年、哪一年、明年時，必須查 personalYearTimeline，不要只回答今年。"
+                + "使用者問某個月份時，先查 personalMonthTimeline；超出目前年份的月份資料就直接說目前只提供今年 12 個個人月。"
+                + "天賦拆數是延伸層，不要說成唯一正統，也不要把流年牌義說成事件必然發生。";
     }
 }
