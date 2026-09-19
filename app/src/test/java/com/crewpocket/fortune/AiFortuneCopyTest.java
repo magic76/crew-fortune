@@ -6,23 +6,29 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public final class AiFortuneCopyTest {
-    @Test public void parsesStructuredAiCopy() {
+    @Test public void parsesFullReportSchema() {
         AiFortuneCopy copy = AiFortuneCopy.parse(
-                "{\"title\":\"財神有來但你也在線\","
-                        + "\"analysis\":\"財運結構偏穩定。\","
-                        + "\"translation\":\"錢剛進門，購物車就開門迎接。\","
-                        + "\"punchline\":\"財神不是外送員。\","
-                        + "\"advice\":\"大額購物先睡一晚。\","
-                        + "\"shareText\":\"今天財運很忙。\"}");
-        assertEquals("財神有來但你也在線", copy.title);
-        assertEquals("今天財運很忙。", copy.shareText);
+                "{\"title\":\"日主有話要說\","
+                        + "\"overview\":\"總覽\","
+                        + "\"personality\":\"性格\","
+                        + "\"careerWealth\":\"工作財務\","
+                        + "\"relationships\":\"感情人際\","
+                        + "\"timing\":\"目前週期\","
+                        + "\"translation\":\"白話翻譯\","
+                        + "\"punchline\":\"補刀\","
+                        + "\"advice\":\"建議\","
+                        + "\"shareText\":\"分享文案\"}");
+        assertEquals("日主有話要說", copy.title);
+        assertEquals("工作財務", copy.careerWealth);
+        assertEquals("目前週期", copy.timing);
+        assertEquals("分享文案", copy.shareText);
     }
 
-    @Test public void stripsMarkdownFenceIfModelAddsOne() {
+    @Test public void remainsBackwardCompatibleWithAnalysisField() {
         AiFortuneCopy copy = AiFortuneCopy.parse(
-                "```json\n{\"title\":\"測試\",\"analysis\":\"A\",\"translation\":\"B\","
-                        + "\"punchline\":\"C\",\"advice\":\"D\"}\n```");
-        assertEquals("測試", copy.title);
-        assertTrue(copy.shareText.isEmpty());
+                "{\"title\":\"舊格式\",\"analysis\":\"舊分析\","
+                        + "\"translation\":\"B\",\"punchline\":\"C\",\"advice\":\"D\"}");
+        assertEquals("舊分析", copy.overview);
+        assertTrue(copy.personality.isEmpty());
     }
 }
