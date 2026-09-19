@@ -227,3 +227,13 @@ Privacy rules:
 - name/date/time references inside the quote are redacted before rendering
 
 The PNG is generated in app cache and shared through Android FileProvider with temporary read permission. No server or public URL is used.
+
+
+## v0.9.3 launcher icon
+
+Crew Fortune now uses the approved purple-and-gold cat / crystal-ball artwork as the Android launcher icon.
+
+- Legacy launchers use the same square artwork.
+- Android 8.0+ uses an adaptive icon wrapper with a deep-purple background.
+- `android:icon` and `android:roundIcon` are both configured in the manifest.
+- The source artwork remains visually consistent with the in-app Crew Fortune branding.
