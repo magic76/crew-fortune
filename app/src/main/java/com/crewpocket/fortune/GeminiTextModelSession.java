@@ -86,7 +86,7 @@ public final class GeminiTextModelSession implements ModelSession {
             synchronized (this) {
                 history.put(content("user", new JSONObject().put("text", value)));
             }
-            requestModel(true);
+            requestModel(config.tools() != null && !config.tools().isEmpty());
         } catch (Exception error) {
             emit(ModelEvent.error(error));
         }
@@ -211,13 +211,18 @@ public final class GeminiTextModelSession implements ModelSession {
                 .put("systemInstruction", new JSONObject().put("parts",
                         new JSONArray().put(new JSONObject().put("text", config.systemPrompt()))))
                 .put("contents", contents)
-                .put("tools", new JSONArray().put(new JSONObject()
-                        .put("functionDeclarations", functionDeclarations())))
                 .put("generationConfig", new JSONObject()
                         .put("temperature", temperature)
-                        .put("maxOutputTokens", 2400));
+                        .put("maxOutputTokens", 6000)
+                        .put("responseMimeType", "application/json"));
 
-        if (forceFortuneTool) {
+        JSONArray declarations = functionDeclarations();
+        if (declarations.length() > 0) {
+            request.put("tools", new JSONArray().put(new JSONObject()
+                    .put("functionDeclarations", declarations)));
+        }
+
+        if (forceFortuneTool && declarations.length() > 0) {
             request.put("toolConfig", new JSONObject().put("functionCallingConfig",
                     new JSONObject()
                             .put("mode", "ANY")
