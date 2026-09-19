@@ -669,7 +669,7 @@ public final class MainActivity extends Activity {
                         ? "下面的老師可以繼續追問：未來十年、財運、工作、感情、指定年份。"
                         : "下面的老師可以繼續追問：未來幾年、工作、感情、指定流年或今年某個月份。",
                 12, GOLD, true);
-        hint.setLineSpacing(dp(3), 1f);
+        hint.setLineSpacing(dp(2), 1f);
         panel.addView(hint, marginTop(11));
     }
 
@@ -1120,7 +1120,7 @@ public final class MainActivity extends Activity {
         LinearLayout panel = column();
         panel.setPadding(dp(14), dp(14), dp(14), dp(12));
         panel.setBackground(roundBorder(
-                CARD, Color.rgb(92, 73, 127), 24, 1));
+                CARD, Color.rgb(92, 73, 127), 20, 1));
 
         panel.addView(text(titleValue, 21, TEXT, true));
         TextView detail = text(formatStructured(value), 13, TEXT, false);
@@ -1785,7 +1785,7 @@ public final class MainActivity extends Activity {
         closeTeacher();
 
         LinearLayout body = column();
-        body.setPadding(dp(20), dp(18), dp(20), dp(16));
+        body.setPadding(dp(14), dp(14), dp(14), dp(12));
         body.setBackground(roundBorder(
                 CARD, Color.rgb(92, 73, 127), 24, 1));
 
@@ -1804,13 +1804,13 @@ public final class MainActivity extends Activity {
         TextView youLabel = text("你剛剛說", 11, GOLD, true);
         body.addView(youLabel, marginTop(6));
         teacherInputText = text("—", 14, TEXT, false);
-        teacherInputText.setLineSpacing(dp(3), 1f);
+        teacherInputText.setLineSpacing(dp(2), 1f);
         body.addView(teacherInputText, marginTop(4));
 
         TextView teacherLabel = text("老師正在講", 11, GOLD, true);
         body.addView(teacherLabel, marginTop(9));
         teacherOutputText = text("等待老師上線…", 15, TEXT, false);
-        teacherOutputText.setLineSpacing(dp(4), 1f);
+        teacherOutputText.setLineSpacing(dp(2), 1f);
         body.addView(teacherOutputText, marginTop(4));
 
         LinearLayout actions = new LinearLayout(this);
@@ -1825,8 +1825,8 @@ public final class MainActivity extends Activity {
             if (session != null) session.interrupt();
         });
         LinearLayout.LayoutParams interruptLp =
-                new LinearLayout.LayoutParams(0, dp(48), 1f);
-        interruptLp.rightMargin = dp(8);
+                new LinearLayout.LayoutParams(0, dp(44), 1f);
+        interruptLp.rightMargin = dp(6);
         actions.addView(interrupt, interruptLp);
 
         Button close = secondaryButton("結束");
@@ -1834,7 +1834,7 @@ public final class MainActivity extends Activity {
             AlertDialog dialog = teacherDialog;
             if (dialog != null) dialog.dismiss();
         });
-        actions.addView(close, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        actions.addView(close, new LinearLayout.LayoutParams(0, dp(44), 1f));
         body.addView(actions, marginTop(11));
 
         teacherDialog = new AlertDialog.Builder(this)
@@ -2135,7 +2135,7 @@ public final class MainActivity extends Activity {
         List<OperationLog.Entry> entries = OperationLog.list(this);
 
         LinearLayout panel = column();
-        panel.setPadding(dp(18), dp(18), dp(18), dp(16));
+        panel.setPadding(dp(12), dp(12), dp(12), dp(10));
         panel.setBackground(roundBorder(
                 CARD, Color.rgb(92, 73, 127), 24, 1));
 
@@ -2146,14 +2146,14 @@ public final class MainActivity extends Activity {
         panel.addView(hint, marginTop(4));
 
         LinearLayout body = column();
-        body.setPadding(0, dp(4), 0, dp(8));
+        body.setPadding(0, dp(2), 0, dp(4));
 
         if (entries.isEmpty()) {
             body.addView(text("目前還沒有操作記錄", 14, MUTED, false), marginTop(9));
         } else {
             for (final OperationLog.Entry entry : entries) {
                 TextView item = text(entry.listLabel(), 13, TEXT, true);
-                item.setPadding(dp(12), dp(11), dp(12), dp(11));
+                item.setPadding(dp(10), dp(8), dp(10), dp(8));
                 item.setBackground(roundBorder(
                         CARD_2, Color.rgb(80, 65, 111), 14, 1));
                 item.setClickable(true);
@@ -2161,7 +2161,7 @@ public final class MainActivity extends Activity {
                     OperationLog.add(this, "OPERATION_LOG_ITEM_OPENED", entry.action);
                     showOperationLogDetail(entry);
                 });
-                body.addView(item, marginTop(8));
+                body.addView(item, marginTop(5));
             }
         }
 
@@ -2169,7 +2169,7 @@ public final class MainActivity extends Activity {
         scroll.setFillViewport(false);
         scroll.addView(body);
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(430));
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(400));
         scrollLp.topMargin = dp(8);
         panel.addView(scroll, scrollLp);
 
@@ -2177,10 +2177,10 @@ public final class MainActivity extends Activity {
         actions.setOrientation(LinearLayout.HORIZONTAL);
         Button clear = secondaryButton("清除記錄");
         Button close = secondaryButton("關閉");
-        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(0, dp(48), 1f);
-        actionLp.rightMargin = dp(8);
+        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        actionLp.rightMargin = dp(6);
         actions.addView(clear, actionLp);
-        actions.addView(close, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        actions.addView(close, new LinearLayout.LayoutParams(0, dp(44), 1f));
         panel.addView(actions, marginTop(8));
 
         final AlertDialog dialog = new AlertDialog.Builder(this)
@@ -2198,7 +2198,7 @@ public final class MainActivity extends Activity {
 
     private void showOperationLogDetail(OperationLog.Entry entry) {
         LinearLayout panel = column();
-        panel.setPadding(dp(20), dp(18), dp(20), dp(16));
+        panel.setPadding(dp(14), dp(12), dp(14), dp(10));
         panel.setBackground(roundBorder(
                 CARD, Color.rgb(92, 73, 127), 24, 1));
 
@@ -2215,8 +2215,8 @@ public final class MainActivity extends Activity {
                 ? "這筆事件沒有額外內容"
                 : entry.detail;
         TextView detail = text(detailValue, 14, TEXT, false);
-        detail.setLineSpacing(dp(3), 1f);
-        detail.setPadding(dp(12), dp(12), dp(12), dp(12));
+        detail.setLineSpacing(dp(2), 1f);
+        detail.setPadding(dp(9), dp(8), dp(9), dp(8));
         detail.setBackground(roundBorder(
                 CARD_2, Color.rgb(80, 65, 111), 14, 1));
         panel.addView(detail, marginTop(6));
