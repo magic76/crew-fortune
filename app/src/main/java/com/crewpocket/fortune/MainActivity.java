@@ -546,7 +546,7 @@ public final class MainActivity extends Activity {
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabScroll.addView(tabs);
 
-        final String[] labels = {"總覽", "本命", "流年", "主題"};
+        final String[] labels = {"總覽", "本命", "流年", "主題", "解讀"};
         for (int i = 0; i < labels.length; i++) {
             final int index = i;
             Button tab = new Button(this);
@@ -579,6 +579,11 @@ public final class MainActivity extends Activity {
     private void renderUnifiedTab(FortuneResult result, boolean aiLoading) {
         if (resultTabContent == null) return;
         resultTabContent.removeAllViews();
+        if (selectedResultTab == 4) {
+            addInterpretationTab(result, aiLoading);
+            return;
+        }
+
         if (result.mode == FortuneMode.BA_ZI) {
             switch (selectedResultTab) {
                 case 1:
@@ -612,6 +617,60 @@ public final class MainActivity extends Activity {
                     break;
             }
         }
+    }
+
+    private void addInterpretationTab(FortuneResult result, boolean aiLoading) {
+        LinearLayout panel = baZiPanel();
+
+        if (aiLoading) {
+            TextView loading = text(
+                    "AI 命理師正在整理完整解讀。你可以先切到本命、流年或主題查看已完成的 deterministic 資料。",
+                    14, ACCENT, true);
+            loading.setLineSpacing(dp(3), 1f);
+            panel.addView(loading);
+            return;
+        }
+
+        if (aiCopy != null) {
+            addPanelSection(panel, "總覽", aiCopy.overview);
+            if (!aiCopy.personality.isEmpty()) {
+                addPanelSection(panel, "性格與天賦", aiCopy.personality);
+            }
+            if (!aiCopy.careerWealth.isEmpty()) {
+                addPanelSection(panel, "工作與財務", aiCopy.careerWealth);
+            }
+            if (!aiCopy.relationships.isEmpty()) {
+                addPanelSection(panel, "感情與人際", aiCopy.relationships);
+            }
+            if (!aiCopy.timing.isEmpty()) {
+                addPanelSection(panel, "運勢與時間", aiCopy.timing);
+            }
+            if (!aiCopy.translation.isEmpty()) {
+                addPanelSection(panel, "翻譯成人話", aiCopy.translation);
+            }
+            if (!aiCopy.punchline.isEmpty()) {
+                addPanelSection(panel, "命理師補充", aiCopy.punchline);
+            }
+            if (!aiCopy.advice.isEmpty()) {
+                addPanelSection(panel, "建議", aiCopy.advice);
+            }
+        } else {
+            for (Map.Entry<String, String> entry
+                    : FortuneLocalReport.sections(currentFacts).entrySet()) {
+                addPanelSection(panel, entry.getKey(), entry.getValue());
+            }
+            addPanelSection(panel, "翻譯成人話", result.translation);
+            addPanelSection(panel, "命理師補充", result.punchline);
+            addPanelSection(panel, "建議", result.advice);
+        }
+
+        TextView hint = text(
+                result.mode == FortuneMode.BA_ZI
+                        ? "下面的老師可以繼續追問：未來十年、財運、工作、感情、指定年份。"
+                        : "下面的老師可以繼續追問：未來幾年、工作、感情、指定流年或今年某個月份。",
+                12, GOLD, true);
+        hint.setLineSpacing(dp(3), 1f);
+        panel.addView(hint, marginTop(18));
     }
 
     private void addTarotOverviewTab(FortuneResult result, boolean aiLoading) {
@@ -2318,7 +2377,7 @@ public final class MainActivity extends Activity {
         if (modeLabel != null) {
             modeLabel.setText(bazi
                     ? "四柱、十神、大運、逐年流年 · 需要出生時間與性別\n以出生地當地民用時間排盤，目前不做真太陽時校正"
-                    : "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n只使用生日，不使用姓名或出生時間計算");
+                    : "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n名字只用來稱呼你；計算只使用生日，不使用姓名或出生時間");
         }
     }
 
