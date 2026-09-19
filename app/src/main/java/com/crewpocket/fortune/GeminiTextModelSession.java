@@ -76,10 +76,14 @@ public final class GeminiTextModelSession implements ModelSession {
         if (value.isEmpty()) return;
         requireRunning();
         interrupted = false;
-        synchronized (this) {
-            history.put(content("user", new JSONObject().put("text", value)));
+        try {
+            synchronized (this) {
+                history.put(content("user", new JSONObject().put("text", value)));
+            }
+            requestModel(true);
+        } catch (Exception error) {
+            emit(ModelEvent.error(error));
         }
-        requestModel(true);
     }
 
     @Override public void sendUserAudio(byte[] audio) {
@@ -271,7 +275,7 @@ public final class GeminiTextModelSession implements ModelSession {
         if (!requestedTool) emit(ModelEvent.turnCompleted());
     }
 
-    private static JSONObject content(String role, JSONObject singlePart) {
+    private static JSONObject content(String role, JSONObject singlePart) throws Exception {
         return new JSONObject()
                 .put("role", role)
                 .put("parts", new JSONArray().put(singlePart));
