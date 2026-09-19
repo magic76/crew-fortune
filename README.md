@@ -118,3 +118,23 @@ All readings are positioned as entertainment and reflection. Gemini writes the i
 - `onSaveInstanceState` provides a second recovery path for inputs, selected mode/style, deterministic result and AI copy if Android later recreates the activity.
 - A persistent local operation log keeps the most recent 200 important user/app actions. It never stores the Gemini API key or full voice transcript content.
 - The top-bar **記錄** entry displays and can clear local operation history.
+
+
+## v0.7.0 BaZi result tabs and question-ready facts
+
+BaZi results are split into five tabs instead of one long page:
+
+- **總覽** — Day Master, strength, Four Pillars, Five Elements summary, current Luck Pillar, current Annual Pillar and the main interpretation.
+- **命盤** — the original detailed chart remains available: Four Pillars, hidden stems, Ten Gods, Five Elements, weighted elements, Na Yin, life stages, natal interactions, Ming Gong and Shen Gong.
+- **大運・流年** — detailed Luck Pillars plus an annual timeline from the previous year through the next 15 years. Each row can be opened to inspect deterministic Ten Gods, elements, natal interactions and theme tags.
+- **主題分析** — wealth, career and relationship evidence profiles. These expose the source facts instead of inventing opaque fortune scores.
+- **老師解讀** — the full AI/local interpretation, Gemini Live teacher entry point and suggested follow-up questions.
+
+The deterministic BaZi facts now also include:
+- `annualTimeline`
+- enriched `luckPillars`
+- `wealthProfile`
+- `careerProfile`
+- `relationshipProfile`
+
+Gemini text and Live teacher prompts are instructed to use these structures for questions such as the next ten years, wealth, career and relationship timing. They still cannot recalculate the chart or substitute defaults.
