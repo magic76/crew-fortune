@@ -7,6 +7,7 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -80,13 +81,42 @@ public final class MainActivity extends Activity {
         setContentView(buildScreen());
         refreshAiStatus();
         updateAiStyleButtons();
-        restoreLastProfile();
+        if (state != null) {
+            restoreInstanceState(state);
+        } else {
+            restoreLastProfile();
+        }
+        OperationLog.add(this, "APP_OPEN", "mode=" + selectedMode.name());
     }
 
     @Override protected void onDestroy() {
+        OperationLog.add(this, "APP_DESTROY", "changingConfig=" + isChangingConfigurations());
         closeTeacher();
         closeAgent();
         super.onDestroy();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        OperationLog.add(this, "SCREEN_ROTATED",
+                newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
+                        ? "landscape" : "portrait");
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("state_name", nameInput == null ? "" : nameInput.getText().toString());
+        outState.putString("state_birth_date", birthInput == null ? "" : birthInput.getText().toString());
+        outState.putString("state_birth_time", birthTimeInput == null ? "" : birthTimeInput.getText().toString());
+        outState.putString("state_gender", selectedGender);
+        outState.putString("state_mode", selectedMode.name());
+        outState.putString("state_ai_style", selectedAiStyle.name());
+        outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
+        if (aiCopy != null) outState.putString("state_ai_copy", serializeAiCopy(aiCopy));
+        OperationLog.add(this, "STATE_SAVED",
+                currentResult == null ? "no_result" : "result_saved");
     }
 
     private View buildScreen() {
@@ -118,10 +148,19 @@ public final class MainActivity extends Activity {
         top.addView(eyebrow, new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
+        TextView history = text("記錄", 13, GOLD, true);
+        history.setGravity(Gravity.END);
+        history.setPadding(dp(10), dp(8), 0, dp(8));
+        history.setOnClickListener(v -> showOperationLog());
+        top.addView(history);
+
         aiStatus = text("", 13, ACCENT, true);
         aiStatus.setGravity(Gravity.END);
         aiStatus.setPadding(dp(12), dp(8), 0, dp(8));
-        aiStatus.setOnClickListener(v -> showApiKeyDialog());
+        aiStatus.setOnClickListener(v -> {
+            OperationLog.add(this, "OPEN_AI_SETTINGS", "");
+            showApiKeyDialog();
+        });
         top.addView(aiStatus);
         root.addView(top);
 
@@ -243,7 +282,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.6.0", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.6.1", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -251,6 +290,7 @@ public final class MainActivity extends Activity {
 
     private void selectMode(FortuneMode mode) {
         selectedMode = mode;
+        OperationLog.add(this, "MODE_SELECTED", mode.name());
         boolean isBaZi = mode == FortuneMode.BA_ZI;
         birthTimeInput.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
         genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
@@ -261,6 +301,7 @@ public final class MainActivity extends Activity {
 
     private void selectGender(String gender) {
         selectedGender = gender;
+        OperationLog.add(this, "GENDER_SELECTED", gender);
         boolean male = "male".equals(gender);
         maleButton.setBackground(round(male ? ACCENT : CARD_2, 14));
         femaleButton.setBackground(round(!male ? ACCENT : CARD_2, 14));
@@ -269,6 +310,7 @@ public final class MainActivity extends Activity {
     }
 
     private void calculate() {
+        OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         closeTeacher();
         closeAgent();
         FortuneProfile profile = new FortuneProfile(
@@ -280,6 +322,8 @@ public final class MainActivity extends Activity {
             currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
             currentResult = engine.calculate(selectedMode, profile, new Date());
             FortunePresetStore.saveLast(this, currentPreset());
+            OperationLog.add(this, "CALCULATE_SUCCESS",
+                    selectedMode.name() + " · " + currentFacts.basis);
             aiCopy = null;
             synchronized (aiBuffer) {
                 aiBuffer.setLength(0);
@@ -288,11 +332,15 @@ public final class MainActivity extends Activity {
             renderResult(currentResult, useAi);
             if (useAi) startAiCopy(profile);
         } catch (IllegalArgumentException error) {
+            OperationLog.add(this, "CALCULATE_FAILED",
+                    error.getMessage() == null ? "unknown" : error.getMessage());
             Toast.makeText(this, error.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void startAiCopy(FortuneProfile profile) {
+        OperationLog.add(this, "AI_INTERPRETATION_START",
+                selectedMode.name() + " · " + selectedAiStyle.name());
         try {
             GeminiTextModelSession session = new GeminiTextModelSession(
                     AppConfig.getGeminiApiKey(this),
@@ -315,14 +363,21 @@ public final class MainActivity extends Activity {
                                 final AiFortuneCopy parsed = AiFortuneCopy.parse(completed);
                                 runOnUiThread(() -> {
                                     aiCopy = parsed;
+                                    OperationLog.add(MainActivity.this,
+                                            "AI_INTERPRETATION_SUCCESS",
+                                            selectedAiStyle.name());
                                     if (currentResult != null) renderResult(currentResult, false);
                                 });
                             } catch (IllegalArgumentException parseError) {
+                                OperationLog.add(MainActivity.this,
+                                        "AI_INTERPRETATION_FAILED", "parse_error");
                                 showAiFallback("AI 命理師講得太玄，格式跑掉了。先顯示本地結果。");
                             }
                             closeAgent();
                             break;
                         case ERROR:
+                            OperationLog.add(MainActivity.this,
+                                    "AI_INTERPRETATION_FAILED", "model_error");
                             showAiFallback("AI 命理師暫時去喝茶，先顯示本地結果。");
                             closeAgent();
                             break;
@@ -334,6 +389,7 @@ public final class MainActivity extends Activity {
             activeHarness.start();
             activeHarness.submitText(buildAiRequest(profile));
         } catch (Exception error) {
+            OperationLog.add(this, "AI_INTERPRETATION_FAILED", "startup_error");
             showAiFallback("AI 模式啟動失敗，已使用本地結果。");
             closeAgent();
         }
@@ -906,6 +962,8 @@ public final class MainActivity extends Activity {
     }
 
     private void startTeacherExplanation() {
+        OperationLog.add(this, "TEACHER_REQUESTED",
+                selectedMode.name() + " · " + selectedAiStyle.name());
         if (currentFacts == null || currentResult == null) {
             Toast.makeText(this, "請先完成一次算命", Toast.LENGTH_SHORT).show();
             return;
@@ -1006,6 +1064,8 @@ public final class MainActivity extends Activity {
         String opening = FortuneTeacherPrompt.openingPrompt(
                 nameInput.getText().toString());
 
+        OperationLog.add(this, "TEACHER_START",
+                selectedMode.name() + " · media_audio");
         teacherSession = new GeminiFortuneLiveSession(
                 this,
                 AppConfig.getGeminiApiKey(this),
@@ -1020,6 +1080,7 @@ public final class MainActivity extends Activity {
                     }
 
                     @Override public void onReady() {
+                        OperationLog.add(MainActivity.this, "TEACHER_READY", "");
                         runOnUiThread(() -> {
                             if (teacherStatusText != null) {
                                 teacherStatusText.setText("老師正在看你的命盤…");
@@ -1028,12 +1089,18 @@ public final class MainActivity extends Activity {
                     }
 
                     @Override public void onInputTranscript(String textValue) {
+                        OperationLog.add(MainActivity.this,
+                                "TEACHER_USER_SPOKE",
+                                "chars=" + (textValue == null ? 0 : textValue.length()));
                         runOnUiThread(() -> {
                             if (teacherInputText != null) teacherInputText.setText(textValue);
                         });
                     }
 
                     @Override public void onOutputTranscript(String textValue) {
+                        OperationLog.add(MainActivity.this,
+                                "TEACHER_REPLIED",
+                                "chars=" + (textValue == null ? 0 : textValue.length()));
                         runOnUiThread(() -> {
                             if (teacherOutputText != null) teacherOutputText.setText(textValue);
                         });
@@ -1049,6 +1116,9 @@ public final class MainActivity extends Activity {
                     }
 
                     @Override public void onError(String message) {
+                        OperationLog.add(MainActivity.this,
+                                "TEACHER_ERROR",
+                                message == null ? "unknown" : message);
                         runOnUiThread(() -> {
                             if (teacherStatusText != null) {
                                 teacherStatusText.setText("語音老師暫時無法使用");
@@ -1072,6 +1142,7 @@ public final class MainActivity extends Activity {
 
     private void closeTeacherSessionOnly() {
         GeminiFortuneLiveSession session = teacherSession;
+        if (session != null) OperationLog.add(this, "TEACHER_STOP", "");
         teacherSession = null;
         if (session != null) {
             try { session.close(); } catch (Exception ignored) {}
@@ -1083,6 +1154,7 @@ public final class MainActivity extends Activity {
 
     private void shareResult() {
         if (currentResult == null) return;
+        OperationLog.add(this, "SHARE_RESULT", selectedMode.name());
         String payload = aiCopy == null
                 ? currentResult.shareText()
                 : aiCopy.shareText(currentResult);
@@ -1106,12 +1178,14 @@ public final class MainActivity extends Activity {
                 .setView(keyInput)
                 .setPositiveButton("儲存", (dialog, which) -> {
                     AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
+                    OperationLog.add(this, "GEMINI_KEY_SAVED", "value_hidden");
                     refreshAiStatus();
                     Toast.makeText(this, "Gemini Key 已儲存於本機", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("取消", null)
                 .setNeutralButton("清除", (dialog, which) -> {
                     AppConfig.setGeminiApiKey(this, "");
+                    OperationLog.add(this, "GEMINI_KEY_CLEARED", "");
                     refreshAiStatus();
                 })
                 .show();
@@ -1163,6 +1237,7 @@ public final class MainActivity extends Activity {
             return;
         }
         FortunePresetStore.savePreset(this, preset);
+        OperationLog.add(this, "PRESET_SAVED", preset.label());
         Toast.makeText(this, "已儲存：" + preset.label(), Toast.LENGTH_SHORT).show();
     }
 
@@ -1177,9 +1252,13 @@ public final class MainActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle("選擇常用資料")
-                .setItems(labels, (dialog, which) -> applyPreset(presets.get(which)))
+                .setItems(labels, (dialog, which) -> {
+                    OperationLog.add(this, "PRESET_LOADED", presets.get(which).label());
+                    applyPreset(presets.get(which));
+                })
                 .setNeutralButton("清除全部", (dialog, which) -> {
                     FortunePresetStore.clearPresets(this);
+                    OperationLog.add(this, "PRESETS_CLEARED", "");
                     Toast.makeText(this, "已清除 presets", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("取消", null)
@@ -1200,6 +1279,96 @@ public final class MainActivity extends Activity {
             maleButton.setTextColor(TEXT);
             femaleButton.setTextColor(TEXT);
         }
+    }
+
+    private void restoreInstanceState(Bundle state) {
+        try {
+            nameInput.setText(state.getString("state_name", ""));
+            birthInput.setText(state.getString("state_birth_date", ""));
+            birthTimeInput.setText(state.getString("state_birth_time", ""));
+            selectedGender = state.getString("state_gender", "");
+            selectedMode = FortuneMode.valueOf(
+                    state.getString("state_mode", FortuneMode.BA_ZI.name()));
+            selectedAiStyle = AiStyle.valueOf(
+                    state.getString("state_ai_style", AiStyle.FUNNY.name()));
+
+            selectMode(selectedMode);
+            if (!selectedGender.isEmpty()) selectGender(selectedGender);
+            updateAiStyleButtons();
+
+            if (state.getBoolean("state_has_result", false)) {
+                FortuneProfile profile = new FortuneProfile(
+                        nameInput.getText().toString(),
+                        birthInput.getText().toString(),
+                        birthTimeInput.getText().toString(),
+                        selectedGender);
+                currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
+                currentResult = engine.calculate(selectedMode, profile, new Date());
+
+                String aiRaw = state.getString("state_ai_copy", "");
+                if (!aiRaw.isEmpty()) {
+                    try { aiCopy = AiFortuneCopy.parse(aiRaw); }
+                    catch (Exception ignored) { aiCopy = null; }
+                }
+                renderResult(currentResult, false);
+            }
+            OperationLog.add(this, "STATE_RESTORED",
+                    state.getBoolean("state_has_result", false)
+                            ? "result_restored" : "input_restored");
+        } catch (Exception error) {
+            restoreLastProfile();
+            OperationLog.add(this, "STATE_RESTORE_FAILED",
+                    error.getMessage() == null ? "unknown" : error.getMessage());
+        }
+    }
+
+    private String serializeAiCopy(AiFortuneCopy copy) {
+        try {
+            return new JSONObject()
+                    .put("title", copy.title)
+                    .put("overview", copy.overview)
+                    .put("personality", copy.personality)
+                    .put("careerWealth", copy.careerWealth)
+                    .put("relationships", copy.relationships)
+                    .put("timing", copy.timing)
+                    .put("translation", copy.translation)
+                    .put("punchline", copy.punchline)
+                    .put("advice", copy.advice)
+                    .put("shareText", copy.shareText)
+                    .toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private void showOperationLog() {
+        OperationLog.add(this, "OPEN_OPERATION_LOG", "");
+        List<OperationLog.Entry> entries = OperationLog.list(this);
+        LinearLayout body = column();
+        body.setPadding(dp(18), dp(10), dp(18), dp(10));
+
+        if (entries.isEmpty()) {
+            body.addView(text("目前還沒有操作記錄", 14, MUTED, false));
+        } else {
+            for (OperationLog.Entry entry : entries) {
+                TextView item = text(entry.display(), 13, TEXT, false);
+                item.setLineSpacing(dp(2), 1f);
+                body.addView(item, marginTop(10));
+            }
+        }
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(body);
+
+        new AlertDialog.Builder(this)
+                .setTitle("操作記錄")
+                .setView(scroll)
+                .setPositiveButton("關閉", null)
+                .setNeutralButton("清除", (dialog, which) -> {
+                    OperationLog.clear(this);
+                    Toast.makeText(this, "已清除操作記錄", Toast.LENGTH_SHORT).show();
+                })
+                .show();
     }
 
     private void showDatePicker() {
@@ -1246,6 +1415,7 @@ public final class MainActivity extends Activity {
 
     private void selectAiStyle(AiStyle style) {
         selectedAiStyle = style == null ? AiStyle.FUNNY : style;
+        OperationLog.add(this, "AI_STYLE_SELECTED", selectedAiStyle.name());
         AppConfig.setAiStyle(this, selectedAiStyle);
         updateAiStyleButtons();
         Toast.makeText(this, "AI 風格：" + selectedAiStyle.label(), Toast.LENGTH_SHORT).show();
