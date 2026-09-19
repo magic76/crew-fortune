@@ -85,6 +85,7 @@ public final class TarotNumerologyCalculator {
         result.put("birthdayNumber", day);
         result.put("birthdayCore", birthdayCore);
         result.put("attitudeNumber", attitude);
+        result.put("personalYearCalendarYear", currentYear);
         result.put("personalYear", personalYear);
         result.put("personalYearCardName", CARD_NAMES[cardIndex(personalYear)]);
         result.put("personalMonth", personalMonth);
