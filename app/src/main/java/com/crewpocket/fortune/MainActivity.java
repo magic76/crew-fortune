@@ -701,7 +701,8 @@ public final class MainActivity extends Activity {
         TextView core = text(
                 "天賦數 " + currentFacts.detailText("talentNumbers")
                         + "　·　態度數 " + currentFacts.detailText("attitudeNumber")
-                        + "\n2026 流年 " + currentFacts.detailText("personalYear")
+                        + "\n" + currentFacts.detailText("personalYearCalendarYear")
+                        + " 流年 " + currentFacts.detailText("personalYear")
                         + " " + currentFacts.detailText("personalYearCardName")
                         + "　·　個人月 " + currentFacts.detailText("personalMonth"),
                 14, MUTED, false);
