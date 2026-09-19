@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class TarotNumerologyCalculator {
-    public static final String METHOD_VERSION = "tarot-personality-soul-birthday-v5";
+    public static final String METHOD_VERSION = "tarot-personality-soul-birthday-v6-timeline";
 
     private static final String[] CARD_NAMES = {
             "愚者", "魔術師", "女祭司", "皇后", "皇帝", "教皇", "戀人", "戰車",
