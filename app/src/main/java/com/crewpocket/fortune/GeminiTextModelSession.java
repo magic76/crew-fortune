@@ -36,7 +36,13 @@ public final class GeminiTextModelSession implements ModelSession {
     private static final String[] MODELS = {
             "gemini-3.8-flash",
             "gemini-3.6-flash",
-            "gemini-3.5-flash"
+            "gemini-3.5-flash-lite",
+            "gemini-3.5-flash",
+            "gemini-3.0-flash",
+            "gemini-3-flash",
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash"
     };
 
     private final String apiKey;
@@ -53,6 +59,8 @@ public final class GeminiTextModelSession implements ModelSession {
     private volatile boolean interrupted;
     private volatile int preferredModelIndex;
     private volatile String lastFinishReason = "";
+    private volatile String lastModel = "";
+    private volatile String lastModelAttempts = "";
 
     public GeminiTextModelSession(String apiKey) {
         this(apiKey, 0.82);
@@ -158,12 +166,30 @@ public final class GeminiTextModelSession implements ModelSession {
             emit(ModelEvent.error(error));
             return;
         }
-        execute(body, Math.max(0, Math.min(preferredModelIndex, MODELS.length - 1)));
+        lastFinishReason = "";
+        lastModelAttempts = "";
+        boolean[] attemptedModels = new boolean[MODELS.length];
+        execute(body,
+                Math.max(0, Math.min(preferredModelIndex, MODELS.length - 1)),
+                attemptedModels);
     }
 
-    private void execute(final JSONObject body, final int modelIndex) {
+    private void execute(final JSONObject body,
+                         final int modelIndex,
+                         final boolean[] attemptedModels) {
         if (closed) return;
+        if (modelIndex < 0 || modelIndex >= MODELS.length) {
+            emit(ModelEvent.error(new IOException("Gemini model fallback index is invalid")));
+            return;
+        }
+        attemptedModels[modelIndex] = true;
         String model = MODELS[modelIndex];
+        lastModel = model;
+        if (lastModelAttempts.isEmpty()) {
+            lastModelAttempts = model;
+        } else {
+            lastModelAttempts = lastModelAttempts + " -> " + model;
+        }
         Request request = new Request.Builder()
                 .url(HOST + model + ":generateContent")
                 .header("x-goog-api-key", apiKey)
@@ -178,28 +204,67 @@ public final class GeminiTextModelSession implements ModelSession {
                     interrupted = false;
                     return;
                 }
-                emit(ModelEvent.error(error));
+                retryNextModel(body, modelIndex, attemptedModels, error);
             }
 
             @Override public void onResponse(Call call, Response response) throws IOException {
-                String raw = response.body() == null ? "" : response.body().string();
                 try {
-                    if (!response.isSuccessful()) {
-                        if (modelIndex + 1 < MODELS.length) {
-                            execute(body, modelIndex + 1);
-                            return;
-                        }
-                        throw new IOException("Gemini HTTP " + response.code() + ": " + abbreviate(raw));
+                    if (closed) return;
+                    if (interrupted || call.isCanceled()) {
+                        interrupted = false;
+                        return;
                     }
-                    preferredModelIndex = modelIndex;
+                    String raw = response.body() == null ? "" : response.body().string();
+                    if (!response.isSuccessful()) {
+                        retryNextModel(
+                                body,
+                                modelIndex,
+                                attemptedModels,
+                                new IOException("Gemini HTTP " + response.code()
+                                        + ": " + abbreviate(raw)));
+                        return;
+                    }
                     handleResponse(raw);
+                    preferredModelIndex = modelIndex;
                 } catch (Exception error) {
-                    emit(ModelEvent.error(error));
+                    retryNextModel(body, modelIndex, attemptedModels, error);
                 } finally {
                     response.close();
                 }
             }
         });
+    }
+
+    private void retryNextModel(final JSONObject body,
+                                int failedModelIndex,
+                                boolean[] attemptedModels,
+                                Exception error) {
+        if (closed || interrupted) return;
+
+        int nextModelIndex = -1;
+        for (int offset = 1; offset <= MODELS.length; offset++) {
+            int candidate = (failedModelIndex + offset) % MODELS.length;
+            if (!attemptedModels[candidate]) {
+                nextModelIndex = candidate;
+                break;
+            }
+        }
+
+        if (nextModelIndex >= 0) {
+            execute(body, nextModelIndex, attemptedModels);
+            return;
+        }
+
+        // Do not keep starting the next request from a model that just exhausted every
+        // endpoint. A later request should get a fresh chance from the newest endpoint.
+        preferredModelIndex = 0;
+        String detail = "Gemini fallback exhausted after " + MODELS.length
+                + " models";
+        if (error != null && error.getMessage() != null
+                && !error.getMessage().trim().isEmpty()) {
+            detail += ": " + abbreviate(error.getMessage());
+        }
+        emit(ModelEvent.error(new IOException(detail, error)));
     }
 
     private JSONObject buildRequest(boolean forceFortuneTool) throws Exception {
@@ -290,6 +355,14 @@ public final class GeminiTextModelSession implements ModelSession {
 
     public String lastFinishReason() {
         return lastFinishReason == null ? "" : lastFinishReason;
+    }
+
+    public String lastModel() {
+        return lastModel == null ? "" : lastModel;
+    }
+
+    public String lastModelAttempts() {
+        return lastModelAttempts == null ? "" : lastModelAttempts;
     }
 
     private static JSONObject content(String role, JSONObject singlePart) throws Exception {

@@ -474,8 +474,12 @@ public final class MainActivity extends Activity {
                                     MainActivity.this,
                                     "AI_INTERPRETATION_FAILED",
                                     "model_error · attempt=" + (attempt + 1)
+                                            + " · model=" + session.lastModel()
+                                            + " · models=" + session.lastModelAttempts()
                                             + " · finishReason="
-                                            + session.lastFinishReason());
+                                            + session.lastFinishReason()
+                                            + " · error="
+                                            + safeErrorMessage(event.error()));
                             showAiFallback(
                                     "AI 命理師暫時無法完成解讀，已保留本地完整結果。");
                             closeAgent();
