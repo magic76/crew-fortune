@@ -29,12 +29,15 @@ public final class FortunePreset {
     }
 
     public JSONObject toJson() {
-        return new JSONObject()
-                .put("name", name)
-                .put("birthDate", birthDate)
-                .put("birthTime", birthTime)
-                .put("gender", gender)
-                .put("mode", mode.name());
+        JSONObject object = new JSONObject();
+        try {
+            object.put("name", name);
+            object.put("birthDate", birthDate);
+            object.put("birthTime", birthTime);
+            object.put("gender", gender);
+            object.put("mode", mode.name());
+        } catch (Exception ignored) {}
+        return object;
     }
 
     public static FortunePreset fromJson(JSONObject object) {
