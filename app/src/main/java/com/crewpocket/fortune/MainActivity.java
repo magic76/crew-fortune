@@ -131,10 +131,10 @@ public final class MainActivity extends Activity {
         scroll.setBackgroundColor(BG);
 
         LinearLayout root = column();
-        final int baseLeft = dp(20);
-        final int baseTop = dp(24);
-        final int baseRight = dp(20);
-        final int baseBottom = dp(40);
+        final int baseLeft = dp(14);
+        final int baseTop = dp(16);
+        final int baseRight = dp(14);
+        final int baseBottom = dp(24);
         root.setPadding(baseLeft, baseTop, baseRight, baseBottom);
         root.setOnApplyWindowInsetsListener((view, insets) -> {
             view.setPadding(
@@ -156,13 +156,13 @@ public final class MainActivity extends Activity {
 
         TextView history = text("記錄", 13, GOLD, true);
         history.setGravity(Gravity.END);
-        history.setPadding(dp(10), dp(8), 0, dp(8));
+        history.setPadding(dp(8), dp(6), 0, dp(6));
         history.setOnClickListener(v -> showOperationLog());
         top.addView(history);
 
         aiStatus = text("", 13, ACCENT, true);
         aiStatus.setGravity(Gravity.END);
-        aiStatus.setPadding(dp(12), dp(8), 0, dp(8));
+        aiStatus.setPadding(dp(10), dp(6), 0, dp(6));
         aiStatus.setOnClickListener(v -> {
             OperationLog.add(this, "OPEN_AI_SETTINGS", "");
             showApiKeyDialog();
@@ -172,16 +172,16 @@ public final class MainActivity extends Activity {
 
         TextView title = text("很認真算，\n別太認真信。", 34, TEXT, true);
         title.setLineSpacing(0, 1.04f);
-        root.addView(title, marginTop(8));
+        root.addView(title, marginTop(4));
 
         TextView sub = text("底層數字固定，AI 每次換一種方式講你。\n沒有 AI 也能算，有 AI 就比較會嘴。", 15, MUTED, false);
-        sub.setLineSpacing(dp(4), 1f);
-        root.addView(sub, marginTop(10));
+        sub.setLineSpacing(dp(2), 1f);
+        root.addView(sub, marginTop(6));
 
         LinearLayout form = column();
-        form.setPadding(dp(16), dp(16), dp(16), dp(16));
-        form.setBackground(round(CARD, 22));
-        root.addView(form, marginTop(24));
+        form.setPadding(dp(12), dp(12), dp(12), dp(12));
+        form.setBackground(round(CARD, 18));
+        root.addView(form, marginTop(6));
 
         form.addView(label("選擇算命方式"));
 
@@ -191,17 +191,17 @@ public final class MainActivity extends Activity {
         tarotModeButton = modeButton("塔羅生命靈數");
         baZiModeButton.setOnClickListener(v -> selectMode(FortuneMode.BA_ZI));
         tarotModeButton.setOnClickListener(v -> selectMode(FortuneMode.TAROT_NUMEROLOGY));
-        LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, dp(50), 1f);
-        modeLp.rightMargin = dp(8);
+        LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
+        modeLp.rightMargin = dp(6);
         modeRow.addView(baZiModeButton, modeLp);
-        modeRow.addView(tarotModeButton, new LinearLayout.LayoutParams(0, dp(50), 1f));
-        form.addView(modeRow, marginTop(8));
+        modeRow.addView(tarotModeButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
+        form.addView(modeRow, marginTop(6));
 
         modeLabel = text("", 12, MUTED, false);
-        modeLabel.setLineSpacing(dp(3), 1f);
-        form.addView(modeLabel, marginTop(7));
+        modeLabel.setLineSpacing(dp(2), 1f);
+        form.addView(modeLabel, marginTop(5));
 
-        form.addView(label("基本資料"), marginTop(18));
+        form.addView(label("基本資料"), marginTop(8));
         nameInput = input("你的名字");
         birthInput = input("生日，例如 1985-07-22");
         birthInput.setFocusable(false);
@@ -212,9 +212,9 @@ public final class MainActivity extends Activity {
         birthTimeInput.setFocusable(false);
         birthTimeInput.setClickable(true);
         birthTimeInput.setOnClickListener(v -> showTimePicker());
-        form.addView(nameInput, marginTop(12));
-        form.addView(birthInput, marginTop(10));
-        form.addView(birthTimeInput, marginTop(10));
+        form.addView(nameInput, marginTop(8));
+        form.addView(birthInput, marginTop(6));
+        form.addView(birthTimeInput, marginTop(6));
 
         genderRow = new LinearLayout(this);
         genderRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -222,11 +222,11 @@ public final class MainActivity extends Activity {
         femaleButton = genderButton("女");
         maleButton.setOnClickListener(v -> selectGender("male"));
         femaleButton.setOnClickListener(v -> selectGender("female"));
-        LinearLayout.LayoutParams genderLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        genderLp.rightMargin = dp(8);
+        LinearLayout.LayoutParams genderLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        genderLp.rightMargin = dp(6);
         genderRow.addView(maleButton, genderLp);
-        genderRow.addView(femaleButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
-        form.addView(genderRow, marginTop(10));
+        genderRow.addView(femaleButton, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        form.addView(genderRow, marginTop(6));
 
         LinearLayout presetRow = new LinearLayout(this);
         presetRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -234,14 +234,14 @@ public final class MainActivity extends Activity {
         Button savePreset = secondaryButton("儲存 preset");
         choosePreset.setOnClickListener(v -> showPresetPicker());
         savePreset.setOnClickListener(v -> saveCurrentPreset());
-        LinearLayout.LayoutParams presetLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        presetLp.rightMargin = dp(8);
+        LinearLayout.LayoutParams presetLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        presetLp.rightMargin = dp(6);
         presetRow.addView(choosePreset, presetLp);
-        presetRow.addView(savePreset, new LinearLayout.LayoutParams(0, dp(46), 1f));
-        form.addView(presetRow, marginTop(10));
+        presetRow.addView(savePreset, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        form.addView(presetRow, marginTop(6));
 
         TextView styleLabel = text("AI 回應風格", 12, MUTED, true);
-        form.addView(styleLabel, marginTop(14));
+        form.addView(styleLabel, marginTop(6));
 
         LinearLayout styleRow = new LinearLayout(this);
         styleRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -251,17 +251,17 @@ public final class MainActivity extends Activity {
         strictStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.STRICT));
         normalStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.NORMAL));
         funnyStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.FUNNY));
-        LinearLayout.LayoutParams styleLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        styleLp.rightMargin = dp(6);
+        LinearLayout.LayoutParams styleLp = new LinearLayout.LayoutParams(0, dp(42), 1f);
+        styleLp.rightMargin = dp(5);
         styleRow.addView(strictStyleButton, styleLp);
-        LinearLayout.LayoutParams styleLp2 = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        styleLp2.rightMargin = dp(6);
+        LinearLayout.LayoutParams styleLp2 = new LinearLayout.LayoutParams(0, dp(42), 1f);
+        styleLp2.rightMargin = dp(5);
         styleRow.addView(normalStyleButton, styleLp2);
-        styleRow.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        form.addView(styleRow, marginTop(6));
+        styleRow.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(42), 1f));
+        form.addView(styleRow, marginTop(4));
 
         TextView styleHint = text("嚴謹：專業報告｜普通：白話平衡｜風趣：嘴得準但不傷人\n只改 AI 說話方式，不改命盤計算結果", 11, MUTED, false);
-        form.addView(styleHint, marginTop(4));
+        form.addView(styleHint, marginTop(2));
 
         Button calculate = new Button(this);
         calculate.setText("開始算命");
@@ -272,21 +272,21 @@ public final class MainActivity extends Activity {
         calculate.setBackground(round(ACCENT, 20));
         calculate.setOnClickListener(v -> calculate());
         LinearLayout.LayoutParams calcLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(58));
-        calcLp.topMargin = dp(18);
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(52));
+        calcLp.topMargin = dp(12);
         root.addView(calculate, calcLp);
 
         resultCard = column();
-        resultCard.setPadding(dp(18), dp(18), dp(18), dp(18));
-        resultCard.setBackground(round(CARD, 24));
+        resultCard.setPadding(dp(12), dp(12), dp(12), dp(12));
+        resultCard.setBackground(round(CARD, 20));
         resultCard.setVisibility(View.GONE);
-        root.addView(resultCard, marginTop(22));
+        root.addView(resultCard, marginTop(9));
 
         updateModeSelectionUi();
 
         TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.8.0", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
-        root.addView(foot, marginTop(22));
+        root.addView(foot, marginTop(9));
         return scroll;
     }
 
@@ -464,7 +464,7 @@ public final class MainActivity extends Activity {
             addTarotResultPanel();
         } else {
             TextView score = text(primaryMetric(result), 30, ACCENT, true);
-            resultCard.addView(score, marginTop(12));
+            resultCard.addView(score, marginTop(8));
 
             TextView basis = text("計算依據｜" + result.basis, 13, MUTED, false);
             resultCard.addView(basis, marginTop(4));
@@ -506,7 +506,7 @@ public final class MainActivity extends Activity {
                 ? "本地完整解讀 · 無需 AI"
                 : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
                 12, MUTED, false);
-        resultCard.addView(source, marginTop(16));
+        resultCard.addView(source, marginTop(6));
 
         Button teacher = new Button(this);
         teacher.setText("老師跟我講解");
@@ -556,22 +556,22 @@ public final class MainActivity extends Activity {
             boolean selected = selectedResultTab == i;
             tab.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
             tab.setTextColor(selected ? Color.rgb(30, 22, 46) : TEXT);
-            tab.setBackground(round(selected ? ACCENT : CARD_2, 15));
-            tab.setPadding(dp(14), 0, dp(14), 0);
+            tab.setBackground(round(selected ? ACCENT : CARD_2, 13));
+            tab.setPadding(dp(10), 0, dp(10), 0);
             tab.setOnClickListener(v -> {
                 selectedResultTab = index;
                 OperationLog.add(this, "RESULT_TAB_SELECTED", labels[index]);
                 renderResult(currentResult, activeHarness != null && aiCopy == null);
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, dp(44));
-            lp.rightMargin = dp(7);
+                    LinearLayout.LayoutParams.WRAP_CONTENT, dp(40));
+            lp.rightMargin = dp(4);
             tabs.addView(tab, lp);
         }
-        resultCard.addView(tabScroll, marginTop(16));
+        resultCard.addView(tabScroll, marginTop(6));
 
         resultTabContent = column();
-        resultCard.addView(resultTabContent, marginTop(8));
+        resultCard.addView(resultTabContent, marginTop(4));
         renderUnifiedTab(result, aiLoading);
         addSharedResultActions();
     }
@@ -670,7 +670,7 @@ public final class MainActivity extends Activity {
                         : "下面的老師可以繼續追問：未來幾年、工作、感情、指定流年或今年某個月份。",
                 12, GOLD, true);
         hint.setLineSpacing(dp(3), 1f);
-        panel.addView(hint, marginTop(18));
+        panel.addView(hint, marginTop(11));
     }
 
     private void addTarotOverviewTab(FortuneResult result, boolean aiLoading) {
@@ -832,7 +832,7 @@ public final class MainActivity extends Activity {
                 "塔羅生命靈數用於娛樂與自我反思；流年表示主題循環，不代表特定事件一定發生。",
                 11, MUTED, false);
         boundary.setLineSpacing(dp(2), 1f);
-        panel.addView(boundary, marginTop(14));
+        panel.addView(boundary, marginTop(9));
     }
 
     private String currentTarotYearSummary() {
@@ -854,7 +854,7 @@ public final class MainActivity extends Activity {
                 ? "本地完整資料 · AI 可選"
                 : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
                 12, MUTED, false);
-        resultCard.addView(source, marginTop(16));
+        resultCard.addView(source, marginTop(6));
 
         Button teacher = new Button(this);
         teacher.setText("老師跟我講解");
@@ -864,11 +864,11 @@ public final class MainActivity extends Activity {
         teacher.setTextColor(Color.rgb(30, 22, 46));
         teacher.setBackground(round(GOLD, 18));
         teacher.setOnClickListener(v -> startTeacherExplanation());
-        resultCard.addView(teacher, fixedHeightTop(52, 12));
+        resultCard.addView(teacher, fixedHeightTop(48, 8));
 
         Button share = secondaryButton("分享結果");
         share.setOnClickListener(v -> shareResult());
-        resultCard.addView(share, fixedHeightTop(52, 10));
+        resultCard.addView(share, fixedHeightTop(48, 6));
     }
 
     private void addBaZiOverviewTab(FortuneResult result, boolean aiLoading) {
@@ -939,7 +939,7 @@ public final class MainActivity extends Activity {
         addPanelSection(panel, "目前大運", summaryLuck(currentFacts.detail("currentLuckPillar")));
 
         TextView luckTitle = text("大運時間軸", 13, GOLD, true);
-        panel.addView(luckTitle, marginTop(18));
+        panel.addView(luckTitle, marginTop(11));
 
         Object luckRaw = currentFacts.detail("luckPillars");
         String currentGanZhi = mapValue(currentFacts.detail("currentLuckPillar"), "ganZhi");
@@ -989,7 +989,7 @@ public final class MainActivity extends Activity {
         TextView convention = text(
                 currentFacts.detailText("annualTimelineConvention"),
                 11, MUTED, false);
-        panel.addView(convention, marginTop(14));
+        panel.addView(convention, marginTop(9));
     }
 
     private void addBaZiTopicAnalysisTab() {
@@ -1063,54 +1063,54 @@ public final class MainActivity extends Activity {
 
     private LinearLayout resultPanel() {
         LinearLayout panel = column();
-        panel.setPadding(dp(14), dp(16), dp(14), dp(16));
+        panel.setPadding(dp(10), dp(11), dp(10), dp(11));
         panel.setBackground(roundBorder(
-                CARD_2, Color.rgb(86, 70, 119), 20, 1));
-        resultTabContent.addView(panel, marginTop(8));
+                CARD_2, Color.rgb(86, 70, 119), 16, 1));
+        resultTabContent.addView(panel, marginTop(4));
         return panel;
     }
 
     private LinearLayout topicCard(LinearLayout parent, String title, String subtitle) {
         LinearLayout card = column();
-        card.setPadding(dp(14), dp(14), dp(14), dp(14));
+        card.setPadding(dp(10), dp(10), dp(10), dp(10));
         card.setBackground(roundBorder(
                 Color.rgb(31, 24, 49), Color.rgb(80, 65, 111), 16, 1));
         TextView h = text(title, 19, TEXT, true);
         card.addView(h);
         TextView s = text(subtitle, 12, MUTED, false);
         card.addView(s, marginTop(3));
-        parent.addView(card, marginTop(14));
+        parent.addView(card, marginTop(6));
         return card;
     }
 
     private void addTopicLine(LinearLayout card, String label, String value) {
         TextView l = text(label, 11, GOLD, true);
-        card.addView(l, marginTop(12));
+        card.addView(l, marginTop(8));
         TextView v = text(value == null || value.isEmpty() ? "—" : value, 14, TEXT, false);
-        v.setLineSpacing(dp(3), 1f);
-        card.addView(v, marginTop(3));
+        v.setLineSpacing(dp(2), 1f);
+        card.addView(v, marginTop(2));
     }
 
     private void addTopicBoundary(LinearLayout card, String value) {
         if (value == null || value.isEmpty()) return;
         TextView v = text(value, 11, MUTED, false);
         v.setLineSpacing(dp(2), 1f);
-        card.addView(v, marginTop(12));
+        card.addView(v, marginTop(8));
     }
 
     private void addClickableFactCard(
             LinearLayout parent, String title, String summary, final Runnable action) {
         LinearLayout card = column();
-        card.setPadding(dp(12), dp(12), dp(12), dp(12));
+        card.setPadding(dp(9), dp(9), dp(9), dp(9));
         card.setBackground(roundBorder(
                 Color.rgb(31, 24, 49), Color.rgb(80, 65, 111), 14, 1));
         TextView h = text(title, 15, TEXT, true);
         card.addView(h);
         TextView s = text(summary, 12, MUTED, false);
-        s.setLineSpacing(dp(3), 1f);
-        card.addView(s, marginTop(4));
+        s.setLineSpacing(dp(2), 1f);
+        card.addView(s, marginTop(2));
         TextView more = text("點擊查看完整依據 ›", 11, ACCENT, true);
-        card.addView(more, marginTop(7));
+        card.addView(more, marginTop(4));
         card.setClickable(true);
         card.setOnClickListener(v -> action.run());
         parent.addView(card, marginTop(8));
@@ -1118,14 +1118,14 @@ public final class MainActivity extends Activity {
 
     private void showFactDetailDialog(String titleValue, Object value) {
         LinearLayout panel = column();
-        panel.setPadding(dp(20), dp(18), dp(20), dp(16));
+        panel.setPadding(dp(14), dp(14), dp(14), dp(12));
         panel.setBackground(roundBorder(
                 CARD, Color.rgb(92, 73, 127), 24, 1));
 
         panel.addView(text(titleValue, 21, TEXT, true));
         TextView detail = text(formatStructured(value), 13, TEXT, false);
-        detail.setLineSpacing(dp(4), 1f);
-        detail.setPadding(dp(12), dp(12), dp(12), dp(12));
+        detail.setLineSpacing(dp(2), 1f);
+        detail.setPadding(dp(9), dp(9), dp(9), dp(9));
         detail.setBackground(roundBorder(
                 CARD_2, Color.rgb(80, 65, 111), 14, 1));
 
@@ -1133,11 +1133,11 @@ public final class MainActivity extends Activity {
         scroll.addView(detail);
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(420));
-        scrollLp.topMargin = dp(12);
+        scrollLp.topMargin = dp(8);
         panel.addView(scroll, scrollLp);
 
         Button close = secondaryButton("關閉");
-        panel.addView(close, fixedHeightTop(48, 12));
+        panel.addView(close, fixedHeightTop(44, 8));
 
         final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
         close.setOnClickListener(v -> dialog.dismiss());
@@ -1298,10 +1298,10 @@ public final class MainActivity extends Activity {
         if (currentFacts == null) return;
 
         LinearLayout panel = column();
-        panel.setPadding(dp(14), dp(16), dp(14), dp(16));
-        panel.setBackground(round(CARD_2, 20));
+        panel.setPadding(dp(10), dp(11), dp(10), dp(11));
+        panel.setBackground(round(CARD_2, 16));
         LinearLayout host = resultTabContent == null ? resultCard : resultTabContent;
-        host.addView(panel, marginTop(16));
+        host.addView(panel, marginTop(6));
 
         LinearLayout hero = new LinearLayout(this);
         hero.setOrientation(LinearLayout.HORIZONTAL);
@@ -1331,7 +1331,7 @@ public final class MainActivity extends Activity {
         panel.addView(hero);
 
         TextView divider = text("四柱命盤", 12, GOLD, true);
-        panel.addView(divider, marginTop(18));
+        panel.addView(divider, marginTop(11));
 
         LinearLayout pillars = new LinearLayout(this);
         pillars.setOrientation(LinearLayout.HORIZONTAL);
@@ -1351,7 +1351,7 @@ public final class MainActivity extends Activity {
         panel.addView(pillars, marginTop(8));
 
         TextView elementsTitle = text("可見五行", 12, GOLD, true);
-        panel.addView(elementsTitle, marginTop(18));
+        panel.addView(elementsTitle, marginTop(11));
 
         Object visible = currentFacts.detail("visibleFiveElements");
         addElementBar(panel, "木", intMapValue(visible, "木"));
@@ -1367,19 +1367,19 @@ public final class MainActivity extends Activity {
         panel.addView(trend, marginTop(8));
 
         TextView tenGodsTitle = text("十神摘要", 12, GOLD, true);
-        panel.addView(tenGodsTitle, marginTop(18));
+        panel.addView(tenGodsTitle, marginTop(11));
         TextView tenGods = text(formatTenGods(), 14, TEXT, false);
         tenGods.setLineSpacing(dp(3), 1f);
         panel.addView(tenGods, marginTop(6));
 
         TextView tenDistTitle = text("十神分布", 12, GOLD, true);
-        panel.addView(tenDistTitle, marginTop(18));
+        panel.addView(tenDistTitle, marginTop(11));
         TextView tenDist = text(formatMap(currentFacts.detail("tenGodDistribution")), 13, TEXT, false);
         tenDist.setLineSpacing(dp(2), 1f);
         panel.addView(tenDist, marginTop(6));
 
         TextView strengthTitle = text("旺衰與平衡", 12, GOLD, true);
-        panel.addView(strengthTitle, marginTop(18));
+        panel.addView(strengthTitle, marginTop(11));
         TextView strength = text(
                 currentFacts.detailText("dayMasterStrength")
                         + "｜扶身比 " + currentFacts.detailText("strengthIndex") + "/100"
@@ -1390,19 +1390,19 @@ public final class MainActivity extends Activity {
         panel.addView(strength, marginTop(6));
 
         TextView interactionTitle = text("命局合沖刑害", 12, GOLD, true);
-        panel.addView(interactionTitle, marginTop(18));
+        panel.addView(interactionTitle, marginTop(11));
         TextView interactions = text(formatList(currentFacts.detail("natalInteractions")), 13, TEXT, false);
         interactions.setLineSpacing(dp(3), 1f);
         panel.addView(interactions, marginTop(6));
 
         TextView luckTitle = text("大運", 12, GOLD, true);
-        panel.addView(luckTitle, marginTop(18));
+        panel.addView(luckTitle, marginTop(11));
         TextView luck = text(formatLuckPillars(), 13, TEXT, false);
         luck.setLineSpacing(dp(3), 1f);
         panel.addView(luck, marginTop(6));
 
         TextView annualTitle = text("今年流年", 12, GOLD, true);
-        panel.addView(annualTitle, marginTop(18));
+        panel.addView(annualTitle, marginTop(11));
         TextView annual = text(formatCurrentAnnual(), 13, TEXT, false);
         annual.setLineSpacing(dp(3), 1f);
         panel.addView(annual, marginTop(6));
@@ -1418,7 +1418,7 @@ public final class MainActivity extends Activity {
                 "排盤規則｜" + currentFacts.detailText("timeConvention"),
                 11, MUTED, false);
         convention.setLineSpacing(dp(2), 1f);
-        panel.addView(convention, marginTop(16));
+        panel.addView(convention, marginTop(6));
     }
 
     private void addPillarCard(LinearLayout row,
@@ -1428,7 +1428,7 @@ public final class MainActivity extends Activity {
                                String tenGod) {
         LinearLayout card = column();
         card.setGravity(Gravity.CENTER_HORIZONTAL);
-        card.setPadding(dp(5), dp(10), dp(5), dp(10));
+        card.setPadding(dp(4), dp(7), dp(4), dp(7));
         GradientDrawable background = round(Color.rgb(31, 24, 49), 14);
         background.setStroke(dp(1), Color.rgb(78, 63, 108));
         card.setBackground(background);
@@ -1439,19 +1439,19 @@ public final class MainActivity extends Activity {
 
         TextView pillarView = text(pillar, 22, TEXT, true);
         pillarView.setGravity(Gravity.CENTER);
-        card.addView(pillarView, marginTop(4));
+        card.addView(pillarView, marginTop(2));
 
         TextView tenGodView = text(tenGod, 11, GOLD, true);
         tenGodView.setGravity(Gravity.CENTER);
-        card.addView(tenGodView, marginTop(5));
+        card.addView(tenGodView, marginTop(3));
 
         TextView hiddenView = text(shortHidden(hidden), 10, MUTED, false);
         hiddenView.setGravity(Gravity.CENTER);
-        card.addView(hiddenView, marginTop(3));
+        card.addView(hiddenView, marginTop(2));
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        lp.rightMargin = dp(6);
+        lp.rightMargin = dp(4);
         row.addView(card, lp);
     }
 
@@ -1461,7 +1461,7 @@ public final class MainActivity extends Activity {
         row.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView name = text(element, 14, TEXT, true);
-        row.addView(name, new LinearLayout.LayoutParams(dp(24), dp(30)));
+        row.addView(name, new LinearLayout.LayoutParams(dp(24), dp(26)));
 
         LinearLayout track = new LinearLayout(this);
         track.setOrientation(LinearLayout.HORIZONTAL);
@@ -1488,11 +1488,11 @@ public final class MainActivity extends Activity {
 
         TextView value = text(count + "/8", 12, MUTED, true);
         value.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        row.addView(value, new LinearLayout.LayoutParams(dp(34), dp(30)));
+        row.addView(value, new LinearLayout.LayoutParams(dp(34), dp(26)));
 
         LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(30));
-        rowLp.topMargin = dp(2);
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(26));
+        rowLp.topMargin = dp(1);
         parent.addView(row, rowLp);
     }
 
@@ -1501,12 +1501,12 @@ public final class MainActivity extends Activity {
 
         LinearLayout panel = column();
         panel.setGravity(Gravity.CENTER_HORIZONTAL);
-        panel.setPadding(dp(18), dp(22), dp(18), dp(20));
-        GradientDrawable background = round(CARD_2, 22);
+        panel.setPadding(dp(12), dp(14), dp(12), dp(14));
+        GradientDrawable background = round(CARD_2, 18);
         background.setStroke(dp(1), Color.rgb(87, 69, 121));
         panel.setBackground(background);
         LinearLayout host = resultTabContent == null ? resultCard : resultTabContent;
-        host.addView(panel, marginTop(16));
+        host.addView(panel, marginTop(6));
 
         TextView coreTitle = text("生日核心數", 12, GOLD, true);
         coreTitle.setGravity(Gravity.CENTER);
@@ -1519,7 +1519,7 @@ public final class MainActivity extends Activity {
                 15, TEXT, true);
         coreNumbers.setGravity(Gravity.CENTER);
         coreNumbers.setLineSpacing(dp(3), 1f);
-        panel.addView(coreNumbers, marginTop(8));
+        panel.addView(coreNumbers, marginTop(5));
 
         LinearLayout innerOuter = new LinearLayout(this);
         innerOuter.setOrientation(LinearLayout.HORIZONTAL);
@@ -1535,7 +1535,7 @@ public final class MainActivity extends Activity {
                 "外在人格牌",
                 currentFacts.detailText("personalityCardNumber"),
                 currentFacts.detailText("personalityCardName"));
-        panel.addView(innerOuter, marginTop(16));
+        panel.addView(innerOuter, marginTop(6));
 
         TextView contrast = text(
                 "外在 " + currentFacts.detailText("personalityCardNumber")
@@ -1544,7 +1544,7 @@ public final class MainActivity extends Activity {
                         + " " + currentFacts.detailText("soulCardName"),
                 13, ACCENT, true);
         contrast.setGravity(Gravity.CENTER);
-        panel.addView(contrast, marginTop(10));
+        panel.addView(contrast, marginTop(6));
 
         TextView card = text(currentFacts.detailText("birthCardDisplay"), 27, TEXT, true);
         card.setGravity(Gravity.CENTER);
@@ -1553,7 +1553,7 @@ public final class MainActivity extends Activity {
         TextView lifePath = text("生命靈數 " + currentFacts.detailText("lifePathDisplay"),
                 23, ACCENT, true);
         lifePath.setGravity(Gravity.CENTER);
-        panel.addView(lifePath, marginTop(14));
+        panel.addView(lifePath, marginTop(9));
 
         TextView core = text(
                 "天賦數 " + currentFacts.detailText("talentNumbers")
@@ -1565,7 +1565,7 @@ public final class MainActivity extends Activity {
                 14, MUTED, false);
         core.setGravity(Gravity.CENTER);
         core.setLineSpacing(dp(3), 1f);
-        panel.addView(core, marginTop(14));
+        panel.addView(core, marginTop(9));
 
         addPanelSection(panel, "出生牌組", formatBirthCards());
         addPanelSection(panel, "四大巔峰", formatPairedLists(
@@ -1577,7 +1577,7 @@ public final class MainActivity extends Activity {
         TextView note = text(currentFacts.detailText("note"), 11, MUTED, false);
         note.setGravity(Gravity.CENTER);
         note.setLineSpacing(dp(2), 1f);
-        panel.addView(note, marginTop(16));
+        panel.addView(note, marginTop(6));
     }
 
     private void addNumerologyIdentityCard(LinearLayout row,
@@ -1586,7 +1586,7 @@ public final class MainActivity extends Activity {
                                                 String subtitle) {
         LinearLayout card = column();
         card.setGravity(Gravity.CENTER);
-        card.setPadding(dp(10), dp(14), dp(10), dp(14));
+        card.setPadding(dp(8), dp(9), dp(8), dp(9));
         GradientDrawable background = round(Color.rgb(31, 24, 49), 16);
         background.setStroke(dp(1), Color.rgb(86, 70, 119));
         card.setBackground(background);
@@ -1605,17 +1605,17 @@ public final class MainActivity extends Activity {
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        lp.leftMargin = dp(4);
-        lp.rightMargin = dp(4);
+        lp.leftMargin = dp(3);
+        lp.rightMargin = dp(3);
         row.addView(card, lp);
     }
 
     private void addPanelSection(LinearLayout panel, String heading, String body) {
         TextView h = text(heading, 12, GOLD, true);
-        panel.addView(h, marginTop(18));
+        panel.addView(h, marginTop(11));
         TextView b = text(body, 13, TEXT, false);
-        b.setLineSpacing(dp(3), 1f);
-        panel.addView(b, marginTop(5));
+        b.setLineSpacing(dp(2), 1f);
+        panel.addView(b, marginTop(3));
     }
 
     private String formatTenGods() {
@@ -1731,10 +1731,10 @@ public final class MainActivity extends Activity {
 
     private void addSection(String heading, String body) {
         TextView h = text(heading, 12, GOLD, true);
-        resultCard.addView(h, marginTop(18));
+        resultCard.addView(h, marginTop(11));
         TextView b = text(body, 16, TEXT, false);
-        b.setLineSpacing(dp(3), 1f);
-        resultCard.addView(b, marginTop(5));
+        b.setLineSpacing(dp(2), 1f);
+        resultCard.addView(b, marginTop(3));
     }
 
     private void startTeacherExplanation() {
@@ -1799,16 +1799,16 @@ public final class MainActivity extends Activity {
         body.addView(hint, marginTop(6));
 
         teacherStatusText = text("正在準備…", 13, ACCENT, true);
-        body.addView(teacherStatusText, marginTop(14));
+        body.addView(teacherStatusText, marginTop(9));
 
         TextView youLabel = text("你剛剛說", 11, GOLD, true);
-        body.addView(youLabel, marginTop(16));
+        body.addView(youLabel, marginTop(6));
         teacherInputText = text("—", 14, TEXT, false);
         teacherInputText.setLineSpacing(dp(3), 1f);
         body.addView(teacherInputText, marginTop(4));
 
         TextView teacherLabel = text("老師正在講", 11, GOLD, true);
-        body.addView(teacherLabel, marginTop(14));
+        body.addView(teacherLabel, marginTop(9));
         teacherOutputText = text("等待老師上線…", 15, TEXT, false);
         teacherOutputText.setLineSpacing(dp(4), 1f);
         body.addView(teacherOutputText, marginTop(4));
@@ -1835,7 +1835,7 @@ public final class MainActivity extends Activity {
             if (dialog != null) dialog.dismiss();
         });
         actions.addView(close, new LinearLayout.LayoutParams(0, dp(48), 1f));
-        body.addView(actions, marginTop(18));
+        body.addView(actions, marginTop(11));
 
         teacherDialog = new AlertDialog.Builder(this)
                 .setView(body)
@@ -2149,7 +2149,7 @@ public final class MainActivity extends Activity {
         body.setPadding(0, dp(4), 0, dp(8));
 
         if (entries.isEmpty()) {
-            body.addView(text("目前還沒有操作記錄", 14, MUTED, false), marginTop(14));
+            body.addView(text("目前還沒有操作記錄", 14, MUTED, false), marginTop(9));
         } else {
             for (final OperationLog.Entry entry : entries) {
                 TextView item = text(entry.listLabel(), 13, TEXT, true);
@@ -2181,7 +2181,7 @@ public final class MainActivity extends Activity {
         actionLp.rightMargin = dp(8);
         actions.addView(clear, actionLp);
         actions.addView(close, new LinearLayout.LayoutParams(0, dp(48), 1f));
-        panel.addView(actions, marginTop(12));
+        panel.addView(actions, marginTop(8));
 
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setView(panel)
@@ -2209,7 +2209,7 @@ public final class MainActivity extends Activity {
         panel.addView(time, marginTop(4));
 
         TextView detailLabel = text("內容", 11, GOLD, true);
-        panel.addView(detailLabel, marginTop(18));
+        panel.addView(detailLabel, marginTop(11));
 
         String detailValue = entry.detail == null || entry.detail.isEmpty()
                 ? "這筆事件沒有額外內容"
@@ -2222,7 +2222,7 @@ public final class MainActivity extends Activity {
         panel.addView(detail, marginTop(6));
 
         Button close = secondaryButton("關閉");
-        panel.addView(close, marginTop(16));
+        panel.addView(close, marginTop(6));
 
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setView(panel)
@@ -2309,7 +2309,7 @@ public final class MainActivity extends Activity {
         button.setTextSize(14);
         button.setAllCaps(false);
         button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        button.setPadding(dp(10), 0, dp(10), 0);
+        button.setPadding(dp(8), 0, dp(8), 0);
         return button;
     }
 
@@ -2373,10 +2373,10 @@ public final class MainActivity extends Activity {
         input.setTextColor(TEXT);
         input.setTextSize(15);
         input.setSingleLine(true);
-        input.setPadding(dp(14), 0, dp(14), 0);
+        input.setPadding(dp(12), 0, dp(12), 0);
         input.setBackground(round(Color.rgb(29, 23, 45), 14));
         input.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
         return input;
     }
 
