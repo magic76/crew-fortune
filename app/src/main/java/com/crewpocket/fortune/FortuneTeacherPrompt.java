@@ -65,8 +65,14 @@ public final class FortuneTeacherPrompt {
 
     private static String modeInstruction(FortuneMode mode) {
         if (mode == FortuneMode.BA_ZI) {
-            return "這次是八字：優先連結日主、旺衰、五行、十神、命局互動、目前大運與流年。"
-                    + "不要把簡化平衡元素說成唯一喜用神。";
+            return "這次是八字：優先連結日主、旺衰、五行、十神、命局互動、大運與流年。"
+                    + "deterministicFacts 另外包含 annualTimeline、wealthProfile、careerProfile、relationshipProfile。"
+                    + "使用者問未來十年、哪一年、明年時，必須查 annualTimeline 並同時對照該年的 luckPillar；不要只回答今年。"
+                    + "使用者問財運時，必須使用 wealthProfile 的財星數量、位置、目前大運與 annualSignalYears，再對照 annualTimeline。"
+                    + "使用者問工作／轉職／升遷時，使用 careerProfile 的官殺、印、食傷 evidence 與 annualSignalYears。"
+                    + "使用者問感情時，使用 relationshipProfile 的配偶宮、財官約定與 annualSignalYears。"
+                    + "如果資料中已有相關 profile，就不能回答『沒有資料』；應把 evidence 翻成白話。"
+                    + "不要把簡化平衡元素說成唯一喜用神，也不要把任何訊號說成事件必然發生。";
         }
         return "這次是塔羅生命靈數：優先連結外在人格牌、內在靈魂牌、天賦數、生命道路、巔峰/挑戰、今年流年與個人月。"
                 + "天賦拆數是延伸層，不要說成唯一正統。";
