@@ -23,6 +23,7 @@ import com.magic76.crew.agent.AgentEvent;
 import com.magic76.crew.agent.AgentHarness;
 
 import java.util.Date;
+import java.util.Map;
 
 public final class MainActivity extends Activity {
     private static final int BG = Color.rgb(23, 17, 38);
@@ -166,7 +167,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 八字與塔羅皆揭露計算規則 · v0.2.0", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字與塔羅皆揭露計算規則 · v0.2.1", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -281,12 +282,39 @@ public final class MainActivity extends Activity {
         TextView badge = text(result.mode.title().toUpperCase(), 12, GOLD, true);
         resultCard.addView(badge);
 
+        String titleValue;
         if (aiLoading) {
+            titleValue = result.mode == FortuneMode.BA_ZI
+                    ? "命盤已排好，現在開始講人話"
+                    : result.mode == FortuneMode.TAROT_NUMEROLOGY
+                    ? "你的出生牌已翻開"
+                    : result.title;
+        } else {
+            titleValue = aiCopy == null ? result.title : aiCopy.title;
+        }
+
+        TextView title = text(titleValue, 25, TEXT, true);
+        resultCard.addView(title, marginTop(8));
+
+        if (result.mode == FortuneMode.BA_ZI) {
+            addBaZiResultPanel();
+        } else if (result.mode == FortuneMode.TAROT_NUMEROLOGY) {
+            addTarotResultPanel();
+        } else {
             TextView score = text(primaryMetric(result), 30, ACCENT, true);
             resultCard.addView(score, marginTop(12));
+
             TextView basis = text("計算依據｜" + result.basis, 13, MUTED, false);
             resultCard.addView(basis, marginTop(4));
-            TextView loading = text("✦ 命盤算完了。AI 命理師正在重新組織措辭，避免拿罐頭話術敷衍你…",
+        }
+
+        if (aiLoading) {
+            TextView loading = text(
+                    result.mode == FortuneMode.BA_ZI
+                            ? "✦ 四柱、五行與十神都算完了。AI 命理師正在研究怎麼講得準一點，又不要太像老師訓話…"
+                            : result.mode == FortuneMode.TAROT_NUMEROLOGY
+                            ? "✦ 出生牌已確認。AI 命理師正在把牌義翻譯成比較像人類會想看的版本…"
+                            : "✦ 命盤算完了。AI 命理師正在重新組織措辭，避免拿罐頭話術敷衍你…",
                     15, ACCENT, true);
             loading.setLineSpacing(dp(3), 1f);
             resultCard.addView(loading, marginTop(20));
@@ -294,24 +322,12 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        String titleValue = aiCopy == null ? result.title : aiCopy.title;
-        TextView title = text(titleValue, 25, TEXT, true);
-        resultCard.addView(title, marginTop(8));
-
-        TextView score = text(primaryMetric(result), 30, ACCENT, true);
-        resultCard.addView(score, marginTop(12));
-
-        TextView basis = text("計算依據｜" + result.basis, 13, MUTED, false);
-        resultCard.addView(basis, marginTop(4));
-
-        addCalculationFacts();
-
         addSection("認真分析", aiCopy == null ? result.analysis : aiCopy.analysis);
         addSection("翻譯成人話", aiCopy == null ? result.translation : aiCopy.translation);
         addSection("命理師補充", aiCopy == null ? result.punchline : aiCopy.punchline);
         addSection("今日忠告", aiCopy == null ? result.advice : aiCopy.advice);
 
-        TextView source = text(aiCopy == null ? "本地備用文案" : "AI 即席解讀 · 命盤數字固定", 12, MUTED, false);
+        TextView source = text(aiCopy == null ? "本地備用文案" : "AI 即席解讀 · 計算資料固定", 12, MUTED, false);
         resultCard.addView(source, marginTop(16));
 
         Button share = new Button(this);
@@ -338,30 +354,237 @@ public final class MainActivity extends Activity {
         return result.score + " / 100";
     }
 
-    private void addCalculationFacts() {
+    private void addBaZiResultPanel() {
         if (currentFacts == null) return;
-        if (currentFacts.mode == FortuneMode.BA_ZI) {
-            addSection("四柱",
-                    currentFacts.detailText("fourPillars")
-                            + "\n日主：" + currentFacts.detailText("dayMaster")
-                            + currentFacts.detailText("dayMasterElement"));
-            addSection("可見五行",
-                    currentFacts.detailText("visibleFiveElements")
-                            + "\n藏干：" + currentFacts.detailText("hiddenStems"));
-            addSection("十神",
-                    currentFacts.detailText("tenGods"));
-        } else if (currentFacts.mode == FortuneMode.TAROT_NUMEROLOGY) {
-            addSection("出生牌",
-                    "(" + currentFacts.detailText("birthCardNumber") + ") "
-                            + currentFacts.detailText("birthCardName")
-                            + "\n" + currentFacts.detailText("birthCardKeywords"));
-            String soul = currentFacts.detailText("reducedSoulCardName");
-            if (!soul.isEmpty()) {
-                addSection("延伸靈魂牌",
-                        currentFacts.detailText("reducedSoulNumber") + " " + soul
-                                + " · " + currentFacts.detailText("reducedSoulCardKeywords"));
-            }
+
+        LinearLayout panel = column();
+        panel.setPadding(dp(14), dp(16), dp(14), dp(16));
+        panel.setBackground(round(CARD_2, 20));
+        resultCard.addView(panel, marginTop(16));
+
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.HORIZONTAL);
+        hero.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout master = column();
+        TextView masterLabel = text("日主", 12, GOLD, true);
+        TextView masterValue = text(
+                currentFacts.detailText("dayMaster") + currentFacts.detailText("dayMasterElement"),
+                28, TEXT, true);
+        master.addView(masterLabel);
+        master.addView(masterValue, marginTop(2));
+        hero.addView(master, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        LinearLayout balance = column();
+        TextView balanceLabel = text("五行均衡度", 12, MUTED, true);
+        balanceLabel.setGravity(Gravity.END);
+        TextView balanceValue = text(currentFacts.score + " / 100", 22, ACCENT, true);
+        balanceValue.setGravity(Gravity.END);
+        balance.addView(balanceLabel);
+        balance.addView(balanceValue, marginTop(2));
+        hero.addView(balance, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        panel.addView(hero);
+
+        TextView divider = text("四柱命盤", 12, GOLD, true);
+        panel.addView(divider, marginTop(18));
+
+        LinearLayout pillars = new LinearLayout(this);
+        pillars.setOrientation(LinearLayout.HORIZONTAL);
+        pillars.setGravity(Gravity.CENTER);
+        addPillarCard(pillars, "年柱", currentFacts.detailText("yearPillar"),
+                mapValue(currentFacts.detail("hiddenStems"), "year"),
+                mapValue(currentFacts.detail("tenGods"), "yearStem"));
+        addPillarCard(pillars, "月柱", currentFacts.detailText("monthPillar"),
+                mapValue(currentFacts.detail("hiddenStems"), "month"),
+                mapValue(currentFacts.detail("tenGods"), "monthStem"));
+        addPillarCard(pillars, "日柱", currentFacts.detailText("dayPillar"),
+                mapValue(currentFacts.detail("hiddenStems"), "day"),
+                "日主");
+        addPillarCard(pillars, "時柱", currentFacts.detailText("timePillar"),
+                mapValue(currentFacts.detail("hiddenStems"), "time"),
+                mapValue(currentFacts.detail("tenGods"), "timeStem"));
+        panel.addView(pillars, marginTop(8));
+
+        TextView elementsTitle = text("可見五行", 12, GOLD, true);
+        panel.addView(elementsTitle, marginTop(18));
+
+        Object visible = currentFacts.detail("visibleFiveElements");
+        addElementBar(panel, "木", intMapValue(visible, "木"));
+        addElementBar(panel, "火", intMapValue(visible, "火"));
+        addElementBar(panel, "土", intMapValue(visible, "土"));
+        addElementBar(panel, "金", intMapValue(visible, "金"));
+        addElementBar(panel, "水", intMapValue(visible, "水"));
+
+        TextView trend = text(
+                "較多：" + currentFacts.detailText("strongestVisibleElement")
+                        + "　較少：" + currentFacts.detailText("weakestVisibleElement"),
+                13, MUTED, false);
+        panel.addView(trend, marginTop(8));
+
+        TextView tenGodsTitle = text("十神摘要", 12, GOLD, true);
+        panel.addView(tenGodsTitle, marginTop(18));
+        TextView tenGods = text(formatTenGods(), 14, TEXT, false);
+        tenGods.setLineSpacing(dp(3), 1f);
+        panel.addView(tenGods, marginTop(6));
+
+        TextView convention = text(
+                "排盤規則｜" + currentFacts.detailText("timeConvention"),
+                11, MUTED, false);
+        convention.setLineSpacing(dp(2), 1f);
+        panel.addView(convention, marginTop(16));
+    }
+
+    private void addPillarCard(LinearLayout row,
+                               String label,
+                               String pillar,
+                               String hidden,
+                               String tenGod) {
+        LinearLayout card = column();
+        card.setGravity(Gravity.CENTER_HORIZONTAL);
+        card.setPadding(dp(5), dp(10), dp(5), dp(10));
+        GradientDrawable background = round(Color.rgb(31, 24, 49), 14);
+        background.setStroke(dp(1), Color.rgb(78, 63, 108));
+        card.setBackground(background);
+
+        TextView labelView = text(label, 11, MUTED, true);
+        labelView.setGravity(Gravity.CENTER);
+        card.addView(labelView);
+
+        TextView pillarView = text(pillar, 22, TEXT, true);
+        pillarView.setGravity(Gravity.CENTER);
+        card.addView(pillarView, marginTop(4));
+
+        TextView tenGodView = text(tenGod, 11, GOLD, true);
+        tenGodView.setGravity(Gravity.CENTER);
+        card.addView(tenGodView, marginTop(5));
+
+        TextView hiddenView = text(shortHidden(hidden), 10, MUTED, false);
+        hiddenView.setGravity(Gravity.CENTER);
+        card.addView(hiddenView, marginTop(3));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        lp.rightMargin = dp(6);
+        row.addView(card, lp);
+    }
+
+    private void addElementBar(LinearLayout parent, String element, int count) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView name = text(element, 14, TEXT, true);
+        row.addView(name, new LinearLayout.LayoutParams(dp(24), dp(30)));
+
+        LinearLayout track = new LinearLayout(this);
+        track.setOrientation(LinearLayout.HORIZONTAL);
+        track.setBackground(round(Color.rgb(29, 23, 45), 8));
+
+        int safeCount = Math.max(0, Math.min(8, count));
+        if (safeCount > 0) {
+            View fill = new View(this);
+            fill.setBackground(round(ACCENT, 8));
+            track.addView(fill, new LinearLayout.LayoutParams(
+                    0, dp(10), safeCount));
         }
+        if (safeCount < 8) {
+            View empty = new View(this);
+            track.addView(empty, new LinearLayout.LayoutParams(
+                    0, dp(10), 8 - safeCount));
+        }
+
+        LinearLayout.LayoutParams trackLp = new LinearLayout.LayoutParams(
+                0, dp(10), 1f);
+        trackLp.leftMargin = dp(8);
+        trackLp.rightMargin = dp(8);
+        row.addView(track, trackLp);
+
+        TextView value = text(count + "/8", 12, MUTED, true);
+        value.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        row.addView(value, new LinearLayout.LayoutParams(dp(34), dp(30)));
+
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(30));
+        rowLp.topMargin = dp(2);
+        parent.addView(row, rowLp);
+    }
+
+    private void addTarotResultPanel() {
+        if (currentFacts == null) return;
+
+        LinearLayout panel = column();
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(18), dp(22), dp(18), dp(20));
+        GradientDrawable background = round(CARD_2, 22);
+        background.setStroke(dp(1), Color.rgb(87, 69, 121));
+        panel.setBackground(background);
+        resultCard.addView(panel, marginTop(16));
+
+        TextView number = text(currentFacts.detailText("birthCardNumber"), 18, GOLD, true);
+        number.setGravity(Gravity.CENTER);
+        panel.addView(number);
+
+        TextView card = text(currentFacts.detailText("birthCardName"), 34, TEXT, true);
+        card.setGravity(Gravity.CENTER);
+        panel.addView(card, marginTop(4));
+
+        TextView keywords = text(currentFacts.detailText("birthCardKeywords"), 15, MUTED, false);
+        keywords.setGravity(Gravity.CENTER);
+        panel.addView(keywords, marginTop(8));
+
+        TextView lifePath = text(
+                "生命靈數 " + currentFacts.detailText("lifePathNumber"),
+                22, ACCENT, true);
+        lifePath.setGravity(Gravity.CENTER);
+        panel.addView(lifePath, marginTop(18));
+
+        String soul = currentFacts.detailText("reducedSoulCardName");
+        if (!soul.isEmpty()) {
+            TextView soulView = text(
+                    "延伸靈魂牌｜" + currentFacts.detailText("reducedSoulNumber")
+                            + " " + soul + " · " + currentFacts.detailText("reducedSoulCardKeywords"),
+                    13, MUTED, false);
+            soulView.setGravity(Gravity.CENTER);
+            soulView.setLineSpacing(dp(2), 1f);
+            panel.addView(soulView, marginTop(12));
+        }
+
+        TextView method = text(
+                "固定出生牌 · 同一生日會得到相同結果",
+                11, MUTED, false);
+        method.setGravity(Gravity.CENTER);
+        panel.addView(method, marginTop(16));
+    }
+
+    private String formatTenGods() {
+        Object source = currentFacts == null ? null : currentFacts.detail("tenGods");
+        return "年｜" + mapValue(source, "yearStem") + " · " + mapValue(source, "yearBranch")
+                + "\n月｜" + mapValue(source, "monthStem") + " · " + mapValue(source, "monthBranch")
+                + "\n日｜日主 · " + mapValue(source, "dayBranch")
+                + "\n時｜" + mapValue(source, "timeStem") + " · " + mapValue(source, "timeBranch");
+    }
+
+    private String mapValue(Object source, String key) {
+        if (!(source instanceof Map)) return "";
+        Object value = ((Map<?, ?>) source).get(key);
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private int intMapValue(Object source, String key) {
+        String value = mapValue(source, key);
+        try {
+            return Integer.parseInt(value);
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    private String shortHidden(String value) {
+        if (value == null) return "";
+        return value.replace("[", "").replace("]", "").replace(", ", "·");
     }
 
     private void addSection(String heading, String body) {
