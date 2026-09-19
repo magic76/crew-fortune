@@ -366,12 +366,25 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        addSection("認真分析", aiCopy == null ? result.analysis : aiCopy.analysis);
-        addSection("翻譯成人話", aiCopy == null ? result.translation : aiCopy.translation);
-        addSection("命理師補充", aiCopy == null ? result.punchline : aiCopy.punchline);
-        addSection("今日忠告", aiCopy == null ? result.advice : aiCopy.advice);
+        if (aiCopy == null) {
+            for (Map.Entry<String, String> entry : FortuneLocalReport.sections(currentFacts).entrySet()) {
+                addSection(entry.getKey(), entry.getValue());
+            }
+            addSection("翻譯成人話", result.translation);
+            addSection("命理師補充", result.punchline);
+            addSection("建議", result.advice);
+        } else {
+            addSection("總覽", aiCopy.overview);
+            if (!aiCopy.personality.isEmpty()) addSection("性格與天賦", aiCopy.personality);
+            if (!aiCopy.careerWealth.isEmpty()) addSection("工作與財務", aiCopy.careerWealth);
+            if (!aiCopy.relationships.isEmpty()) addSection("感情與人際", aiCopy.relationships);
+            if (!aiCopy.timing.isEmpty()) addSection("目前運勢／週期", aiCopy.timing);
+            addSection("翻譯成人話", aiCopy.translation);
+            addSection("命理師補充", aiCopy.punchline);
+            addSection("建議", aiCopy.advice);
+        }
 
-        TextView source = text(aiCopy == null ? "本地備用文案" : "AI 即席解讀 · 計算資料固定", 12, MUTED, false);
+        TextView source = text(aiCopy == null ? "本地完整解讀 · 無需 AI" : "AI 深度解讀 · 計算資料固定", 12, MUTED, false);
         resultCard.addView(source, marginTop(16));
 
         Button share = new Button(this);
