@@ -231,7 +231,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.5.0", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.5.1", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -670,19 +670,21 @@ public final class MainActivity extends Activity {
 
         addNumerologyIdentityCard(
                 innerOuter,
-                "內在的你",
-                currentFacts.detailText("innerNumber"),
-                "內靈數");
+                "內在靈魂牌",
+                currentFacts.detailText("soulCardNumber"),
+                currentFacts.detailText("soulCardName"));
         addNumerologyIdentityCard(
                 innerOuter,
-                "外人看到的你",
-                currentFacts.detailText("outerNumber"),
-                "外靈數");
+                "外在人格牌",
+                currentFacts.detailText("personalityCardNumber"),
+                currentFacts.detailText("personalityCardName"));
         panel.addView(innerOuter, marginTop(16));
 
         TextView contrast = text(
-                "內靈數 " + currentFacts.detailText("innerNumber")
-                        + "　↔　外靈數 " + currentFacts.detailText("outerNumber"),
+                "外在 " + currentFacts.detailText("personalityCardNumber")
+                        + " " + currentFacts.detailText("personalityCardName")
+                        + "　↔　內在 " + currentFacts.detailText("soulCardNumber")
+                        + " " + currentFacts.detailText("soulCardName"),
                 13, ACCENT, true);
         contrast.setGravity(Gravity.CENTER);
         panel.addView(contrast, marginTop(10));
@@ -697,10 +699,10 @@ public final class MainActivity extends Activity {
         panel.addView(lifePath, marginTop(14));
 
         TextView core = text(
-                "生日數 " + currentFacts.detailText("birthdayNumber")
-                        + "　·　核心 " + currentFacts.detailText("birthdayCore")
-                        + "\n態度數 " + currentFacts.detailText("attitudeNumber")
-                        + "　·　個人年 " + currentFacts.detailText("personalYear")
+                "天賦數 " + currentFacts.detailText("talentNumbers")
+                        + "　·　態度數 " + currentFacts.detailText("attitudeNumber")
+                        + "\n2026 流年 " + currentFacts.detailText("personalYear")
+                        + " " + currentFacts.detailText("personalYearCardName")
                         + "　·　個人月 " + currentFacts.detailText("personalMonth"),
                 14, MUTED, false);
         core.setGravity(Gravity.CENTER);
