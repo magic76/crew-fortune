@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class TarotNumerologyCalculator {
-    public static final String METHOD_VERSION = "birthday-inner-outer-plus-tarot-v4";
+    public static final String METHOD_VERSION = "tarot-personality-soul-birthday-v5";
 
     private static final String[] CARD_NAMES = {
             "愚者", "魔術師", "女祭司", "皇后", "皇帝", "教皇", "戀人", "戰車",
@@ -37,10 +37,13 @@ public final class TarotNumerologyCalculator {
 
         int rawDigitSum = digitSum(year) + digitSum(month) + digitSum(day);
         int lifePath = reduceMaster(rawDigitSum);
-        int innerNumber = reduceSingle(rawDigitSum);
-        int outerNumber = reduceSingle(day);
+        int personalityNumber = reduceTo22(rawDigitSum);
+        int soulNumber = reduceSingle(personalityNumber);
+        int innerNumber = soulNumber;
+        int outerNumber = personalityNumber;
         int attitude = reduceSingle(month + day);
         int birthdayCore = reduceSingle(day);
+        List<Integer> talentNumbers = digitsOf(rawDigitSum);
 
         Calendar c = Calendar.getInstance();
         c.setTime(now == null ? new Date() : now);
@@ -49,7 +52,7 @@ public final class TarotNumerologyCalculator {
         int personalYear = reduceSingle(monthCore + dayCore + reduceSingle(digitSum(currentYear)));
         int personalMonth = reduceSingle(personalYear + currentMonth);
 
-        List<Integer> birthCards = tarotSchoolBirthCards(month, day, year);
+        List<Integer> birthCards = tarotPersonalitySoulCards(personalityNumber, soulNumber);
         List<Map<String, Object>> cardDetails = new ArrayList<Map<String, Object>>();
         List<String> cardNames = new ArrayList<String>();
         for (int number : birthCards) {
@@ -72,10 +75,17 @@ public final class TarotNumerologyCalculator {
         result.put("lifePathDisplay", masterDisplay(lifePath));
         result.put("innerNumber", innerNumber);
         result.put("outerNumber", outerNumber);
+        result.put("personalityCardNumber", personalityNumber);
+        result.put("personalityCardName", CARD_NAMES[cardIndex(personalityNumber)]);
+        result.put("soulCardNumber", soulNumber);
+        result.put("soulCardName", CARD_NAMES[cardIndex(soulNumber)]);
+        result.put("talentNumbers", talentNumbers);
+        result.put("talentSource", rawDigitSum);
         result.put("birthdayNumber", day);
         result.put("birthdayCore", birthdayCore);
         result.put("attitudeNumber", attitude);
         result.put("personalYear", personalYear);
+        result.put("personalYearCardName", CARD_NAMES[cardIndex(personalYear)]);
         result.put("personalMonth", personalMonth);
         result.put("birthCards", cardDetails);
         result.put("birthCardDisplay", join(cardNames, " × "));
@@ -89,52 +99,45 @@ public final class TarotNumerologyCalculator {
         result.put("periodCycles", Arrays.asList(
                 reduceMaster(month), reduceMaster(day), reduceMaster(digitSum(year))));
         result.put("calculationNotes", Arrays.asList(
+                "外在人格牌：西元出生年月日所有數字加總；若大於 22，持續將各位數相加，直到 1–22",
+                "內在靈魂牌：將人格牌再化簡至 1–9",
+                "天賦數：保留生日原始數字總和的各位數作為延伸觀察",
                 "生命道路數：西元出生年月日全部數字加總，保留 11/22/33 主數",
-                "內靈數：西元出生年月日全部數字加總後化為 1–9",
-                "外靈數：西元出生日化為 1–9",
                 "態度數：出生月 + 出生日，化為 1–9",
-                "個人年：出生月 + 出生日 + 當年度，化為 1–9",
-                "出生牌：採 Tarot School 的 MM + DD + century + YY 公式與牌組配對",
-                "Rider-Waite-Smith 編號：8=力量、11=正義；出生牌組不把 0 愚者列為配對牌",
-                "內／外靈數流派很多，本 App 固定採生日型算法，不使用姓名"));
+                "個人流年：當年西元年各位數 + 出生月 + 出生日，化為 1–9",
+                "Rider-Waite-Smith 編號：5=教皇、8=力量、9=隱者、11=正義",
+                "人格牌／靈魂牌流派有差異，本 App 固定採生日加總 → ≤22 → 1–9 的規則，不使用姓名"));
         result.put("note", containsCard(birthCards, 13)
                 ? "死神牌在此代表轉化與階段更替，不是死亡預測。"
                 : "塔羅生命靈數作為娛樂與自我反思用途，不代表必然命運。");
         return result;
     }
 
-    private static List<Integer> tarotSchoolBirthCards(int month, int day, int year) {
-        int century = year / 100;
-        int yy = year % 100;
-        int sum = month + day + century + yy;
-
-        int primary;
-        if (sum >= 100) {
-            primary = (sum / 10) + (sum % 10);
-        } else {
-            primary = digitSum(sum);
-        }
-        while (primary > 21) primary = digitSum(primary);
-
+    private static List<Integer> tarotPersonalitySoulCards(int personality, int soul) {
         List<Integer> cards = new ArrayList<Integer>();
-        if (primary == 19) {
-            cards.add(19);
-            cards.add(10);
-            cards.add(1);
-            return cards;
-        }
-
-        if (primary >= 10 && primary <= 21) {
-            cards.add(primary);
-            cards.add(digitSum(primary));
-            return cards;
-        }
-
-        int[] implied = {0,10,11,12,13,14,15,16,17,18};
-        int pair = implied[Math.max(1, Math.min(9, primary))];
-        cards.add(pair);
-        cards.add(primary);
+        cards.add(cardIndex(personality));
+        if (soul != personality) cards.add(cardIndex(soul));
         return cards;
+    }
+
+    private static int cardIndex(int number) {
+        if (number == 22) return 0;
+        return Math.max(0, Math.min(21, number));
+    }
+
+    private static int reduceTo22(int value) {
+        int v = Math.abs(value);
+        while (v > 22) v = digitSum(v);
+        return v == 0 ? 22 : v;
+    }
+
+    private static List<Integer> digitsOf(int value) {
+        List<Integer> digits = new ArrayList<Integer>();
+        String raw = String.valueOf(Math.abs(value));
+        for (int i = 0; i < raw.length(); i++) {
+            digits.add(raw.charAt(i) - '0');
+        }
+        return digits;
     }
 
     private static int[] pinnacles(int month, int day, int year) {
