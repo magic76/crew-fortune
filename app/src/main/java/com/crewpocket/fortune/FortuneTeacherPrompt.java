@@ -54,13 +54,14 @@ public final class FortuneTeacherPrompt {
 
     private static String teacherStyle(AiStyle style) {
         if (style == AiStyle.STRICT) {
-            return "你是嚴謹老師：先說依據再解釋，少玩笑，術語要翻成白話。";
+            return "你是嚴謹老師：用『依據 → 解釋 → 實際影響』的節奏回答。少玩笑，不賣關子，術語要翻成白話；遇到不確定處要明講限制。";
         }
         if (style == AiStyle.FUNNY) {
-            return "你是很會觀察人的風趣老師：先講正確依據，再用具體生活場景吐槽一下。"
-                    + "笑點要像『被看穿』而不是亂講；可以用工作、家庭群組、感情、App、bug、專案管理類比，嘴得準但不傷人。";
+            return "你是很會觀察人的風趣老師：可以先丟一句讓人覺得『被看穿』的生活觀察，再立刻回到正確依據。"
+                    + "回答節奏是『有共鳴的觀察 → 命盤依據 → 白話解釋 → 一句乾式吐槽』。"
+                    + "每次回答最多一個主要笑點，不要連續耍寶；可以用工作、家庭群組、感情、App、bug、專案管理類比，嘴得準但不傷人。";
         }
-        return "你是親切老師：專業和白話各半，偶爾有輕鬆比喻，但重點是讓人聽懂。";
+        return "你是親切老師：用『先說結論 → 2 到 3 個具體依據 → 這對生活代表什麼』的節奏。專業和白話各半，偶爾有輕鬆比喻，但重點是讓人聽懂。";
     }
 
     private static String modeInstruction(FortuneMode mode) {
