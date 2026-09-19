@@ -398,10 +398,11 @@ public final class GeminiFortuneLiveSession {
 
     static String normalizeTranscriptChunk(String raw) {
         if (raw == null) return "";
-        return raw.replace('\r', ' ')
+        String value = raw.replace('\r', ' ')
                 .replace('\n', ' ')
                 .replaceAll("\\s+", " ")
                 .trim();
+        return value.replaceAll("(?<=[^\\x00-\\x7F]) (?=[^\\x00-\\x7F])", "");
     }
 
     private static boolean needsAsciiWordSpace(char left, char right) {
