@@ -22,7 +22,8 @@ public final class FortuneToolRegistry {
                             text(args.get("name")),
                             text(args.get("birthDate")),
                             text(args.get("birthTime")),
-                            text(args.get("gender")));
+                            text(args.get("gender")),
+                            text(args.get("birthNameLatin")));
                     FortuneFacts facts = engine.calculateFacts(mode, profile, new Date());
 
                     Map<String, Object> payload = new LinkedHashMap<String, Object>();

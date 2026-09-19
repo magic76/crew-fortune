@@ -21,9 +21,15 @@ public final class FortuneEngine {
                     + " · 日主 " + details.get("dayMaster") + details.get("dayMasterElement")
                     + " · " + details.get("dayMasterStrength");
         } else {
-            details.putAll(new TarotNumerologyCalculator().calculate(profile.birthDate, now));
+            String numerologyName = profile.numerologyBirthName();
+            if (numerologyName.isEmpty()) {
+                throw new IllegalArgumentException("塔羅生命靈數需要英文／羅馬拼音出生姓名");
+            }
+            details.putAll(new TarotNumerologyCalculator().calculate(profile.birthDate, numerologyName, now));
             score = intValue(details.get("lifePathNumber"), 1);
             basis = "生命靈數 " + details.get("lifePathDisplay")
+                    + " · 內在 " + details.get("soulUrgeDisplay")
+                    + " · 外在 " + details.get("personalityDisplay")
                     + " · 出生牌 " + details.get("birthCardDisplay");
         }
 
@@ -52,8 +58,8 @@ public final class FortuneEngine {
                 facts.score,
                 facts.detailText("birthCardDisplay"),
                 facts.basis,
-                "生命靈數、生日數、態度數、出生牌組、巔峰數、挑戰數與今年週期已完成計算。",
-                "你的人生數字很多，至少這次不是 AI 現場擲骰子。",
+                "生命靈數、生日數、表達數、靈魂數、人格數、態度數、出生牌組、巔峰數、挑戰數與今年週期已完成計算。",
+                "現在不只知道你人生主線，連內心 OS 跟別人看到的 UI 都拆開了。",
                 "同一個生日會得到同一組核心數字與出生牌。",
                 "把數字和牌義當成反思提示，不要當成宇宙合約。");
     }

@@ -16,7 +16,8 @@ public final class FortuneAgentSpec implements AgentSpec {
                     + "\"name\":{\"type\":\"string\"},"
                     + "\"birthDate\":{\"type\":\"string\",\"description\":\"yyyy-MM-dd\"},"
                     + "\"birthTime\":{\"type\":\"string\",\"description\":\"HH:mm, required for BA_ZI\"},"
-                    + "\"gender\":{\"type\":\"string\",\"enum\":[\"male\",\"female\"],\"description\":\"required for BA_ZI luck pillars\"}"
+                    + "\"gender\":{\"type\":\"string\",\"enum\":[\"male\",\"female\"],\"description\":\"required for BA_ZI luck pillars\"},"
+                    + "\"birthNameLatin\":{\"type\":\"string\",\"description\":\"full birth name in English letters / romanization; required for TAROT_NUMEROLOGY name numerology\"}"
                     + "},\"required\":[\"mode\",\"name\",\"birthDate\"]}"
     ));
 
@@ -36,7 +37,8 @@ public final class FortuneAgentSpec implements AgentSpec {
                 + "There are only two systems: BA_ZI and TAROT_NUMEROLOGY. "
                 + "For BA_ZI, synthesize Four Pillars, Day Master, weighted Five Elements, strength, Ten Gods, hidden stems, natal interactions, Luck Pillars and current Annual Pillar. "
                 + "Do not present balancingElements as definitive 喜用神; formal 格局/用神 differs by school. "
-                + "For TAROT_NUMEROLOGY, synthesize Life Path, Birthday Number, Attitude Number, birth-card pair/triplet, Pinnacles, Challenges, Period Cycles, Personal Year and Personal Month. "
+                + "For TAROT_NUMEROLOGY, synthesize the core five numerology numbers: Life Path, Birthday, Expression/Destiny, Soul Urge/Heart's Desire (inner self), and Personality (outer self), plus Attitude Number, birth-card pair/triplet, Pinnacles, Challenges, Period Cycles, Personal Year and Personal Month. "
+                + "When discussing inner vs outer self, explicitly compare soulUrgeDisplay with personalityDisplay and explain any contrast without changing the numbers. "
                 + "If Death appears, interpret transformation only, never literal death. "
                 + "Write a substantial Traditional Chinese report, not horoscope filler. Every section must cite at least one concrete returned fact. "
                 + style.promptInstruction() + " "
