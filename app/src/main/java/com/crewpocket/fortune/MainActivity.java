@@ -51,6 +51,10 @@ public final class MainActivity extends Activity {
     private String selectedGender = "";
     private TextView modeLabel;
     private TextView aiStatus;
+    private Button strictStyleButton;
+    private Button normalStyleButton;
+    private Button funnyStyleButton;
+    private AiStyle selectedAiStyle = AiStyle.FUNNY;
     private LinearLayout resultCard;
     private FortuneResult currentResult;
     private FortuneFacts currentFacts;
@@ -61,8 +65,10 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
+        selectedAiStyle = AppConfig.getAiStyle(this);
         setContentView(buildScreen());
         refreshAiStatus();
+        updateAiStyleButtons();
         restoreLastProfile();
     }
 
@@ -159,6 +165,29 @@ public final class MainActivity extends Activity {
         presetRow.addView(savePreset, new LinearLayout.LayoutParams(0, dp(46), 1f));
         form.addView(presetRow, marginTop(10));
 
+        TextView styleLabel = text("AI 回應風格", 12, MUTED, true);
+        form.addView(styleLabel, marginTop(14));
+
+        LinearLayout styleRow = new LinearLayout(this);
+        styleRow.setOrientation(LinearLayout.HORIZONTAL);
+        strictStyleButton = styleButton("嚴謹");
+        normalStyleButton = styleButton("普通");
+        funnyStyleButton = styleButton("風趣");
+        strictStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.STRICT));
+        normalStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.NORMAL));
+        funnyStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.FUNNY));
+        LinearLayout.LayoutParams styleLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        styleLp.rightMargin = dp(6);
+        styleRow.addView(strictStyleButton, styleLp);
+        LinearLayout.LayoutParams styleLp2 = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        styleLp2.rightMargin = dp(6);
+        styleRow.addView(normalStyleButton, styleLp2);
+        styleRow.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        form.addView(styleRow, marginTop(6));
+
+        TextView styleHint = text("只改 AI 說話方式，不改命盤計算結果", 11, MUTED, false);
+        form.addView(styleHint, marginTop(4));
+
         modeLabel = text("今天想算：八字\n四柱、十神、大運、流年\n以出生地當地民用時間排盤；目前不做真太陽時校正", 16, TEXT, true);
         root.addView(modeLabel, marginTop(24));
 
@@ -202,7 +231,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.2", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 僅提供八字與塔羅生命靈數 · v0.3.3", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
@@ -252,7 +281,9 @@ public final class MainActivity extends Activity {
 
     private void startAiCopy(FortuneProfile profile) {
         try {
-            GeminiTextModelSession session = new GeminiTextModelSession(AppConfig.getGeminiApiKey(this));
+            GeminiTextModelSession session = new GeminiTextModelSession(
+                    AppConfig.getGeminiApiKey(this),
+                    selectedAiStyle.temperature());
             activeHarness = FortuneAgentRuntime.create(session, new AgentHarness.Listener() {
                 @Override public void onAgentEvent(AgentEvent event) {
                     if (event == null) return;
@@ -286,7 +317,7 @@ public final class MainActivity extends Activity {
                             break;
                     }
                 }
-            });
+            }, selectedAiStyle);
             activeHarness.start();
             activeHarness.submitText(buildAiRequest(profile));
         } catch (Exception error) {
@@ -315,6 +346,7 @@ public final class MainActivity extends Activity {
         if (!profile.gender.isEmpty()) {
             value.append("gender=").append(profile.gender).append('\n');
         }
+        value.append("aiStyle=").append(selectedAiStyle.name()).append('\n');
         value.append("creativeVariant=").append(System.nanoTime()).append('\n');
         value.append("這個 creativeVariant 只用來避免重複措辭，絕對不可改變工具算出的數字或命理依據。");
         return value.toString();
@@ -384,7 +416,10 @@ public final class MainActivity extends Activity {
             addSection("建議", aiCopy.advice);
         }
 
-        TextView source = text(aiCopy == null ? "本地完整解讀 · 無需 AI" : "AI 深度解讀 · 計算資料固定", 12, MUTED, false);
+        TextView source = text(aiCopy == null
+                ? "本地完整解讀 · 無需 AI"
+                : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
+                12, MUTED, false);
         resultCard.addView(source, marginTop(16));
 
         Button share = new Button(this);
@@ -796,8 +831,8 @@ public final class MainActivity extends Activity {
         keyInput.setPadding(dp(16), dp(8), dp(16), dp(8));
 
         new AlertDialog.Builder(this)
-                .setTitle("AI 幽默模式")
-                .setMessage("開啟後，底層命盤與分數仍由本地 deterministic engine 計算；Gemini 會重新生成整份標題、分析、翻譯、補刀、忠告與分享文案。")
+                .setTitle("AI 模式")
+                .setMessage("Gemini 只負責解讀與文案，底層命盤由本地 deterministic engine 計算。可在主畫面切換嚴謹／普通／風趣三種回應風格。")
                 .setView(keyInput)
                 .setPositiveButton("儲存", (dialog, which) -> {
                     AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
@@ -937,6 +972,36 @@ public final class MainActivity extends Activity {
                 hour,
                 minute,
                 true).show();
+    }
+
+    private void selectAiStyle(AiStyle style) {
+        selectedAiStyle = style == null ? AiStyle.FUNNY : style;
+        AppConfig.setAiStyle(this, selectedAiStyle);
+        updateAiStyleButtons();
+        Toast.makeText(this, "AI 風格：" + selectedAiStyle.label(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void updateAiStyleButtons() {
+        if (strictStyleButton == null || normalStyleButton == null || funnyStyleButton == null) return;
+        applyStyleButton(strictStyleButton, selectedAiStyle == AiStyle.STRICT);
+        applyStyleButton(normalStyleButton, selectedAiStyle == AiStyle.NORMAL);
+        applyStyleButton(funnyStyleButton, selectedAiStyle == AiStyle.FUNNY);
+    }
+
+    private void applyStyleButton(Button button, boolean selected) {
+        button.setBackground(round(selected ? ACCENT : CARD_2, 14));
+        button.setTextColor(selected ? Color.rgb(30, 22, 46) : TEXT);
+        button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
+    }
+
+    private Button styleButton(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        button.setTextSize(13);
+        button.setAllCaps(false);
+        button.setTextColor(TEXT);
+        button.setBackground(round(CARD_2, 14));
+        return button;
     }
 
     private Button secondaryButton(String value) {
