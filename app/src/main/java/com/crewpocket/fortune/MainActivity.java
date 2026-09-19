@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
@@ -65,7 +66,20 @@ public final class MainActivity extends Activity {
         scroll.setBackgroundColor(BG);
 
         LinearLayout root = column();
-        root.setPadding(dp(20), dp(24), dp(20), dp(40));
+        final int baseLeft = dp(20);
+        final int baseTop = dp(24);
+        final int baseRight = dp(20);
+        final int baseBottom = dp(40);
+        root.setPadding(baseLeft, baseTop, baseRight, baseBottom);
+        root.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(
+                    baseLeft,
+                    baseTop + insets.getSystemWindowInsetTop(),
+                    baseRight,
+                    baseBottom + insets.getSystemWindowInsetBottom());
+            return insets;
+        });
+        scroll.setClipToPadding(false);
         scroll.addView(root);
 
         LinearLayout top = new LinearLayout(this);
@@ -147,7 +161,7 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.GONE);
         root.addView(resultCard, marginTop(22));
 
-        TextView foot = text("娛樂用途 · Gemini 失敗時自動退回本地文案", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · Gemini 失敗時自動退回本地文案 · v0.1.1", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(22));
         return scroll;
