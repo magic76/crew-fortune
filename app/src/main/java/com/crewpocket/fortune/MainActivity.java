@@ -940,6 +940,275 @@ public final class MainActivity extends Activity {
         panel.addView(hint, marginTop(11));
     }
 
+    private void addVedicOverviewTab(FortuneResult result, boolean aiLoading) {
+        LinearLayout panel = resultPanel();
+
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.HORIZONTAL);
+        hero.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout lagna = column();
+        lagna.addView(text("Lagna", 11, GOLD, true));
+        lagna.addView(text(currentFacts.detailText("lagnaSign"), 22, TEXT, true), marginTop(3));
+        lagna.addView(text(
+                currentFacts.detailText("lagnaNakshatra")
+                        + " · Pada " + currentFacts.detailText("lagnaPada"),
+                11, MUTED, false), marginTop(2));
+        hero.addView(lagna, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        LinearLayout moon = column();
+        TextView moonLabel = text("Moon", 11, GOLD, true);
+        moonLabel.setGravity(Gravity.END);
+        moon.addView(moonLabel);
+        TextView moonSign = text(currentFacts.detailText("moonSign"), 22, ACCENT, true);
+        moonSign.setGravity(Gravity.END);
+        moon.addView(moonSign, marginTop(3));
+        TextView moonNakshatra = text(
+                currentFacts.detailText("moonNakshatra")
+                        + " · Pada " + currentFacts.detailText("moonPada"),
+                11, MUTED, false);
+        moonNakshatra.setGravity(Gravity.END);
+        moon.addView(moonNakshatra, marginTop(2));
+        hero.addView(moon, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        panel.addView(hero);
+
+        addPanelSection(panel, "本命核心", VedicFactsFormatter.coreSummary(currentFacts));
+        addPanelSection(panel, "目前 Dasha", VedicFactsFormatter.dashaSummary(currentFacts));
+
+        if (!aiLoading && aiCopy != null && !aiCopy.topTraits.isEmpty()) {
+            addTopTraits(panel);
+        }
+
+        String summary;
+        if (aiLoading) {
+            summary = localReportSection("核心總覽");
+        } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
+            summary = aiCopy.overview;
+        } else {
+            summary = localReportSection("核心總覽");
+        }
+        if (!summary.isEmpty()) addPanelSection(panel, "AI 重點", summary);
+
+        TextView rule = text(
+                "計算規則｜Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu",
+                11, MUTED, false);
+        panel.addView(rule, marginTop(9));
+    }
+
+    private void addVedicNatalTab() {
+        LinearLayout panel = resultPanel();
+
+        TextView intro = text(
+                "本命頁只展示 deterministic chart facts。點任一顆星或宮位可查看完整欄位；AI 不會在這一頁重新排盤。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addPanelSection(panel, "Lagna / Moon / Sun",
+                VedicFactsFormatter.coreSummary(currentFacts));
+
+        TextView planetsTitle = text("九曜", 13, GOLD, true);
+        panel.addView(planetsTitle, marginTop(14));
+        Object planetsRaw = currentFacts.detail("planets");
+        if (planetsRaw instanceof List) {
+            for (Object raw : (List<?>) planetsRaw) {
+                if (!(raw instanceof Map)) continue;
+                final Map<?, ?> planet = (Map<?, ?>) raw;
+                String title = mapValue(planet, "name")
+                        + " · " + mapValue(planet, "sign")
+                        + " · H" + mapValue(planet, "house");
+                String summary = String.format(
+                        java.util.Locale.US,
+                        "%.2f° sidereal",
+                        numberValue(planet.get("siderealLongitude")))
+                        + " · " + mapValue(planet, "nakshatra")
+                        + " P" + mapValue(planet, "pada")
+                        + (Boolean.TRUE.equals(planet.get("retrograde")) ? " · R" : "")
+                        + " · " + mapValue(planet, "dignity");
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
+                        () -> showFactDetailDialog(
+                                mapValue(planet, "name") + " deterministic facts", planet),
+                        "請只用 deterministic facts 解釋 "
+                                + mapValue(planet, "name")
+                                + " 的 sign、house、Nakshatra、dignity 與它所主宮位對我代表什麼。");
+            }
+        }
+
+        TextView housesTitle = text("12 Houses · Whole Sign", 13, GOLD, true);
+        panel.addView(housesTitle, marginTop(18));
+        Object housesRaw = currentFacts.detail("houses");
+        if (housesRaw instanceof List) {
+            for (Object raw : (List<?>) housesRaw) {
+                if (!(raw instanceof Map)) continue;
+                final Map<?, ?> house = (Map<?, ?>) raw;
+                String title = "H" + mapValue(house, "house")
+                        + " · " + mapValue(house, "sign")
+                        + " · lord " + mapValue(house, "lord");
+                String summary = "宮內：" + compactValue(house.get("planets"));
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
+                        () -> showFactDetailDialog(
+                                "House " + mapValue(house, "house"), house),
+                        "請只用 deterministic facts 解釋第 "
+                                + mapValue(house, "house")
+                                + " 宮、宮主 " + mapValue(house, "lord")
+                                + " 與宮內行星的結構。");
+            }
+        }
+
+        String aspects = VedicFactsFormatter.aspects(currentFacts);
+        addPanelSection(panel, "Drishti / Conjunctions",
+                aspects.isEmpty() ? "目前沒有符合 v1 規則的合相；Drishti 仍保存在 deterministic facts。" : aspects);
+
+        TextView boundary = text(
+                "v1 不計 D9、Yoga、Shadbala、Ashtakavarga；Rahu/Ketu 不套用有爭議的特殊 Drishti 或 dignity。",
+                11, MUTED, false);
+        boundary.setLineSpacing(dp(2), 1f);
+        panel.addView(boundary, marginTop(9));
+    }
+
+    private void addVedicDashaTimelineTab() {
+        LinearLayout panel = resultPanel();
+
+        TextView intro = text(
+                "第一版的「流年」以 Vimshottari Dasha 為主，不混入尚未實作的 Gochar/transit。"
+                        + "Mahadasha 是長週期背景，Antardasha 是其中較細的時間段；不是吉凶百分比。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addPanelSection(panel, "目前 Mahadasha / Antardasha",
+                VedicFactsFormatter.dashaSummary(currentFacts));
+        addYearHighlights(panel);
+
+        TextView mdTitle = text("Mahadasha timeline", 13, GOLD, true);
+        panel.addView(mdTitle, marginTop(18));
+        Object raw = currentFacts.detail("mahadashaTimeline");
+        String currentLord = mapValue(currentFacts.detail("currentMahadasha"), "lord");
+        if (raw instanceof List) {
+            for (Object itemRaw : (List<?>) raw) {
+                if (!(itemRaw instanceof Map)) continue;
+                final Map<?, ?> item = (Map<?, ?>) itemRaw;
+                String lord = mapValue(item, "lord");
+                String title = (lord.equals(currentLord) ? "● " : "○ ")
+                        + lord + " Mahadasha";
+                String summary = mapValue(item, "startDate")
+                        + " → " + mapValue(item, "endDate")
+                        + " · age " + mapValue(item, "startAge")
+                        + "–" + mapValue(item, "endAge");
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
+                        () -> showFactDetailDialog(lord + " Mahadasha", item),
+                        "請直接解釋 " + lord
+                                + " Mahadasha 對我代表什麼，只引用本命 planets、houses、houseLords 與這段 Dasha facts。");
+            }
+        }
+
+        TextView adTitle = text("目前 Mahadasha 的 Antardasha", 13, GOLD, true);
+        panel.addView(adTitle, marginTop(18));
+        String adTimeline = VedicFactsFormatter.antardashaTimeline(currentFacts);
+        addPanelSection(panel, "時間軸",
+                adTimeline.isEmpty() ? "目前 Mahadasha 不在已產生的時間範圍內。" : adTimeline);
+
+        TextView convention = text(
+                currentFacts.detailText("vimshottariConvention"),
+                11, MUTED, false);
+        convention.setLineSpacing(dp(2), 1f);
+        panel.addView(convention, marginTop(9));
+    }
+
+    private void addVedicTopicAnalysisTab() {
+        LinearLayout panel = resultPanel();
+
+        TextView intro = text(
+                "不做吉凶分數。每個主題都拆成「結論範圍 → deterministic evidence → 目前時間 → AI 解讀 → 問老師」。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addVedicTopicCard(
+                panel,
+                "個性 / 天賦",
+                "Lagna × Moon × Sun × Lagna lord",
+                "personalityProfile",
+                aiCopy == null ? "" : aiCopy.personality,
+                "請直接講我的個性、優勢與盲點。只用 personalityProfile、Lagna、Moon、Sun、house lords 與本命 deterministic facts。");
+
+        addVedicTopicCard(
+                panel,
+                "工作 / Career",
+                "10宮 × 10宮主 × Saturn/Jupiter × Dasha",
+                "careerProfile",
+                aiCopy == null ? "" : aiCopy.career,
+                "請直接講我的工作方向與目前職涯節奏。只用 careerProfile、10宮、10宮主、Saturn/Jupiter 與目前 Dasha。");
+
+        addVedicTopicCard(
+                panel,
+                "財務 / Wealth",
+                "2宮 × 11宮 × Jupiter/Venus × Dasha",
+                "wealthProfile",
+                aiCopy == null ? "" : aiCopy.wealth,
+                "請直接講我的財務與資源節奏。只用 wealthProfile、2宮、11宮及宮主、Jupiter/Venus 與目前 Dasha，不做投資預測。");
+
+        addVedicTopicCard(
+                panel,
+                "感情 / Relationships",
+                "7宮 × 7宮主 × Venus × Dasha",
+                "relationshipProfile",
+                aiCopy == null ? "" : aiCopy.relationships,
+                "請直接講我的感情與關係模式。只用 relationshipProfile、7宮、7宮主、Venus 與目前 Dasha，不把訊號說成必然事件。");
+
+        addVedicTopicCard(
+                panel,
+                "家庭 / Children",
+                "4宮 × 5宮 × Moon/Jupiter",
+                "familyChildrenProfile",
+                "",
+                "請只用 familyChildrenProfile、4宮、5宮及宮主、Moon/Jupiter 說明家庭與子女主題。不要預測懷孕必然結果。");
+
+        TextView boundary = text(
+                "娛樂與自我反思用途。工作、財務、感情與家庭可以談結構與節奏；不做死亡、嚴重疾病、懷孕必然、犯罪或災難斷言。",
+                11, MUTED, false);
+        boundary.setLineSpacing(dp(2), 1f);
+        panel.addView(boundary, marginTop(9));
+    }
+
+    private void addVedicTopicCard(
+            LinearLayout panel,
+            String title,
+            String subtitle,
+            String profileKey,
+            String aiText,
+            String question) {
+        LinearLayout card = topicCard(panel, title, subtitle);
+        Object raw = currentFacts.detail(profileKey);
+        String rule = mapValue(raw, "rule");
+        Object evidence = raw instanceof Map ? ((Map<?, ?>) raw).get("evidence") : null;
+        addTopicLine(card, "結論範圍", rule);
+        addTopicLine(card, "deterministic evidence", compactValue(evidence));
+        addTopicLine(card, "時間", VedicFactsFormatter.dashaSummary(currentFacts));
+        addTopicLine(card, "AI 解讀",
+                aiText == null || aiText.trim().isEmpty()
+                        ? "AI 完成後會只根據上面的 deterministic evidence 解讀；目前先保留可驗證依據。"
+                        : aiText);
+        addAskTeacherAction(card, "問老師", question);
+    }
+
+    private double numberValue(Object value) {
+        if (value instanceof Number) return ((Number) value).doubleValue();
+        try { return Double.parseDouble(String.valueOf(value)); }
+        catch (Exception ignored) { return 0.0; }
+    }
+
     private void addTarotOverviewTab(FortuneResult result, boolean aiLoading) {
         LinearLayout panel = resultPanel();
 
