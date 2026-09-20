@@ -932,9 +932,14 @@ public final class MainActivity extends Activity {
                         + "「" + mapValue(year, "cardName") + "」";
                 String summary = mapValue(year, "plainSummary")
                         + "\n關鍵字：" + mapValue(year, "keywords");
-                addClickableFactCard(panel, title, summary,
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
                         () -> showFactDetailDialog(
-                                mapValue(year, "year") + " 個人流年", year));
+                                mapValue(year, "year") + " 個人流年", year),
+                        "請直接回答 " + mapValue(year, "year")
+                                + " 年的個人流年對我代表什麼？請用 deterministic facts 說明。");
             }
         }
 
@@ -951,9 +956,14 @@ public final class MainActivity extends Activity {
                         + "「" + mapValue(month, "cardName") + "」";
                 String summary = mapValue(month, "plainSummary")
                         + "　·　" + mapValue(month, "keywords");
-                addClickableFactCard(panel, title, summary,
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
                         () -> showFactDetailDialog(
-                                mapValue(month, "month") + " 月個人月", month));
+                                mapValue(month, "month") + " 月個人月", month),
+                        "請直接回答今年 " + mapValue(month, "month")
+                                + " 月的個人月主題對我代表什麼？請用 deterministic facts 說明。");
             }
         }
 
@@ -1612,8 +1622,13 @@ public final class MainActivity extends Activity {
                         + "（" + mapValue(item, "stemTenGodMeaning") + "）"
                         + "　·　五行 " + mapValue(item, "element")
                         + "\n主題 " + compactValue(item.get("themes"));
-                addClickableFactCard(panel, title, summary,
-                        () -> showFactDetailDialog("大運 " + gz, item));
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
+                        () -> showFactDetailDialog("大運 " + gz, item),
+                        "請直接解釋 " + gz
+                                + " 大運對我代表什麼？請用這柱大運與本命 deterministic facts 說明。");
             }
         }
 
@@ -1636,9 +1651,14 @@ public final class MainActivity extends Activity {
                         + "　·　十神 " + mapValue(year, "stemTenGod")
                         + "（" + mapValue(year, "stemTenGodMeaning") + "）"
                         + "\n" + firstMeaningfulInteraction(year.get("natalInteractions"));
-                addClickableFactCard(panel, title, summary,
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
                         () -> showFactDetailDialog(
-                                mapValue(year, "year") + " 流年", year));
+                                mapValue(year, "year") + " 流年", year),
+                        "請直接回答 " + mapValue(year, "year")
+                                + " 年對我代表什麼？請用這一年的 deterministic facts 與所屬大運說明。");
             }
         }
 
@@ -1767,7 +1787,19 @@ public final class MainActivity extends Activity {
     }
 
     private void addClickableFactCard(
-            LinearLayout parent, String title, String summary, final Runnable action) {
+            LinearLayout parent,
+            String title,
+            String summary,
+            final Runnable action) {
+        addClickableFactCard(parent, title, summary, action, "");
+    }
+
+    private void addClickableFactCard(
+            LinearLayout parent,
+            String title,
+            String summary,
+            final Runnable action,
+            String askQuestion) {
         LinearLayout card = column();
         card.setPadding(dp(9), dp(9), dp(9), dp(9));
         card.setBackground(roundBorder(
@@ -1777,8 +1809,28 @@ public final class MainActivity extends Activity {
         TextView s = text(summary, 12, MUTED, false);
         s.setLineSpacing(dp(2), 1f);
         card.addView(s, marginTop(2));
-        TextView more = text("點擊查看完整依據 ›", 11, ACCENT, true);
-        card.addView(more, marginTop(4));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView more = text("查看完整依據 ›", 11, ACCENT, true);
+        more.setOnClickListener(v -> action.run());
+        actions.addView(more, new LinearLayout.LayoutParams(
+                0, dp(36), 1f));
+
+        if (askQuestion != null && !askQuestion.trim().isEmpty()) {
+            Button ask = secondaryButton("問老師");
+            ask.setTextSize(11);
+            ask.setOnClickListener(v ->
+                    startTeacherExplanation(askQuestion));
+            LinearLayout.LayoutParams askLp = new LinearLayout.LayoutParams(
+                    dp(82), dp(36));
+            askLp.leftMargin = dp(6);
+            actions.addView(ask, askLp);
+        }
+
+        card.addView(actions, marginTop(4));
         card.setClickable(true);
         card.setOnClickListener(v -> action.run());
         parent.addView(card, marginTop(8));
@@ -2728,6 +2780,43 @@ public final class MainActivity extends Activity {
                     refreshAiStatus();
                 })
                 .show();
+    }
+
+    private void showAboutDialog() {
+        LinearLayout panel = column();
+        panel.setPadding(dp(16), dp(16), dp(16), dp(14));
+        panel.setBackground(roundBorder(
+                CARD, Color.rgb(92, 73, 127), 22, 1));
+
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.ic_launcher_foreground_art);
+        logo.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(
+                dp(72), dp(72));
+        logoLp.gravity = Gravity.CENTER_HORIZONTAL;
+        panel.addView(logo, logoLp);
+
+        TextView title = text("Crew Fortune · 命運研究所", 20, TEXT, true);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, marginTop(8));
+
+        TextView slogan = text("很認真算，別太認真信。", 14, GOLD, true);
+        slogan.setGravity(Gravity.CENTER);
+        panel.addView(slogan, marginTop(4));
+
+        TextView version = text(
+                "v" + BuildConfig.VERSION_NAME + " · deterministic facts + AI interpretation",
+                11, MUTED, false);
+        version.setGravity(Gravity.CENTER);
+        panel.addView(version, marginTop(5));
+
+        Button close = secondaryButton("關閉");
+        panel.addView(close, fixedHeightTop(44, 10));
+
+        final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        styleDarkDialog(dialog);
     }
 
     private void refreshAiStatus() {
