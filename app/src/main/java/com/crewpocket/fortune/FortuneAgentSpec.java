@@ -30,7 +30,7 @@ public final class FortuneAgentSpec implements AgentSpec {
                                 + "\"mode\":{\"type\":\"string\",\"enum\":[\"BA_ZI\",\"TAROT_NUMEROLOGY\",\"VEDIC_ASTROLOGY\"]},"
                                 + "\"name\":{\"type\":\"string\"},"
                                 + "\"birthDate\":{\"type\":\"string\",\"description\":\"yyyy-MM-dd\"},"
-                                + "\"birthTime\":{\"type\":\"string\",\"description\":\"HH:mm, required for BA_ZI only\"},"
+                                + "\"birthTime\":{\"type\":\"string\",\"description\":\"HH:mm, required for BA_ZI and VEDIC_ASTROLOGY\"},"
                                 + "\"gender\":{\"type\":\"string\",\"enum\":[\"male\",\"female\"],\"description\":\"required for BA_ZI luck pillars\"},"
                                 + "\"birthPlace\":{\"type\":\"string\",\"description\":\"display label only for VEDIC_ASTROLOGY\"},"
                                 + "\"latitude\":{\"type\":\"number\",\"description\":\"required for VEDIC_ASTROLOGY\"},"
