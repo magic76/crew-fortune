@@ -287,3 +287,37 @@ The three AI styles now use different narrative structures rather than only diff
 The Live teacher uses the same persona distinction.
 
 This release does not change deterministic BaZi or Tarot calculation rules.
+
+
+## v0.11.0 interactive fortune UX
+
+The result experience now focuses on moving from “看到結果” to “理解依據” to “直接追問老師”.
+
+### Home branding
+- The Crew Fortune cat / crystal-ball logo now appears in the home top bar.
+- Tapping the logo opens a compact About card with the app version and slogan.
+
+### Important year highlights
+- Both BaZi and Tarot timeline tabs show a deterministic “重要年份 · 先看這幾個” section before the full timeline.
+- BaZi highlights use existing Ten-God, interaction, career, wealth and relationship signals.
+- Tarot highlights use the existing Personal Year cycle themes.
+- The UI explicitly avoids calling this a luck score or good/bad ranking.
+- Every highlighted year exposes its evidence and a one-tap “問老師” action.
+
+### Evidence behind the top three observations
+- AI output now includes `topTraitEvidence`, aligned 1:1 with the three `topTraits`.
+- Tapping a “最像你的 3 件事” card opens the deterministic/fact-grounded evidence.
+- The evidence dialog can immediately hand the same context to Gemini Live.
+
+### Context-aware teacher actions
+- Individual Luck Pillars, annual years and Tarot months can hand their exact context to the Live teacher.
+- Work, wealth/resources and relationship topic cards have dedicated “問老師” actions.
+- Bottom follow-up questions change with the current tab instead of always showing the same four questions.
+
+### Clearer AI generation state
+The loading banner reflects real generation progress:
+1. organizing natal/cycle signals
+2. writing the full interpretation
+3. repairing / expanding content when a retry is required
+
+This release does not change deterministic BaZi or Tarot calculation rules.
