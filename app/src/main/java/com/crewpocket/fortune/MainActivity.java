@@ -1126,6 +1126,11 @@ public final class MainActivity extends Activity {
             }
         }
 
+        addPanelSection(
+                panel,
+                "12 宮主實際落點",
+                VedicFactsFormatter.houseLordPlacements(currentFacts));
+
         String aspects = VedicFactsFormatter.aspects(currentFacts);
         addPanelSection(panel, "Drishti / Conjunctions",
                 aspects.isEmpty() ? "目前沒有符合 v1 規則的合相；Drishti 仍保存在 deterministic facts。" : aspects);
@@ -1182,6 +1187,14 @@ public final class MainActivity extends Activity {
                 11, MUTED, false);
         gocharRule.setLineSpacing(dp(2), 1f);
         panel.addView(gocharRule, marginTop(7));
+
+        addPanelSection(
+                panel,
+                "Dasha × Gochar · 直接看",
+                VedicFactsFormatter.dashaSummary(currentFacts)
+                        + (gocharHighlights.isEmpty()
+                        ? ""
+                        : "\n\n" + gocharHighlights));
 
         String majorTimeline = VedicFactsFormatter.majorTransitTimeline(currentFacts);
         if (!majorTimeline.isEmpty()) {
@@ -1313,14 +1326,21 @@ public final class MainActivity extends Activity {
         Object raw = currentFacts.detail(profileKey);
         String rule = mapValue(raw, "rule");
         Object evidence = raw instanceof Map ? ((Map<?, ?>) raw).get("evidence") : null;
-        addTopicLine(card, "結論範圍", rule);
-        addTopicLine(card, "deterministic evidence", compactValue(evidence));
-        addTopicLine(card, "時間", VedicFactsFormatter.dashaSummary(currentFacts));
-        addTopicLine(card, "AI 解讀",
+
+        addTopicLine(card, "怎麼看", rule);
+        addTopicLine(card, "本命依據", compactValue(evidence));
+
+        String timingEvidence =
+                VedicFactsFormatter.topicTimingEvidence(currentFacts, profileKey);
+        if (!timingEvidence.isEmpty()) {
+            addTopicLine(card, "目前時間", timingEvidence);
+        }
+
+        addTopicLine(card, "老師解讀",
                 aiText == null || aiText.trim().isEmpty()
-                        ? "AI 完成後會只根據上面的 deterministic evidence 解讀；目前先保留可驗證依據。"
+                        ? "上面的本命與時間資料已經可以直接看；AI 命理老師只負責把它們之間的關係講清楚。"
                         : aiText);
-        addAskTeacherAction(card, "問老師", question);
+        addAskTeacherAction(card, "問老師怎麼串起來", question);
     }
 
     private double numberValue(Object value) {
