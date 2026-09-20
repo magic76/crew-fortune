@@ -218,11 +218,11 @@ public final class MainActivity extends Activity {
 
         root.addView(top);
 
-        TextView title = text("很認真算，\n別太認真信。", 34, TEXT, true);
+        TextView title = text("看懂你的命盤，\n也看懂自己的節奏。", 32, TEXT, true);
         title.setLineSpacing(0, 1.04f);
         root.addView(title, marginTop(4));
 
-        TextView sub = text("底層數字固定，AI 每次換一種方式講你。\n沒有 AI 也能算，有 AI 就比較會嘴。", 15, MUTED, false);
+        TextView sub = text("八字、塔羅生命靈數、印度星盤。\n固定規則排盤，AI 命理老師只負責把結果講成人話。", 15, MUTED, false);
         sub.setLineSpacing(dp(2), 1f);
         root.addView(sub, marginTop(6));
 
@@ -231,7 +231,7 @@ public final class MainActivity extends Activity {
         form.setBackground(round(CARD, 18));
         root.addView(form, marginTop(6));
 
-        form.addView(label("選擇算命方式"));
+        form.addView(label("選擇排盤方式"));
 
         LinearLayout modeRow = new LinearLayout(this);
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -389,7 +389,7 @@ public final class MainActivity extends Activity {
         form.addView(styleHint, marginTop(2));
 
         Button calculate = new Button(this);
-        calculate.setText("開始算命");
+        calculate.setText("開始排盤");
         calculate.setTextSize(17);
         calculate.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         calculate.setTextColor(Color.rgb(30, 22, 46));
@@ -552,7 +552,7 @@ public final class MainActivity extends Activity {
                                         "AI_INTERPRETATION_FAILED",
                                         detail);
                                 showAiFallback(
-                                        "AI 命理師回覆格式仍不完整，已保留本地完整結果。");
+                                        "AI 命理老師回覆格式仍不完整，已保留本地完整結果。");
                                 closeAgent();
                                 return;
                             }
@@ -609,7 +609,7 @@ public final class MainActivity extends Activity {
                                             + " · error="
                                             + safeErrorMessage(event.error()));
                             showAiFallback(
-                                    "AI 命理師暫時無法完成解讀，已保留本地完整結果。");
+                                    "AI 命理老師暫時無法完成解讀，已保留本地完整結果。");
                             closeAgent();
                             break;
 
@@ -752,10 +752,10 @@ public final class MainActivity extends Activity {
         if (aiLoading) {
             TextView loading = text(
                     result.mode == FortuneMode.BA_ZI
-                            ? "✦ 四柱、五行與十神都算完了。AI 命理師正在研究怎麼講得準一點，又不要太像老師訓話…"
+                            ? "✦ 四柱、五行與十神已排好。AI 命理老師正在整理重點與依據…"
                             : result.mode == FortuneMode.TAROT_NUMEROLOGY
-                            ? "✦ 出生牌已確認。AI 命理師正在把牌義翻譯成比較像人類會想看的版本…"
-                            : "✦ 命盤算完了。AI 命理師正在重新組織措辭，避免拿罐頭話術敷衍你…",
+                            ? "✦ 出生牌已確認。AI 命理老師正在把牌義整理成比較好懂的版本…"
+                            : "✦ 命盤已排好。AI 命理老師正在整理星盤重點與週期…",
                     15, ACCENT, true);
             loading.setLineSpacing(dp(3), 1f);
             resultCard.addView(loading, marginTop(20));
@@ -775,7 +775,7 @@ public final class MainActivity extends Activity {
             if (!aiCopy.personality.isEmpty()) addSection("性格與天賦", aiCopy.personality);
             if (!aiCopy.careerWealth.isEmpty()) addSection("工作與財務", aiCopy.careerWealth);
             if (!aiCopy.relationships.isEmpty()) addSection("感情與人際", aiCopy.relationships);
-            if (!aiCopy.timing.isEmpty()) addSection("目前運勢／週期", aiCopy.timing);
+            if (!aiCopy.timing.isEmpty()) addSection("目前週期", aiCopy.timing);
             addSection("翻譯成人話", aiCopy.translation);
             addSection("命理師補充", aiCopy.punchline);
             addSection("建議", aiCopy.advice);
@@ -941,7 +941,7 @@ public final class MainActivity extends Activity {
                 addPanelSection(panel, "感情與人際", aiCopy.relationships);
             }
             if (!aiCopy.currentCycle.isEmpty()) {
-                addPanelSection(panel, "目前運勢", aiCopy.currentCycle);
+                addPanelSection(panel, "目前週期", aiCopy.currentCycle);
             }
             if (!aiCopy.longTerm.isEmpty()) {
                 addPanelSection(panel,
@@ -955,7 +955,7 @@ public final class MainActivity extends Activity {
             if (!aiCopy.keyYears.isEmpty()) {
                 addPanelSection(panel,
                         result.mode == FortuneMode.VEDIC_ASTROLOGY
-                                ? "重要時期" : "重要年份",
+                                ? "值得留意的時期" : "值得留意的年份",
                         aiCopy.keyYears);
             }
             if (!aiCopy.translation.isEmpty()) {
@@ -1544,7 +1544,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addTopTraits(LinearLayout panel) {
-        TextView title = text("最像你的 3 件事", 13, GOLD, true);
+        TextView title = text("命盤中的 3 個明顯特徵", 13, GOLD, true);
         panel.addView(title, marginTop(10));
 
         int index = 0;
@@ -1599,7 +1599,7 @@ public final class MainActivity extends Activity {
     private void addFollowUpQuestions(List<String> questions) {
         TextView title = text(
                 selectedResultTab == 0 || selectedResultTab == 4
-                        ? "你一定會想問"
+                        ? "你可能想問"
                         : "這一頁可以直接問",
                 13, GOLD, true);
         resultCard.addView(title, marginTop(12));
@@ -1721,8 +1721,8 @@ public final class MainActivity extends Activity {
 
         TextView title = text(
                 selectedMode == FortuneMode.VEDIC_ASTROLOGY
-                        ? "重要時期 · 先看這幾個"
-                        : "重要年份 · 先看這幾個",
+                        ? "值得留意的時期 · 先看這幾個"
+                        : "值得留意的年份 · 先看這幾個",
                 13, GOLD, true);
         panel.addView(title, marginTop(11));
 
@@ -1932,7 +1932,7 @@ public final class MainActivity extends Activity {
 
         LinearLayout copy = column();
 
-        TextView title = text("AI 命理師正在整理完整解讀", 14, TEXT, true);
+        TextView title = text("AI 命理老師正在整理完整解讀", 14, TEXT, true);
         copy.addView(title);
 
         aiLoadingStageText = text(aiLoadingStageLabel(mode), 12, MUTED, false);
@@ -1969,7 +1969,7 @@ public final class MainActivity extends Activity {
                 : mode == FortuneMode.VEDIC_ASTROLOGY
                 ? "Dasha 長期節奏"
                 : "未來幾年";
-        String timingLabel = mode == FortuneMode.VEDIC_ASTROLOGY ? "重要時期" : "重要年份";
+        String timingLabel = mode == FortuneMode.VEDIC_ASTROLOGY ? "值得留意的時期" : "值得留意的年份";
         String[] sections = {
                 "總覽",
                 "性格、優勢與盲點",
