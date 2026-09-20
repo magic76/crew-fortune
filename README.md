@@ -1,8 +1,8 @@
 # Crew Fortune
 
-> 很認真算，別太認真信。
+> 認真排盤，輕鬆看懂自己。
 
-Crew Fortune 是 Crew 系列的娛樂型算命 App。核心原則是：**用可重現、結構化的方式產生命理結果，再用幽默方式解讀。**
+Crew Fortune 是 Crew 系列的命盤探索 App。核心原則是：**用可重現、結構化的方式產生命盤結果，再由 AI 命理老師負責白話解讀。**
 
 ## Product principles
 
@@ -72,7 +72,7 @@ The product owns its prompt, state and tools. The shared Harness owns orchestrat
 
 ## Status
 
-Initial Android MVP scaffold in progress.
+Android release candidate in active polish before Google Play launch.
 
 
 ## Calculation conventions
@@ -274,7 +274,7 @@ Both BaZi and Tarot overview tabs show these observations before the long AI int
 
 ### One-tap follow-up questions
 
-AI output includes four personalized `followUps` based on the deterministic facts. They are shown as compact “你一定會想問” actions below the result.
+AI output includes four personalized `followUps` based on the deterministic facts. They are shown as “你可能想問” actions below the result.
 
 Tapping a follow-up:
 - opens the Gemini Live teacher
