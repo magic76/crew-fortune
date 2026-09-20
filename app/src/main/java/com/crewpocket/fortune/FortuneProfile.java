@@ -5,12 +5,23 @@ public final class FortuneProfile {
     public final String birthDate;
     public final String birthTime;
     public final String gender;
+    public final BirthPlace birthPlace;
 
     public FortuneProfile(String name, String birthDate, String birthTime, String gender) {
+        this(name, birthDate, birthTime, gender, null);
+    }
+
+    public FortuneProfile(
+            String name,
+            String birthDate,
+            String birthTime,
+            String gender,
+            BirthPlace birthPlace) {
         this.name = clean(name);
         this.birthDate = clean(birthDate);
         this.birthTime = clean(birthTime);
         this.gender = clean(gender).toLowerCase();
+        this.birthPlace = birthPlace;
     }
 
     public int genderCode() {
