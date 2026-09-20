@@ -393,7 +393,7 @@ The first release intentionally uses a low-maintenance deterministic input model
 
 The city label is not used for calculation and is never sent to AI to guess coordinates. Historical timezone rules are resolved from the supplied timezone. DST gaps are rejected; ambiguous repeated DST times require an explicit offset instead of guessing.
 
-A future city-search/geocoding layer can safely populate the same three calculation fields without changing the chart engine.
+The Android UI now includes city search backed by Open-Meteo geocoding. A selected result fills the city display label, WGS84 latitude/longitude and IANA timezone together. The chart engine still consumes only those deterministic fields, and manual advanced inputs remain available as a fallback.
 
 ### Shared result UI
 
