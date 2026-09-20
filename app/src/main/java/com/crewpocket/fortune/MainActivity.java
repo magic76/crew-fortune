@@ -60,6 +60,7 @@ public final class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(255, 214, 128);
 
     private final FortuneEngine engine = new FortuneEngine();
+    private final BirthPlaceSearchClient birthPlaceSearchClient = new BirthPlaceSearchClient();
     private final StringBuilder aiBuffer = new StringBuilder();
 
     private FortuneMode selectedMode = FortuneMode.BA_ZI;
@@ -291,15 +292,15 @@ public final class MainActivity extends Activity {
         vedicRule.setLineSpacing(dp(2), 1f);
         vedicLocationSection.addView(vedicRule);
 
-        birthPlaceNameInput = input("出生城市或地址，例如 台灣新北市板橋區");
+        birthPlaceNameInput = input("搜尋出生城市，例如 新北市、Bangkok、Tokyo");
 
-        geocodeButton = secondaryButton("解析出生地");
+        geocodeButton = secondaryButton("搜尋出生城市");
         geocodeButton.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
         geocodeButton.setPadding(dp(12), 0, dp(12), 0);
         geocodeButton.setOnClickListener(v -> geocodeBirthPlace(false));
 
         geocodeStatus = text(
-                "輸入出生城市或地址後解析，會自動填入 Latitude / Longitude。",
+                "搜尋後選擇城市，會自動填入 Latitude / Longitude / Timezone。",
                 10, MUTED, false);
         geocodeStatus.setLineSpacing(dp(2), 1f);
 
@@ -344,8 +345,8 @@ public final class MainActivity extends Activity {
         vedicLocationSection.addView(vedicCoordinateFields, marginTop(4));
 
         TextView locationHint = text(
-                "Latitude / Longitude 由 Android Geocoder 解析並保留為 deterministic 輸入。"
-                        + "時區仍需確認，避免只靠經度猜測造成 DST 或跨時區城市排盤錯誤。",
+                "城市搜尋只負責取得 WGS84 座標與 IANA timezone；實際排盤仍只使用"
+                        + " Latitude / Longitude / Timezone 這三個 deterministic 欄位。",
                 10, MUTED, false);
         locationHint.setLineSpacing(dp(2), 1f);
         vedicLocationSection.addView(locationHint, marginTop(4));
@@ -3654,116 +3655,113 @@ public final class MainActivity extends Activity {
         String query = birthPlaceNameInput == null
                 ? ""
                 : birthPlaceNameInput.getText().toString().trim();
-        if (query.isEmpty()) {
-            Toast.makeText(this, "請先輸入出生城市或地址", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (!Geocoder.isPresent()) {
-            Toast.makeText(this,
-                    "此裝置目前無法使用地址解析，請在進階設定手動輸入座標",
-                    Toast.LENGTH_LONG).show();
+        if (query.length() < 2) {
+            Toast.makeText(this, "請輸入至少 2 個字的出生城市", Toast.LENGTH_SHORT).show();
             return;
         }
 
         geocodingBirthPlace = true;
         if (geocodeButton != null) {
             geocodeButton.setEnabled(false);
-            geocodeButton.setText("解析中…");
+            geocodeButton.setText("搜尋中…");
         }
         if (geocodeStatus != null) {
-            geocodeStatus.setText("正在解析「" + query + "」…");
+            geocodeStatus.setText("正在搜尋「" + query + "」…");
             geocodeStatus.setTextColor(MUTED);
         }
-        OperationLog.add(this, "VEDIC_GEOCODE_START", query);
+        OperationLog.add(this, "VEDIC_CITY_SEARCH_START", query);
 
         new Thread(() -> {
             try {
-                Geocoder geocoder = new Geocoder(MainActivity.this, java.util.Locale.getDefault());
-                List<Address> results = geocoder.getFromLocationName(query, 5);
-                Address best = results == null || results.isEmpty() ? null : results.get(0);
-                if (best == null || !best.hasLatitude() || !best.hasLongitude()) {
-                    throw new IllegalArgumentException("找不到可用的出生地座標");
-                }
-
-                final double latitude = best.getLatitude();
-                final double longitude = best.getLongitude();
-                final String resolvedName = addressLabel(best, query);
-
+                final List<BirthPlaceSearchClient.Result> results =
+                        birthPlaceSearchClient.search(query);
                 runOnUiThread(() -> {
-                    geocodingBirthPlace = false;
-                    if (geocodeButton != null) {
-                        geocodeButton.setEnabled(true);
-                        geocodeButton.setText("重新解析出生地");
+                    finishBirthPlaceSearchUi();
+                    if (results.isEmpty()) {
+                        if (geocodeStatus != null) {
+                            geocodeStatus.setText("找不到符合的城市，請換較完整的名稱再試一次");
+                            geocodeStatus.setTextColor(Color.rgb(255, 150, 150));
+                        }
+                        OperationLog.add(this, "VEDIC_CITY_SEARCH_EMPTY", query);
+                        return;
                     }
-                    if (birthPlaceNameInput != null && !resolvedName.isEmpty()) {
-                        birthPlaceNameInput.setText(resolvedName);
-                    }
-                    if (latitudeInput != null) {
-                        latitudeInput.setText(formatCoordinate(latitude));
-                    }
-                    if (longitudeInput != null) {
-                        longitudeInput.setText(formatCoordinate(longitude));
-                    }
-                    if (geocodeStatus != null) {
-                        geocodeStatus.setText(
-                                "已解析：" + formatCoordinate(latitude)
-                                        + ", " + formatCoordinate(longitude)
-                                        + " · 請確認下方時區");
-                        geocodeStatus.setTextColor(GOLD);
-                    }
-                    OperationLog.add(
-                            MainActivity.this,
-                            "VEDIC_GEOCODE_SUCCESS",
-                            resolvedName + " · " + formatCoordinate(latitude)
-                                    + "," + formatCoordinate(longitude));
-                    if (calculateAfterSuccess) calculate();
+                    showBirthPlaceSearchResults(results, calculateAfterSuccess);
                 });
-            } catch (IOException | RuntimeException error) {
+            } catch (Exception error) {
                 runOnUiThread(() -> {
-                    geocodingBirthPlace = false;
-                    if (geocodeButton != null) {
-                        geocodeButton.setEnabled(true);
-                        geocodeButton.setText("重新解析出生地");
-                    }
+                    finishBirthPlaceSearchUi();
                     if (geocodeStatus != null) {
-                        geocodeStatus.setText(
-                                "解析失敗："
-                                        + (error.getMessage() == null
-                                                ? "請換一個較完整的城市/地址，或手動輸入座標"
-                                                : error.getMessage()));
+                        geocodeStatus.setText("城市搜尋失敗，可稍後重試或用進階設定手動輸入");
                         geocodeStatus.setTextColor(Color.rgb(255, 150, 150));
                     }
                     OperationLog.add(
                             MainActivity.this,
-                            "VEDIC_GEOCODE_FAILED",
+                            "VEDIC_CITY_SEARCH_FAILED",
                             error.getMessage() == null ? "unknown" : error.getMessage());
                     Toast.makeText(
                             MainActivity.this,
-                            "出生地解析失敗，請換較完整的地址或手動輸入座標",
+                            "城市搜尋暫時無法使用，仍可手動輸入座標與時區",
                             Toast.LENGTH_LONG).show();
                 });
             }
-        }, "crew-fortune-geocoder").start();
+        }, "crew-fortune-city-search").start();
     }
 
-    private static String addressLabel(Address address, String fallback) {
-        if (address == null) return fallback == null ? "" : fallback.trim();
-        StringBuilder out = new StringBuilder();
-        String locality = address.getLocality();
-        String admin = address.getAdminArea();
-        String country = address.getCountryName();
-        if (locality != null && !locality.trim().isEmpty()) out.append(locality.trim());
-        if (admin != null && !admin.trim().isEmpty()
-                && (locality == null || !admin.trim().equals(locality.trim()))) {
-            if (out.length() > 0) out.append(", ");
-            out.append(admin.trim());
+    private void finishBirthPlaceSearchUi() {
+        geocodingBirthPlace = false;
+        if (geocodeButton != null) {
+            geocodeButton.setEnabled(true);
+            geocodeButton.setText("搜尋出生城市");
         }
-        if (country != null && !country.trim().isEmpty()) {
-            if (out.length() > 0) out.append(", ");
-            out.append(country.trim());
+    }
+
+    private void showBirthPlaceSearchResults(
+            List<BirthPlaceSearchClient.Result> results,
+            boolean calculateAfterSuccess) {
+        String[] labels = new String[results.size()];
+        for (int i = 0; i < results.size(); i++) {
+            BirthPlaceSearchClient.Result item = results.get(i);
+            labels[i] = item.displayName() + "\n" + item.detail();
         }
-        if (out.length() == 0) return fallback == null ? "" : fallback.trim();
-        return out.toString();
+
+        new AlertDialog.Builder(this)
+                .setTitle("選擇出生城市")
+                .setItems(labels, (dialog, which) -> {
+                    BirthPlaceSearchClient.Result selected = results.get(which);
+                    applyBirthPlaceSearchResult(selected);
+                    if (calculateAfterSuccess) calculate();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void applyBirthPlaceSearchResult(BirthPlaceSearchClient.Result result) {
+        if (result == null) return;
+        if (birthPlaceNameInput != null) {
+            birthPlaceNameInput.setText(result.displayName());
+        }
+        if (latitudeInput != null) {
+            latitudeInput.setText(formatCoordinate(result.latitude));
+        }
+        if (longitudeInput != null) {
+            longitudeInput.setText(formatCoordinate(result.longitude));
+        }
+        setTimeZoneSelection(result.timezone);
+        if (geocodeStatus != null) {
+            geocodeStatus.setText(
+                    "已選：" + result.displayName()
+                            + " · " + result.timezone
+                            + "\n" + formatCoordinate(result.latitude)
+                            + ", " + formatCoordinate(result.longitude));
+            geocodeStatus.setTextColor(GOLD);
+        }
+        OperationLog.add(
+                this,
+                "VEDIC_CITY_SELECTED",
+                result.displayName() + " · "
+                        + formatCoordinate(result.latitude) + ","
+                        + formatCoordinate(result.longitude) + " · "
+                        + result.timezone);
     }
 
     private static String formatCoordinate(double value) {
