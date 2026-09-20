@@ -682,7 +682,8 @@ public final class MainActivity extends Activity {
         resultCard.addView(title, marginTop(8));
 
         if (result.mode == FortuneMode.BA_ZI
-                || result.mode == FortuneMode.TAROT_NUMEROLOGY) {
+                || result.mode == FortuneMode.TAROT_NUMEROLOGY
+                || result.mode == FortuneMode.VEDIC_ASTROLOGY) {
             addUnifiedTabbedResult(result, aiLoading);
             resultCard.setVisibility(View.VISIBLE);
             return;
@@ -830,22 +831,42 @@ public final class MainActivity extends Activity {
                     addBaZiOverviewTab(result, aiLoading);
                     break;
             }
-        } else {
+            return;
+        }
+
+        if (result.mode == FortuneMode.VEDIC_ASTROLOGY) {
             switch (selectedResultTab) {
                 case 1:
-                    addTarotResultPanel();
+                    addVedicNatalTab();
                     break;
                 case 2:
-                    addTarotTimelineTab();
+                    addVedicDashaTimelineTab();
                     break;
                 case 3:
-                    addTarotTopicAnalysisTab();
+                    addVedicTopicAnalysisTab();
                     break;
                 case 0:
                 default:
-                    addTarotOverviewTab(result, aiLoading);
+                    addVedicOverviewTab(result, aiLoading);
                     break;
             }
+            return;
+        }
+
+        switch (selectedResultTab) {
+            case 1:
+                addTarotResultPanel();
+                break;
+            case 2:
+                addTarotTimelineTab();
+                break;
+            case 3:
+                addTarotTopicAnalysisTab();
+                break;
+            case 0:
+            default:
+                addTarotOverviewTab(result, aiLoading);
+                break;
         }
     }
 
@@ -876,11 +897,18 @@ public final class MainActivity extends Activity {
             }
             if (!aiCopy.longTerm.isEmpty()) {
                 addPanelSection(panel,
-                        result.mode == FortuneMode.BA_ZI ? "未來十年" : "未來幾年",
+                        result.mode == FortuneMode.BA_ZI
+                                ? "未來十年"
+                                : result.mode == FortuneMode.VEDIC_ASTROLOGY
+                                ? "Dasha 長期節奏"
+                                : "未來幾年",
                         aiCopy.longTerm);
             }
             if (!aiCopy.keyYears.isEmpty()) {
-                addPanelSection(panel, "重要年份", aiCopy.keyYears);
+                addPanelSection(panel,
+                        result.mode == FortuneMode.VEDIC_ASTROLOGY
+                                ? "重要時期" : "重要年份",
+                        aiCopy.keyYears);
             }
             if (!aiCopy.translation.isEmpty()) {
                 addPanelSection(panel, "翻譯成人話", aiCopy.translation);
@@ -904,6 +932,8 @@ public final class MainActivity extends Activity {
         TextView hint = text(
                 result.mode == FortuneMode.BA_ZI
                         ? "下面的老師可以繼續追問：未來十年、財運、工作、感情、指定年份。"
+                        : result.mode == FortuneMode.VEDIC_ASTROLOGY
+                        ? "下面的老師可以繼續追問：目前 Mahadasha／Antardasha、工作、財運、感情或指定 Dasha 時期。"
                         : "下面的老師可以繼續追問：未來幾年、工作、感情、指定流年或今年某個月份。",
                 12, GOLD, true);
         hint.setLineSpacing(dp(2), 1f);
