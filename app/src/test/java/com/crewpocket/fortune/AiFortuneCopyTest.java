@@ -20,6 +20,7 @@ public final class AiFortuneCopyTest {
                     + "\"longTerm\":\"長期走勢\","
                     + "\"keyYears\":\"重要年份\","
                     + "\"topTraits\":[\"很像你的第一點\",\"很像你的第二點\",\"很像你的第三點\"],"
+                    + "\"topTraitEvidence\":[\"日主壬水、身強\",\"食傷、目前大運\",\"財星、流年互動\"],"
                     + "\"followUps\":[\"工作哪幾年最值得衝？\",\"財運哪幾年訊號最強？\",\"感情上最大的盲點是什麼？\",\"未來十年哪一年變化最大？\"],"
                     + "\"translation\":\"白話翻譯\","
                     + "\"punchline\":\"補刀\","
@@ -36,6 +37,8 @@ public final class AiFortuneCopyTest {
         assertEquals("重要年份", copy.keyYears);
         assertEquals(3, copy.topTraits.size());
         assertEquals("很像你的第一點", copy.topTraits.get(0));
+        assertEquals(3, copy.topTraitEvidence.size());
+        assertEquals("日主壬水、身強", copy.topTraitEvidence.get(0));
         assertEquals(4, copy.followUps.size());
         assertEquals("工作哪幾年最值得衝？", copy.followUps.get(0));
         assertEquals("分享文案", copy.shareText);
@@ -125,6 +128,7 @@ public final class AiFortuneCopyTest {
         assertTrue(issues.contains("longTerm="));
         assertTrue(issues.contains("keyYears="));
         assertFalse(issues.contains("topTraits="));
+        assertFalse(issues.contains("topTraitEvidence="));
         assertFalse(issues.contains("followUps="));
     }
 
@@ -132,8 +136,10 @@ public final class AiFortuneCopyTest {
         AiFortuneCopy copy = AiFortuneCopy.parse(
                 "{\"title\":\"相容格式\",\"overview\":\"總覽\","
                         + "\"topTraits\":\"第一點\\n第二點\\n第三點\","
+                        + "\"topTraitEvidence\":\"依據一\\n依據二\\n依據三\","
                         + "\"followUps\":\"問題一？|問題二？|問題三？|問題四？\"}");
         assertEquals(3, copy.topTraits.size());
+        assertEquals(3, copy.topTraitEvidence.size());
         assertEquals(4, copy.followUps.size());
     }
 
