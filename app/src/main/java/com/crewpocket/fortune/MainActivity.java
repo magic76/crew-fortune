@@ -70,6 +70,12 @@ public final class MainActivity extends Activity {
     private TextView modeLabel;
     private Button baZiModeButton;
     private Button tarotModeButton;
+    private Button vedicModeButton;
+    private LinearLayout vedicLocationSection;
+    private EditText birthPlaceNameInput;
+    private EditText latitudeInput;
+    private EditText longitudeInput;
+    private EditText timeZoneInput;
     private TextView aiStatus;
     private Button strictStyleButton;
     private Button normalStyleButton;
@@ -130,6 +136,14 @@ public final class MainActivity extends Activity {
         outState.putString("state_birth_date", birthInput == null ? "" : birthInput.getText().toString());
         outState.putString("state_birth_time", birthTimeInput == null ? "" : birthTimeInput.getText().toString());
         outState.putString("state_gender", selectedGender);
+        outState.putString("state_birth_place_name",
+                birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString());
+        outState.putString("state_latitude",
+                latitudeInput == null ? "" : latitudeInput.getText().toString());
+        outState.putString("state_longitude",
+                longitudeInput == null ? "" : longitudeInput.getText().toString());
+        outState.putString("state_timezone",
+                timeZoneInput == null ? "" : timeZoneInput.getText().toString());
         outState.putString("state_mode", selectedMode.name());
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
@@ -215,12 +229,20 @@ public final class MainActivity extends Activity {
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
         baZiModeButton = modeButton("八字");
         tarotModeButton = modeButton("塔羅生命靈數");
+        vedicModeButton = modeButton("印度星盤");
+        baZiModeButton.setTextSize(12);
+        tarotModeButton.setTextSize(12);
+        vedicModeButton.setTextSize(12);
         baZiModeButton.setOnClickListener(v -> selectMode(FortuneMode.BA_ZI));
         tarotModeButton.setOnClickListener(v -> selectMode(FortuneMode.TAROT_NUMEROLOGY));
+        vedicModeButton.setOnClickListener(v -> selectMode(FortuneMode.VEDIC_ASTROLOGY));
         LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        modeLp.rightMargin = dp(6);
+        modeLp.rightMargin = dp(5);
         modeRow.addView(baZiModeButton, modeLp);
-        modeRow.addView(tarotModeButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
+        LinearLayout.LayoutParams tarotLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
+        tarotLp.rightMargin = dp(5);
+        modeRow.addView(tarotModeButton, tarotLp);
+        modeRow.addView(vedicModeButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
         form.addView(modeRow, marginTop(6));
 
         modeLabel = text("", 12, MUTED, false);
@@ -253,6 +275,39 @@ public final class MainActivity extends Activity {
         genderRow.addView(maleButton, genderLp);
         genderRow.addView(femaleButton, new LinearLayout.LayoutParams(0, dp(44), 1f));
         form.addView(genderRow, marginTop(6));
+
+        vedicLocationSection = column();
+        TextView vedicRule = text(
+                "印度星盤 · Sidereal · Lahiri · Whole Sign\n"
+                        + "城市名稱只做顯示；計算直接使用座標與出生地時區，不會交給 AI 猜。",
+                11, GOLD, true);
+        vedicRule.setLineSpacing(dp(2), 1f);
+        vedicLocationSection.addView(vedicRule);
+
+        birthPlaceNameInput = input("出生城市，例如 新北市（只做稱呼）");
+        latitudeInput = input("Latitude，例如 25.0120");
+        longitudeInput = input("Longitude，例如 121.4657");
+        timeZoneInput = input("Timezone，例如 Asia/Taipei 或 +08:00");
+        latitudeInput.setInputType(
+                InputType.TYPE_CLASS_NUMBER
+                        | InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        longitudeInput.setInputType(
+                InputType.TYPE_CLASS_NUMBER
+                        | InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        vedicLocationSection.addView(birthPlaceNameInput, marginTop(6));
+        vedicLocationSection.addView(latitudeInput, marginTop(6));
+        vedicLocationSection.addView(longitudeInput, marginTop(6));
+        vedicLocationSection.addView(timeZoneInput, marginTop(6));
+
+        TextView locationHint = text(
+                "第一版不綁 geocoding API，避免城市同名、配額與 API key 影響排盤。"
+                        + "之後可直接把城市搜尋結果回填這三個 deterministic 欄位。",
+                10, MUTED, false);
+        locationHint.setLineSpacing(dp(2), 1f);
+        vedicLocationSection.addView(locationHint, marginTop(4));
+        form.addView(vedicLocationSection, marginTop(6));
 
         LinearLayout presetRow = new LinearLayout(this);
         presetRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -310,7 +365,7 @@ public final class MainActivity extends Activity {
 
         updateModeSelectionUi();
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.11.0", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋塔羅生命靈數＋印度星盤", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(9));
         return scroll;
@@ -330,8 +385,12 @@ public final class MainActivity extends Activity {
             if (resultCard != null) resultCard.setVisibility(View.GONE);
         }
         boolean isBaZi = mode == FortuneMode.BA_ZI;
-        birthTimeInput.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
+        boolean isVedic = mode == FortuneMode.VEDIC_ASTROLOGY;
+        birthTimeInput.setVisibility((isBaZi || isVedic) ? View.VISIBLE : View.GONE);
         genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
+        if (vedicLocationSection != null) {
+            vedicLocationSection.setVisibility(isVedic ? View.VISIBLE : View.GONE);
+        }
         updateModeSelectionUi();
     }
 
@@ -350,11 +409,7 @@ public final class MainActivity extends Activity {
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         closeTeacher();
         closeAgent();
-        FortuneProfile profile = new FortuneProfile(
-                nameInput.getText().toString(),
-                birthInput.getText().toString(),
-                birthTimeInput.getText().toString(),
-                selectedGender);
+        FortuneProfile profile = buildCurrentProfile();
         try {
             currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
             currentResult = engine.calculate(selectedMode, profile, new Date());
