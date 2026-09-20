@@ -79,10 +79,17 @@ public final class FortuneLocalReport {
         out.put("家庭／子女", VedicFactsFormatter.profileEvidence(f, "familyChildrenProfile"));
         out.put("目前 Dasha", VedicFactsFormatter.dashaSummary(f)
                 + "\n\n接下來幾個時期\n" + VedicFactsFormatter.importantPeriods(f));
+        out.put("目前 Gochar",
+                "日期｜" + f.detailText("currentTransitDate")
+                        + "\n" + VedicFactsFormatter.currentGochar(f)
+                        + (VedicFactsFormatter.gocharHighlights(f).isEmpty()
+                        ? ""
+                        : "\n\nGochar × 本命\n" + VedicFactsFormatter.gocharHighlights(f)));
         out.put("解讀邊界",
                 "本版本固定採 Sidereal Zodiac、Lahiri ayanamsa、Whole Sign Houses、Mean Rahu/Ketu。"
                         + " Drishti 只採七曜的傳統 7th aspect，以及 Mars 4/8、Jupiter 5/9、Saturn 3/10。"
-                        + " 第一版不計 Navamsa D9、Yoga、Shadbala、Ashtakavarga 或 Gochar，因此不會用缺少的資料硬做推論。");
+                        + " 目前已計算當下 Gochar；仍不計 Navamsa D9、Yoga、Shadbala、Ashtakavarga。"
+                        + " Gochar 只代表計算當下的天空位置，不會自行外推尚未提供的未來 transit。");
         return out;
     }
 

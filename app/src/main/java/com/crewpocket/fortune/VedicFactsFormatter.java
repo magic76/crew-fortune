@@ -148,6 +148,57 @@ public final class VedicFactsFormatter {
         return out.toString();
     }
 
+    public static String currentGochar(FortuneFacts facts) {
+        StringBuilder out = new StringBuilder();
+        Object raw = facts.detail("currentTransits");
+        if (!(raw instanceof List)) return "";
+        for (Object item : (List<?>) raw) {
+            if (!(item instanceof Map)) continue;
+            Map<?, ?> p = (Map<?, ?>) item;
+            if (out.length() > 0) out.append("\n");
+            out.append(text(p.get("name")))
+                    .append("｜").append(text(p.get("sign")))
+                    .append(" ").append(formatDegree(p.get("degreeInSign")))
+                    .append(" · H").append(text(p.get("natalHouse")));
+            if (Boolean.TRUE.equals(p.get("retrograde"))) out.append(" · R");
+        }
+        return out.toString();
+    }
+
+    public static String gocharHighlights(FortuneFacts facts) {
+        StringBuilder out = new StringBuilder();
+        Object conjunctions = facts.detail("transitConjunctionsToNatal");
+        if (conjunctions instanceof List) {
+            for (Object item : (List<?>) conjunctions) {
+                if (!(item instanceof Map)) continue;
+                Map<?, ?> c = (Map<?, ?>) item;
+                if (out.length() > 0) out.append("\n");
+                out.append("合相｜")
+                        .append(text(c.get("transitPlanet")))
+                        .append(" → 本命 ")
+                        .append(text(c.get("natalPlanet")))
+                        .append(" · H").append(text(c.get("natalHouse")))
+                        .append(" · ").append(text(c.get("separationDegrees"))).append("°");
+            }
+        }
+        Object aspects = facts.detail("transitAspectsToNatal");
+        if (aspects instanceof List) {
+            int added = 0;
+            for (Object item : (List<?>) aspects) {
+                if (!(item instanceof Map)) continue;
+                Map<?, ?> a = (Map<?, ?>) item;
+                Object targets = a.get("natalPlanets");
+                if (!(targets instanceof List) || ((List<?>) targets).isEmpty()) continue;
+                if (out.length() > 0) out.append("\n");
+                out.append(text(a.get("transitPlanet")))
+                        .append(" → H").append(text(a.get("toNatalHouse")))
+                        .append(" · ").append(compact(targets));
+                if (++added >= 8) break;
+            }
+        }
+        return out.toString();
+    }
+
     public static String importantPeriods(FortuneFacts facts) {
         StringBuilder out = new StringBuilder();
         Object raw = facts.detail("importantPeriods");

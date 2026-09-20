@@ -153,6 +153,13 @@ public final class VedicAstrologyCalculator {
                 moonNakshatraIndex,
                 moonLongitude);
 
+        List<Map<String, Object>> currentTransits =
+                buildCurrentTransits(nowInstant, lagna.signIndex);
+        List<Map<String, Object>> transitAspects =
+                buildTransitAspectsToNatal(currentTransits, planets);
+        List<Map<String, Object>> transitConjunctions =
+                buildTransitConjunctionsToNatal(currentTransits, planets);
+
         Map<String, Object> details = new LinkedHashMap<String, Object>();
         details.put("methodVersion", METHOD_VERSION);
         details.put("ephemeris", EPHEMERIS);
@@ -197,6 +204,17 @@ public final class VedicAstrologyCalculator {
                 "120-year cycle · Moon Nakshatra lord at birth · "
                         + VIMSHOTTARI_YEAR_DAYS + " days per dasha year");
 
+        details.put("currentTransitDate", nowInstant.atZone(zone).toLocalDate().toString());
+        details.put("currentTransitUtc", nowInstant.toString());
+        details.put("currentTransits", currentTransits);
+        details.put("transitAspectsToNatal", transitAspects);
+        details.put("transitConjunctionsToNatal", transitConjunctions);
+        details.put("gocharConvention",
+                "Lahiri sidereal geocentric transits at calculation time · "
+                        + "houses measured from natal Lagna with Whole Sign houses · "
+                        + "classical graha drishti to natal houses · "
+                        + "transit-to-natal conjunction <= 3°");
+
         Map<String, Object> convention = new LinkedHashMap<String, Object>();
         convention.put("planetSource", EPHEMERIS + " geocentric apparent ecliptic-of-date");
         convention.put("lahiri",
@@ -210,6 +228,9 @@ public final class VedicAstrologyCalculator {
         convention.put("conjunction", "same sidereal sign and <= 8° angular separation");
         convention.put("dignity",
                 "sign-level exaltation/debilitation/own-sign for seven classical planets; nodes intentionally unassigned");
+        convention.put("gochar",
+                "current Lahiri sidereal planet positions mapped to natal Whole Sign houses; "
+                        + "classical graha drishti targets natal houses; transit-to-natal conjunction orb <= 3°");
         details.put("calculationConvention", convention);
 
         VedicInsightBuilder.enrich(details);
@@ -371,6 +392,124 @@ public final class VedicAstrologyCalculator {
         out.put("pada", p.pada);
         out.put("retrograde", retrograde);
         out.put("dignity", dignity);
+        return out;
+    }
+
+    private static List<Map<String, Object>> buildCurrentTransits(
+            Instant instant,
+            int natalLagnaSignIndex) {
+        Time time = astronomyTime(instant);
+        double centuries = time.getTt() / 36525.0;
+        double ayanamsa = lahiriAyanamsaDegrees(centuries);
+
+        List<PlanetSeed> seeds = new ArrayList<PlanetSeed>();
+        seeds.add(new PlanetSeed("Sun", Body.Sun, false));
+        seeds.add(new PlanetSeed("Moon", Body.Moon, false));
+        seeds.add(new PlanetSeed("Mercury", Body.Mercury, true));
+        seeds.add(new PlanetSeed("Venus", Body.Venus, true));
+        seeds.add(new PlanetSeed("Mars", Body.Mars, true));
+        seeds.add(new PlanetSeed("Jupiter", Body.Jupiter, true));
+        seeds.add(new PlanetSeed("Saturn", Body.Saturn, true));
+
+        List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
+        for (PlanetSeed seed : seeds) {
+            double tropical = tropicalLongitude(seed.body, time);
+            double sidereal = normalize(tropical - ayanamsa);
+            Position p = positionOf(sidereal);
+            int natalHouse = wholeSignHouse(natalLagnaSignIndex, p.signIndex);
+            Map<String, Object> item = planetMap(
+                    seed.name,
+                    tropical,
+                    sidereal,
+                    p,
+                    natalHouse,
+                    seed.checkRetrograde && isRetrograde(seed.body, time),
+                    dignity(seed.name, p.signIndex));
+            item.put("natalHouse", natalHouse);
+            out.add(item);
+        }
+
+        double rahuTropical = meanLunarNodeDegrees(centuries);
+        double rahuSidereal = normalize(rahuTropical - ayanamsa);
+        Position rahuPosition = positionOf(rahuSidereal);
+        int rahuHouse = wholeSignHouse(natalLagnaSignIndex, rahuPosition.signIndex);
+        Map<String, Object> rahu = planetMap(
+                "Rahu", rahuTropical, rahuSidereal, rahuPosition,
+                rahuHouse, true, "not_assigned");
+        rahu.put("natalHouse", rahuHouse);
+        out.add(rahu);
+
+        double ketuSidereal = normalize(rahuSidereal + 180.0);
+        Position ketuPosition = positionOf(ketuSidereal);
+        int ketuHouse = wholeSignHouse(natalLagnaSignIndex, ketuPosition.signIndex);
+        Map<String, Object> ketu = planetMap(
+                "Ketu", normalize(rahuTropical + 180.0), ketuSidereal, ketuPosition,
+                ketuHouse, true, "not_assigned");
+        ketu.put("natalHouse", ketuHouse);
+        out.add(ketu);
+        return out;
+    }
+
+    private static List<Map<String, Object>> buildTransitAspectsToNatal(
+            List<Map<String, Object>> transits,
+            List<Map<String, Object>> natalPlanets) {
+        List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> transit : transits) {
+            String name = text(transit.get("name"));
+            if ("Rahu".equals(name) || "Ketu".equals(name)) continue;
+            int house = intValue(transit.get("natalHouse"));
+            List<Integer> offsets = new ArrayList<Integer>();
+            offsets.add(6);
+            if ("Mars".equals(name)) {
+                offsets.add(3);
+                offsets.add(7);
+            } else if ("Jupiter".equals(name)) {
+                offsets.add(4);
+                offsets.add(8);
+            } else if ("Saturn".equals(name)) {
+                offsets.add(2);
+                offsets.add(9);
+            }
+            Collections.sort(offsets);
+            for (Integer offset : offsets) {
+                int targetHouse = ((house - 1 + offset) % 12) + 1;
+                List<String> targetPlanets = new ArrayList<String>();
+                for (Map<String, Object> natal : natalPlanets) {
+                    if (intValue(natal.get("house")) == targetHouse) {
+                        targetPlanets.add(text(natal.get("name")));
+                    }
+                }
+                Map<String, Object> aspect = new LinkedHashMap<String, Object>();
+                aspect.put("transitPlanet", name);
+                aspect.put("fromNatalHouse", house);
+                aspect.put("toNatalHouse", targetHouse);
+                aspect.put("distance", offset + 1);
+                aspect.put("natalPlanets", targetPlanets);
+                out.add(aspect);
+            }
+        }
+        return out;
+    }
+
+    private static List<Map<String, Object>> buildTransitConjunctionsToNatal(
+            List<Map<String, Object>> transits,
+            List<Map<String, Object>> natalPlanets) {
+        List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> transit : transits) {
+            for (Map<String, Object> natal : natalPlanets) {
+                double separation = angularSeparation(
+                        doubleValue(transit.get("siderealLongitude")),
+                        doubleValue(natal.get("siderealLongitude")));
+                if (separation > 3.0) continue;
+                Map<String, Object> item = new LinkedHashMap<String, Object>();
+                item.put("transitPlanet", transit.get("name"));
+                item.put("natalPlanet", natal.get("name"));
+                item.put("natalHouse", natal.get("house"));
+                item.put("sign", natal.get("sign"));
+                item.put("separationDegrees", round(separation, 4));
+                out.add(item);
+            }
+        }
         return out;
     }
 

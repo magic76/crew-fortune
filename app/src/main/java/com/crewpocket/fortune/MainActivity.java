@@ -1136,14 +1136,28 @@ public final class MainActivity extends Activity {
         LinearLayout panel = resultPanel();
 
         TextView intro = text(
-                "第一版的「流年」以 Vimshottari Dasha 為主，不混入尚未實作的 Gochar/transit。"
-                        + "Mahadasha 是長週期背景，Antardasha 是其中較細的時間段；不是吉凶百分比。",
+                "這一頁把 Vimshottari Dasha 與目前 Gochar 一起看。"
+                        + "Dasha 是人生週期背景，Gochar 是現在天空中的行星走到你本命哪一宮；兩者都不是吉凶百分比。",
                 13, MUTED, false);
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
 
         addPanelSection(panel, "目前 Mahadasha / Antardasha",
                 VedicFactsFormatter.dashaSummary(currentFacts));
+
+        addPanelSection(
+                panel,
+                "目前 Gochar · " + currentFacts.detailText("currentTransitDate"),
+                VedicFactsFormatter.currentGochar(currentFacts));
+        String gocharHighlights = VedicFactsFormatter.gocharHighlights(currentFacts);
+        if (!gocharHighlights.isEmpty()) {
+            addPanelSection(panel, "Gochar × 本命重點", gocharHighlights);
+        }
+        TextView gocharRule = text(
+                "Gochar 使用目前 Lahiri sidereal 行星位置，宮位以本命 Lagna 的 Whole Sign Houses 計算。",
+                11, MUTED, false);
+        gocharRule.setLineSpacing(dp(2), 1f);
+        panel.addView(gocharRule, marginTop(7));
 
         TextView visualTitle = text("Dasha 視覺時間軸", 13, GOLD, true);
         panel.addView(visualTitle, marginTop(14));
@@ -1218,7 +1232,7 @@ public final class MainActivity extends Activity {
                 "10宮 × 10宮主 × Saturn/Jupiter × Dasha",
                 "careerProfile",
                 aiCopy == null ? "" : aiCopy.career,
-                "請直接講我的工作方向與目前職涯節奏。只用 careerProfile、10宮、10宮主、Saturn/Jupiter 與目前 Dasha。");
+                "請直接講我的工作方向與目前職涯節奏。只用 careerProfile、10宮、10宮主、Saturn/Jupiter、目前 Dasha 與 currentTransits。");
 
         addVedicTopicCard(
                 panel,
@@ -1226,7 +1240,7 @@ public final class MainActivity extends Activity {
                 "2宮 × 11宮 × Jupiter/Venus × Dasha",
                 "wealthProfile",
                 aiCopy == null ? "" : aiCopy.wealth,
-                "請直接講我的財務與資源節奏。只用 wealthProfile、2宮、11宮及宮主、Jupiter/Venus 與目前 Dasha，不做投資預測。");
+                "請直接講我的財務與資源節奏。只用 wealthProfile、2宮、11宮及宮主、Jupiter/Venus、目前 Dasha 與 currentTransits，不做投資預測。");
 
         addVedicTopicCard(
                 panel,
@@ -1234,7 +1248,7 @@ public final class MainActivity extends Activity {
                 "7宮 × 7宮主 × Venus × Dasha",
                 "relationshipProfile",
                 aiCopy == null ? "" : aiCopy.relationships,
-                "請直接講我的感情與關係模式。只用 relationshipProfile、7宮、7宮主、Venus 與目前 Dasha，不把訊號說成必然事件。");
+                "請直接講我的感情與關係模式。只用 relationshipProfile、7宮、7宮主、Venus、目前 Dasha 與 currentTransits，不把訊號說成必然事件。");
 
         addVedicTopicCard(
                 panel,
@@ -1671,6 +1685,7 @@ public final class MainActivity extends Activity {
                 out.add("未來幾年哪一年財運與資源訊號最值得看？");
             } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
                 out.add("我現在這個 Mahadasha 對工作代表什麼？");
+                out.add("目前 Gochar 哪幾顆星最直接碰到我的本命？");
                 out.add("接下來哪個 Antardasha 最值得我先理解？");
             } else {
                 out.add("未來幾年哪個流年轉折最大？");

@@ -34,7 +34,8 @@ public final class VedicProductIntegrationTest {
         assertTrue(prompt.contains("Navamsa D9"));
         assertTrue(prompt.contains("目前 facts 不足"));
         assertTrue(prompt.contains("不得預測死亡"));
-        assertTrue(prompt.contains("不得自行算 transit"));
+        assertTrue(prompt.contains("currentTransits"));
+        assertTrue(prompt.contains("目前只算『當下』Gochar"));
     }
 
     @Test public void vedicShareCardDoesNotExposeBirthPlaceOrCoordinates() {
@@ -82,6 +83,6 @@ public final class VedicProductIntegrationTest {
         String boundary = FortuneLocalReport.sections(facts).get("解讀邊界");
         assertTrue(boundary.contains("Navamsa D9"));
         assertTrue(boundary.contains("Shadbala"));
-        assertTrue(boundary.contains("Gochar"));
+        assertTrue(boundary.contains("已計算當下 Gochar"));
     }
 }
