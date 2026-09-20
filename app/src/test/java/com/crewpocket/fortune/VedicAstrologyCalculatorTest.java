@@ -74,6 +74,10 @@ public final class VedicAstrologyCalculatorTest {
         assertEquals(12, ((List<?>) facts.get("houses")).size());
         assertEquals(12, ((List<?>) facts.get("houseLords")).size());
         assertEquals(9, ((List<?>) facts.get("mahadashaTimeline")).size());
+        assertEquals(9, ((List<?>) facts.get("currentTransits")).size());
+        assertNotNull(facts.get("currentTransitDate"));
+        assertTrue(facts.get("transitAspectsToNatal") instanceof List);
+        assertTrue(facts.get("transitConjunctionsToNatal") instanceof List);
 
         Map<?, ?> currentMd = (Map<?, ?>) facts.get("currentMahadasha");
         Map<?, ?> currentAd = (Map<?, ?>) facts.get("currentAntardasha");
