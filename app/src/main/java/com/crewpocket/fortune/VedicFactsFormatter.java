@@ -148,6 +148,120 @@ public final class VedicFactsFormatter {
         return out.toString();
     }
 
+    public static String houseLordPlacements(FortuneFacts facts) {
+        StringBuilder out = new StringBuilder();
+        Object raw = facts.detail("houseLords");
+        Object planets = facts.detail("planets");
+        if (!(raw instanceof List)) return "";
+        for (Object item : (List<?>) raw) {
+            if (!(item instanceof Map)) continue;
+            Map<?, ?> lord = (Map<?, ?>) item;
+            String name = text(lord.get("lord"));
+            if (out.length() > 0) out.append("\n");
+            out.append("H").append(text(lord.get("house")))
+                    .append(" 宮主 ").append(name);
+            Map<?, ?> planet = findPlanet(planets, name);
+            if (planet != null) {
+                out.append(" → H").append(text(planet.get("house")))
+                        .append(" · ").append(text(planet.get("sign")))
+                        .append(" · ").append(text(planet.get("nakshatra")))
+                        .append(" P").append(text(planet.get("pada")));
+                if (Boolean.TRUE.equals(planet.get("retrograde"))) out.append(" · R");
+                String dignity = text(planet.get("dignity"));
+                if (!dignity.isEmpty() && !"neutral".equals(dignity)) {
+                    out.append(" · ").append(dignity);
+                }
+            }
+        }
+        return out.toString();
+    }
+
+    public static String topicTimingEvidence(FortuneFacts facts, String profileKey) {
+        StringBuilder out = new StringBuilder();
+        String dasha = dashaSummary(facts);
+        if (!dasha.isEmpty()) out.append(dasha);
+
+        List<String> focus = new java.util.ArrayList<String>();
+        if ("careerProfile".equals(profileKey)) {
+            focus.add("Saturn"); focus.add("Jupiter");
+        } else if ("wealthProfile".equals(profileKey)) {
+            focus.add("Jupiter"); focus.add("Venus");
+        } else if ("relationshipProfile".equals(profileKey)) {
+            focus.add("Venus");
+        } else if ("familyChildrenProfile".equals(profileKey)) {
+            focus.add("Moon"); focus.add("Jupiter");
+        } else if ("personalityProfile".equals(profileKey)) {
+            focus.add("Moon"); focus.add("Sun");
+        }
+
+        Object transits = facts.detail("currentTransits");
+        if (transits instanceof List && !focus.isEmpty()) {
+            for (Object item : (List<?>) transits) {
+                if (!(item instanceof Map)) continue;
+                Map<?, ?> p = (Map<?, ?>) item;
+                if (!focus.contains(text(p.get("name")))) continue;
+                if (out.length() > 0) out.append("\n");
+                out.append("Gochar ")
+                        .append(text(p.get("name")))
+                        .append(" → H").append(text(p.get("natalHouse")))
+                        .append(" · ").append(text(p.get("sign")));
+                if (Boolean.TRUE.equals(p.get("retrograde"))) out.append(" · R");
+            }
+        }
+
+        String hits = topicTransitHits(facts, focus);
+        if (!hits.isEmpty()) {
+            if (out.length() > 0) out.append("\n");
+            out.append(hits);
+        }
+        return out.toString();
+    }
+
+    private static String topicTransitHits(FortuneFacts facts, List<String> focus) {
+        StringBuilder out = new StringBuilder();
+        Object aspects = facts.detail("transitAspectsToNatal");
+        if (aspects instanceof List) {
+            for (Object item : (List<?>) aspects) {
+                if (!(item instanceof Map)) continue;
+                Map<?, ?> a = (Map<?, ?>) item;
+                if (!focus.isEmpty() && !focus.contains(text(a.get("transitPlanet")))) continue;
+                Object targets = a.get("natalPlanets");
+                if (!(targets instanceof List) || ((List<?>) targets).isEmpty()) continue;
+                if (out.length() > 0) out.append("\n");
+                out.append("Transit ")
+                        .append(text(a.get("transitPlanet")))
+                        .append(" aspect → H")
+                        .append(text(a.get("toNatalHouse")))
+                        .append(" · ").append(compact(targets));
+            }
+        }
+        Object conjunctions = facts.detail("transitConjunctionsToNatal");
+        if (conjunctions instanceof List) {
+            for (Object item : (List<?>) conjunctions) {
+                if (!(item instanceof Map)) continue;
+                Map<?, ?> c = (Map<?, ?>) item;
+                if (!focus.isEmpty() && !focus.contains(text(c.get("transitPlanet")))) continue;
+                if (out.length() > 0) out.append("\n");
+                out.append("Transit ")
+                        .append(text(c.get("transitPlanet")))
+                        .append(" 合本命 ").append(text(c.get("natalPlanet")))
+                        .append(" · H").append(text(c.get("natalHouse")))
+                        .append(" · ").append(text(c.get("separationDegrees"))).append("°");
+            }
+        }
+        return out.toString();
+    }
+
+    private static Map<?, ?> findPlanet(Object raw, String name) {
+        if (!(raw instanceof List)) return null;
+        for (Object item : (List<?>) raw) {
+            if (!(item instanceof Map)) continue;
+            Map<?, ?> p = (Map<?, ?>) item;
+            if (name.equals(text(p.get("name")))) return p;
+        }
+        return null;
+    }
+
     public static String currentGochar(FortuneFacts facts) {
         StringBuilder out = new StringBuilder();
         Object raw = facts.detail("currentTransits");

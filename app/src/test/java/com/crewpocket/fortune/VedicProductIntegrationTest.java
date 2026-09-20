@@ -87,4 +87,26 @@ public final class VedicProductIntegrationTest {
         assertTrue(boundary.contains("Gochar 可切換查看日期"));
         assertTrue(boundary.contains("Jupiter、Saturn、Rahu、Ketu"));
     }
+
+    @Test public void vedicEvidenceFormattersExposeFactsWithoutTeacher() {
+        FortuneFacts facts = new FortuneEngine().calculateFacts(
+                FortuneMode.VEDIC_ASTROLOGY,
+                new FortuneProfile(
+                        "測試",
+                        "2000-01-01",
+                        "12:00",
+                        "",
+                        new BirthPlace("London", 51.5074, -0.1278, "UTC")),
+                J2000_NOON);
+
+        String lords = VedicFactsFormatter.houseLordPlacements(facts);
+        assertTrue(lords.contains("H1 宮主"));
+        assertTrue(lords.contains("→ H"));
+
+        String careerTiming =
+                VedicFactsFormatter.topicTimingEvidence(facts, "careerProfile");
+        assertTrue(careerTiming.contains("Mahadasha"));
+        assertTrue(careerTiming.contains("Gochar"));
+    }
+
 }
