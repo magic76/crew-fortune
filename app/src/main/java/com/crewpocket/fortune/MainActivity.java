@@ -1571,7 +1571,7 @@ public final class MainActivity extends Activity {
 
         if (selectedResultTab == 0 || selectedResultTab == 4) {
             out.addAll(aiCopy.followUps);
-            return out;
+            return trimQuestions(out, 4);
         }
 
         if (selectedResultTab == 1) {
@@ -1580,6 +1580,11 @@ public final class MainActivity extends Activity {
                 out.add("我的十神組合最明顯的優勢是什麼？");
                 out.add("我的本命最容易卡在哪裡？");
                 out.add("五行結構對我的做事方式有什麼影響？");
+            } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+                out.add("我的 Lagna 和 Lagna lord 最像我的地方是什麼？");
+                out.add("Moon Nakshatra 對我的內在節奏代表什麼？");
+                out.add("本命裡最值得注意的 house lord 落點是什麼？");
+                out.add("哪些 Drishti 或 conjunction 最影響我的做事方式？");
             } else {
                 out.add("外在人格牌和內在靈魂牌最大的落差是什麼？");
                 out.add("生命道路 " + currentFacts.detailText("lifePathDisplay") + " 最像我的地方是什麼？");
@@ -1598,6 +1603,9 @@ public final class MainActivity extends Activity {
             if (selectedMode == FortuneMode.BA_ZI) {
                 out.add("未來幾年哪一年工作變動訊號最明顯？");
                 out.add("未來幾年哪一年財運與資源訊號最值得看？");
+            } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+                out.add("我現在這個 Mahadasha 對工作代表什麼？");
+                out.add("接下來哪個 Antardasha 最值得我先理解？");
             } else {
                 out.add("未來幾年哪個流年轉折最大？");
                 out.add("今年哪幾個月份最值得我注意？");
@@ -1611,6 +1619,11 @@ public final class MainActivity extends Activity {
                 out.add("直接講我的財運重點，不要只講好壞。");
                 out.add("直接講我的感情與人際盲點。");
                 out.add("這三個主題裡，未來三年哪個變化最大？");
+            } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+                out.add("我的工作適合什麼方向？請引用 10 宮與目前 Dasha。");
+                out.add("財運比較明顯在哪些 Dasha 時期？");
+                out.add("感情最大的盲點是什麼？請引用 7 宮與 Venus。");
+                out.add("目前 Mahadasha / Antardasha 對哪個生活主題最有關聯？");
             } else {
                 out.add("直接講我的工作優勢與目前節奏。");
                 out.add("直接講我的資源與成果節奏。");
@@ -1640,12 +1653,18 @@ public final class MainActivity extends Activity {
                 FortuneYearHighlightBuilder.build(selectedMode, currentFacts);
         if (highlights.isEmpty()) return;
 
-        TextView title = text("重要年份 · 先看這幾個", 13, GOLD, true);
+        TextView title = text(
+                selectedMode == FortuneMode.VEDIC_ASTROLOGY
+                        ? "重要時期 · 先看這幾個"
+                        : "重要年份 · 先看這幾個",
+                13, GOLD, true);
         panel.addView(title, marginTop(11));
 
         TextView hint = text(
                 selectedMode == FortuneMode.BA_ZI
                         ? "依十神、合沖與工作／財務／感情訊號挑出；不是吉凶排名。"
+                        : selectedMode == FortuneMode.VEDIC_ASTROLOGY
+                        ? "依 Vimshottari Mahadasha / Antardasha 的實際起訖順序顯示；不是吉凶排名。"
                         : "依個人流年的週期主題挑出；不是吉凶排名。",
                 11, MUTED, false);
         panel.addView(hint, marginTop(2));
@@ -1800,16 +1819,26 @@ public final class MainActivity extends Activity {
 
     private String aiLoadingStageLabel(FortuneMode mode) {
         if (aiLoadingStage == 2) {
-            return "正在補足內容與格式，避免漏掉重要年份或依據";
+            return mode == FortuneMode.VEDIC_ASTROLOGY
+                    ? "正在補足內容與格式，避免漏掉 Dasha 時期或星盤依據"
+                    : "正在補足內容與格式，避免漏掉重要年份或依據";
         }
         if (aiLoadingStage == 1) {
-            return mode == FortuneMode.BA_ZI
-                    ? "正在撰寫個性、工作、財運、感情與未來十年"
-                    : "正在撰寫個性、工作、資源、感情與未來幾年";
+            if (mode == FortuneMode.BA_ZI) {
+                return "正在撰寫個性、工作、財運、感情與未來十年";
+            }
+            if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+                return "正在撰寫個性、工作、財務、感情與 Dasha 長期節奏";
+            }
+            return "正在撰寫個性、工作、資源、感情與未來幾年";
         }
-        return mode == FortuneMode.BA_ZI
-                ? "正在整理本命、大運、流年與主題訊號"
-                : "正在整理本命牌、人生階段、個人流年與主題";
+        if (mode == FortuneMode.BA_ZI) {
+            return "正在整理本命、大運、流年與主題訊號";
+        }
+        if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+            return "正在整理 Lagna、九曜、12 宮、Nakshatra 與 Vimshottari Dasha";
+        }
+        return "正在整理本命牌、人生階段、個人流年與主題";
     }
 
     private void addAiLoadingBanner(FortuneMode mode) {
@@ -1852,22 +1881,32 @@ public final class MainActivity extends Activity {
         TextView title = text("完整解讀正在生成", 16, TEXT, true);
         panel.addView(title);
 
-        TextView subtitle = text(
-                mode == FortuneMode.BA_ZI
-                        ? "本命、流年等資料已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。"
-                        : "本命與流年資料已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。",
-                13, MUTED, false);
+        String subtitleValue;
+        if (mode == FortuneMode.BA_ZI) {
+            subtitleValue = "本命、流年等資料已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。";
+        } else if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+            subtitleValue = "Lagna、九曜、12 宮與 Dasha 已經可以先看；AI 正在只依 deterministic Vedic facts 整理完整報告。";
+        } else {
+            subtitleValue = "本命與流年資料已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。";
+        }
+        TextView subtitle = text(subtitleValue, 13, MUTED, false);
         subtitle.setLineSpacing(dp(2), 1f);
         panel.addView(subtitle, marginTop(5));
 
+        String longTerm = mode == FortuneMode.BA_ZI
+                ? "未來十年"
+                : mode == FortuneMode.VEDIC_ASTROLOGY
+                ? "Dasha 長期節奏"
+                : "未來幾年";
+        String timingLabel = mode == FortuneMode.VEDIC_ASTROLOGY ? "重要時期" : "重要年份";
         String[] sections = {
                 "總覽",
                 "性格、優勢與盲點",
                 "工作",
                 "財運與資源",
                 "感情與人際",
-                mode == FortuneMode.BA_ZI ? "未來十年" : "未來幾年",
-                "重要年份"
+                longTerm,
+                timingLabel
         };
         for (String section : sections) {
             LinearLayout row = new LinearLayout(this);
