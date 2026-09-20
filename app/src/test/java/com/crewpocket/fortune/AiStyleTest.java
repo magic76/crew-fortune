@@ -20,6 +20,7 @@ public final class AiStyleTest {
         assertTrue(prompt.contains("500-800"));
         assertTrue(prompt.contains("career, wealth"));
         assertTrue(prompt.contains("topTraits"));
+        assertTrue(prompt.contains("topTraitEvidence"));
         assertTrue(prompt.contains("followUps"));
     }
 
