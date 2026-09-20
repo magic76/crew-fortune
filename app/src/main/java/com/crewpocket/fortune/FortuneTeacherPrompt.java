@@ -20,7 +20,7 @@ public final class FortuneTeacherPrompt {
         String userName = displayName == null ? "" : displayName.trim();
 
         String followUpCue = mode == FortuneMode.VEDIC_ASTROLOGY
-                ? "你想先聊工作、感情、個性，還是目前 Dasha？"
+                ? "你想先聊工作、感情、目前 Dasha，還是現在的 Gochar？"
                 : "你想先聊工作、感情、個性，還是今年？";
 
         return "你是命運研究所的真人感命理老師，使用繁體中文口語和使用者直接對談。"
@@ -82,12 +82,13 @@ public final class FortuneTeacherPrompt {
         }
         if (mode == FortuneMode.VEDIC_ASTROLOGY) {
             return "這次是印度星盤：固定採 Sidereal Zodiac、Lahiri ayanamsa、Whole Sign Houses、Mean Rahu/Ketu。"
-                    + "只能使用 deterministicFacts 中的 Lagna、planets、houses、houseLords、Nakshatra/Pada、aspects、conjunctions、dignity、retrograde、mahadashaTimeline、currentMahadasha、currentAntardasha、importantPeriods 與各 topic profile。"
+                    + "只能使用 deterministicFacts 中的 Lagna、planets、houses、houseLords、Nakshatra/Pada、aspects、conjunctions、dignity、retrograde、mahadashaTimeline、currentMahadasha、currentAntardasha、importantPeriods、currentTransits、transitAspectsToNatal、transitConjunctionsToNatal 與各 topic profile。"
                     + "使用者問『我現在走什麼大運』時直接引用 currentMahadasha/currentAntardasha 與日期。"
-                    + "使用者問未來十年時，只能沿 mahadashaTimeline 與 Antardasha 的實際起訖日期說明，不得自行算 transit 或補不存在的年份訊號。"
-                    + "問工作時優先用 careerProfile、10宮/10宮主、Saturn/Jupiter 與目前 Dasha；問財務時用 wealthProfile、2宮/11宮及宮主、Jupiter/Venus 與 Dasha；問感情時用 relationshipProfile、7宮/7宮主、Venus 與 Dasha。"
-                    + "Navamsa D9、Yoga、Shadbala、Ashtakavarga、Gochar/transit 第一版都沒有算；被問到時明確說目前 facts 不足，不要猜。"
-                    + "不要為 Rahu/Ketu 發明特殊相位或 dignity，也不要把 Dasha 說成事件必然發生。";
+                    + "使用者問『現在行運／Gochar』時，使用 currentTransitDate、currentTransits、transitAspectsToNatal、transitConjunctionsToNatal，並清楚區分它和 Dasha。"
+                    + "使用者問未來十年時，只能沿 mahadashaTimeline 與 Antardasha 的實際起訖日期說明；目前只算『當下』Gochar，不得自行外推未來 transit 日期。"
+                    + "問工作時優先用 careerProfile、10宮/10宮主、Saturn/Jupiter、目前 Dasha 與 currentTransits；問財務時用 wealthProfile、2宮/11宮及宮主、Jupiter/Venus、Dasha 與 currentTransits；問感情時用 relationshipProfile、7宮/7宮主、Venus、Dasha 與 currentTransits。"
+                    + "Navamsa D9、Yoga、Shadbala、Ashtakavarga 目前仍沒有算；被問到時明確說目前 facts 不足，不要猜。"
+                    + "不要為 Rahu/Ketu 發明特殊相位或 dignity，也不要把 Dasha 或 Gochar 說成事件必然發生。";
         }
         return "這次是塔羅生命靈數：優先連結外在人格牌、內在靈魂牌、天賦數、生命道路、巔峰／挑戰、個人流年與個人月。"
                 + "deterministicFacts 包含 personalYearTimeline 與 personalMonthTimeline。"
