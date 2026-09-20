@@ -75,6 +75,15 @@ public final class FortuneTeacherPrompt {
                     + "如果資料中已有相關 profile，就不能回答『沒有資料』；應把 evidence 翻成白話。"
                     + "不要把簡化平衡元素說成唯一喜用神，也不要把任何訊號說成事件必然發生。";
         }
+        if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+            return "這次是印度星盤：固定採 Sidereal Zodiac、Lahiri ayanamsa、Whole Sign Houses、Mean Rahu/Ketu。"
+                    + "只能使用 deterministicFacts 中的 Lagna、planets、houses、houseLords、Nakshatra/Pada、aspects、conjunctions、dignity、retrograde、mahadashaTimeline、currentMahadasha、currentAntardasha、importantPeriods 與各 topic profile。"
+                    + "使用者問『我現在走什麼大運』時直接引用 currentMahadasha/currentAntardasha 與日期。"
+                    + "使用者問未來十年時，只能沿 mahadashaTimeline 與 Antardasha 的實際起訖日期說明，不得自行算 transit 或補不存在的年份訊號。"
+                    + "問工作時優先用 careerProfile、10宮/10宮主、Saturn/Jupiter 與目前 Dasha；問財務時用 wealthProfile、2宮/11宮及宮主、Jupiter/Venus 與 Dasha；問感情時用 relationshipProfile、7宮/7宮主、Venus 與 Dasha。"
+                    + "Navamsa D9、Yoga、Shadbala、Ashtakavarga、Gochar/transit 第一版都沒有算；被問到時明確說目前 facts 不足，不要猜。"
+                    + "不要為 Rahu/Ketu 發明特殊相位或 dignity，也不要把 Dasha 說成事件必然發生。";
+        }
         return "這次是塔羅生命靈數：優先連結外在人格牌、內在靈魂牌、天賦數、生命道路、巔峰／挑戰、個人流年與個人月。"
                 + "deterministicFacts 包含 personalYearTimeline 與 personalMonthTimeline。"
                 + "使用者問未來幾年、哪一年、明年時，必須查 personalYearTimeline，不要只回答今年。"
