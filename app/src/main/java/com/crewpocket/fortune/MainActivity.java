@@ -22,6 +22,7 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowInsets;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
@@ -112,6 +113,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         selectedAiStyle = AppConfig.getAiStyle(this);
@@ -176,11 +178,19 @@ public final class MainActivity extends Activity {
         final int baseBottom = dp(24);
         root.setPadding(baseLeft, baseTop, baseRight, baseBottom);
         root.setOnApplyWindowInsetsListener((view, insets) -> {
+            int topInset = insets.getSystemWindowInsetTop();
+            int bottomInset = insets.getSystemWindowInsetBottom();
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                android.graphics.Insets barsAndIme = insets.getInsets(
+                        WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
+                topInset = barsAndIme.top;
+                bottomInset = barsAndIme.bottom;
+            }
             view.setPadding(
                     baseLeft,
-                    baseTop + insets.getSystemWindowInsetTop(),
+                    baseTop + topInset,
                     baseRight,
-                    baseBottom + insets.getSystemWindowInsetBottom());
+                    baseBottom + bottomInset);
             return insets;
         });
         scroll.setClipToPadding(false);
