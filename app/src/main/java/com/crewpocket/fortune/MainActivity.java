@@ -310,7 +310,7 @@ public final class MainActivity extends Activity {
 
         updateModeSelectionUi();
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.10.0", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.11.0", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(9));
         return scroll;
