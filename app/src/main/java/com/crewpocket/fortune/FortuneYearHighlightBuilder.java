@@ -13,9 +13,9 @@ public final class FortuneYearHighlightBuilder {
 
     public static List<Highlight> build(FortuneMode mode, FortuneFacts facts) {
         if (mode == null || facts == null) return Collections.emptyList();
-        return mode == FortuneMode.BA_ZI
-                ? buildBaZi(facts)
-                : buildTarot(facts);
+        if (mode == FortuneMode.BA_ZI) return buildBaZi(facts);
+        if (mode == FortuneMode.VEDIC_ASTROLOGY) return buildVedic(facts);
+        return buildTarot(facts);
     }
 
     private static List<Highlight> buildBaZi(FortuneFacts facts) {
@@ -80,6 +80,36 @@ public final class FortuneYearHighlightBuilder {
         }
 
         return top(candidates, 4);
+    }
+
+    private static List<Highlight> buildVedic(FortuneFacts facts) {
+        List<Highlight> out = new ArrayList<Highlight>();
+        Object raw = facts.detail("importantPeriods");
+        if (!(raw instanceof List)) return out;
+
+        for (Object itemRaw : (List<?>) raw) {
+            if (!(itemRaw instanceof Map)) continue;
+            Map<?, ?> item = (Map<?, ?>) itemRaw;
+            String startDate = mapText(item, "startDate");
+            String endDate = mapText(item, "endDate");
+            String md = mapText(item, "mahadashaLord");
+            String ad = mapText(item, "lord");
+            int year = yearFromDate(startDate);
+            String label = (md.isEmpty() ? "" : md + "/") + ad;
+            String summary = "Vimshottari " + label
+                    + " · " + startDate + " → " + endDate;
+            String evidence = "Mahadasha/Antardasha 起訖日期由出生 Moon Nakshatra 與固定 120 年 Vimshottari 規則計算；"
+                    + "實際解讀需再對照該 lord 在本命的 house、sign、dignity 與所主 houses。";
+            out.add(new Highlight(
+                    year,
+                    label.isEmpty() ? "Dasha period" : label,
+                    summary,
+                    evidence,
+                    "請直接解釋 " + label + "（" + startDate + " 到 " + endDate
+                            + "）對我代表什麼？只用 deterministic Vedic facts。"));
+            if (out.size() >= 4) break;
+        }
+        return out;
     }
 
     private static List<Highlight> buildTarot(FortuneFacts facts) {
@@ -274,6 +304,12 @@ public final class FortuneYearHighlightBuilder {
             if (value != null && !value.trim().isEmpty()) return value.trim();
         }
         return "";
+    }
+
+    private static int yearFromDate(String value) {
+        if (value == null || value.length() < 4) return 0;
+        try { return Integer.parseInt(value.substring(0, 4)); }
+        catch (Exception ignored) { return 0; }
     }
 
     private static int intValue(String value) {
