@@ -18,11 +18,20 @@ public final class FortuneToolRegistry {
                 try {
                     Map<String, Object> args = call.arguments();
                     FortuneMode mode = FortuneMode.valueOf(text(args.get("mode")).toUpperCase());
+                    BirthPlace birthPlace = null;
+                    if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+                        birthPlace = new BirthPlace(
+                                text(args.get("birthPlace")),
+                                number(args.get("latitude"), "latitude"),
+                                number(args.get("longitude"), "longitude"),
+                                text(args.get("timeZoneId")));
+                    }
                     FortuneProfile profile = new FortuneProfile(
                             text(args.get("name")),
                             text(args.get("birthDate")),
                             text(args.get("birthTime")),
-                            text(args.get("gender")));
+                            text(args.get("gender")),
+                            birthPlace);
                     FortuneFacts facts = engine.calculateFacts(mode, profile, new Date());
 
                     Map<String, Object> payload = new LinkedHashMap<String, Object>();
@@ -30,7 +39,7 @@ public final class FortuneToolRegistry {
                     payload.put("basis", facts.basis);
                     payload.put("details", facts.details);
                     payload.put("interpretationRule",
-                            "All returned calculations are immutable. Never invent or alter pillars, gods, luck cycles, numerology numbers or tarot cards.");
+                            "All returned calculations are immutable. Never invent or alter pillars, gods, luck cycles, numerology numbers, tarot cards, planets, houses, nakshatras or dasha periods.");
                     completion.complete(ToolResult.success(call.id(), payload));
                 } catch (Exception error) {
                     completion.complete(ToolResult.failure(call.id(), "FORTUNE_INPUT_ERROR",
@@ -38,6 +47,14 @@ public final class FortuneToolRegistry {
                 }
             }
         });
+    }
+
+    private static double number(Object value, String label) {
+        if (value instanceof Number) return ((Number) value).doubleValue();
+        try { return Double.parseDouble(text(value)); }
+        catch (Exception error) {
+            throw new IllegalArgumentException("VEDIC_ASTROLOGY requires numeric " + label);
+        }
     }
 
     private static String text(Object value) {
