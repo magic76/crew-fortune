@@ -1057,6 +1057,16 @@ public final class MainActivity extends Activity {
         addPanelSection(panel, "Lagna / Moon / Sun",
                 VedicFactsFormatter.coreSummary(currentFacts));
 
+        TextView chartTitle = text("本命盤 · Whole Sign", 13, GOLD, true);
+        panel.addView(chartTitle, marginTop(14));
+        TextView chartHint = text(
+                "South Indian layout · 宮位固定，H1 標示 Lagna；內容只來自 deterministic houses / planets。",
+                11, MUTED, false);
+        chartHint.setLineSpacing(dp(2), 1f);
+        panel.addView(chartHint, marginTop(3));
+        VedicNatalChartView natalChart = new VedicNatalChartView(this, currentFacts);
+        panel.addView(natalChart, marginTop(6));
+
         TextView planetsTitle = text("九曜", 13, GOLD, true);
         panel.addView(planetsTitle, marginTop(14));
         Object planetsRaw = currentFacts.detail("planets");
@@ -1134,6 +1144,17 @@ public final class MainActivity extends Activity {
 
         addPanelSection(panel, "目前 Mahadasha / Antardasha",
                 VedicFactsFormatter.dashaSummary(currentFacts));
+
+        TextView visualTitle = text("Dasha 視覺時間軸", 13, GOLD, true);
+        panel.addView(visualTitle, marginTop(14));
+        TextView visualHint = text(
+                "長條代表完整 Mahadasha 序列；紫色高亮目前週期，金線代表今天。",
+                11, MUTED, false);
+        panel.addView(visualHint, marginTop(3));
+        VedicDashaTimelineView dashaTimeline =
+                new VedicDashaTimelineView(this, currentFacts);
+        panel.addView(dashaTimeline, marginTop(5));
+
         addYearHighlights(panel);
 
         TextView mdTitle = text("Mahadasha timeline", 13, GOLD, true);
