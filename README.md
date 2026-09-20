@@ -402,7 +402,7 @@ Vedic uses the same five result tabs as the existing modes. The natal tab also i
 
 - **總覽** — Lagna, Moon, Sun, Moon Nakshatra, current Mahadasha / Antardasha, top traits and AI summary
 - **本命** — 12 houses, 9 grahas, Rashi, Nakshatra / Pada, house lords, Drishti, conjunctions and dignity
-- **流年** — combines Vimshottari Dasha with deterministic current Gochar: current sidereal planet positions, natal-house placement, classical drishti to natal houses and close transit-to-natal conjunctions
+- **流年** — combines Vimshottari Dasha with selectable-date Gochar: sidereal planet positions, natal-house placement, classical drishti to natal houses, close transit-to-natal conjunctions, plus a three-year Jupiter/Saturn/Rahu/Ketu ingress timeline
 - **主題** — personality/talent, career, wealth, relationships and family/children, each tied to deterministic evidence and the current Dasha
 - **解讀** — full local/AI interpretation plus grounded Gemini Live follow-up
 
@@ -419,7 +419,8 @@ For Vedic mode, text AI and Gemini Live may cite only:
 - Drishti / conjunctions
 - dignity / retrograde facts
 - Mahadasha / Antardasha timelines and current periods
-- current Gochar facts: currentTransits, transitAspectsToNatal and transitConjunctionsToNatal
+- selectable-date Gochar facts: currentTransits, transitAspectsToNatal and transitConjunctionsToNatal
+- `majorTransitTimeline`: next-three-year Jupiter/Saturn/Rahu/Ketu sign-house ingress events
 - deterministic topic-evidence profiles
 
 If the required evidence is absent, the response must say the current chart facts are insufficient. The prompts explicitly forbid recalculation, changing ayanamsa/house system/node convention, filling missing values or inventing transit claims.
@@ -434,9 +435,8 @@ These features are not calculated until a reliable, tested implementation is add
 - Yogas
 - Shadbala
 - Ashtakavarga
-- future-date Gochar / transit forecasting (current-time Gochar is implemented)
 
-Current Gochar is calculated at the app's calculation time using the same Lahiri sidereal convention and mapped to natal Whole Sign houses. Future-date transit forecasting is still intentionally omitted until a dedicated date-selection/timeline implementation is added. The app and prompts explicitly disclose remaining omissions rather than approximating them.
+Gochar can be recalculated for a user-selected date using the same Lahiri sidereal convention and natal Whole Sign houses. The timing page also builds a deterministic three-year ingress timeline for Jupiter, Saturn, Rahu and Ketu. The timeline records sign/house changes only; it does not claim exact real-world event outcomes or silently invent uncalculated fast-planet future transits.
 
 ### Share card and privacy
 
@@ -465,6 +465,7 @@ Unit coverage includes:
 - DST ambiguity rejection instead of timezone guessing
 - FortuneEngine integration
 - grounded Live teacher rules
+- selectable Gochar dates and three-year major-transit timeline
 - Vedic share-card privacy
 - explicit omission boundaries for unimplemented Vedic layers
 
