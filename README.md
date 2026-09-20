@@ -403,10 +403,10 @@ Vedic uses the same five result tabs as the existing modes. The natal tab also i
 - **總覽** — Lagna, Moon, Sun, Moon Nakshatra, current Mahadasha / Antardasha, top traits and AI summary
 - **本命** — 12 houses, 9 grahas, Rashi, Nakshatra / Pada, house lords, Drishti, conjunctions and dignity
 - **流年** — combines Vimshottari Dasha with selectable-date Gochar: sidereal planet positions, natal-house placement, classical drishti to natal houses, close transit-to-natal conjunctions, plus a three-year Jupiter/Saturn/Rahu/Ketu ingress timeline
-- **主題** — personality/talent, career, wealth, relationships and family/children, each showing natal evidence plus current Dasha/Gochar timing directly in the UI before the teacher interpretation
+- **主題** — personality/talent, career, wealth, relationships and family/children, each showing natal evidence plus current Dasha/Gochar timing as compact evidence cards before the teacher interpretation
 - **解讀** — full local/AI interpretation plus grounded Gemini Live follow-up
 
-The Vedic UI follows an evidence-first rule: users can inspect house-lord placements, natal evidence, current Dasha/Gochar and major transit timing without starting the teacher. The teacher is used to connect and explain those facts, not to reveal hidden source data. Important-period cards still hand exact context to Live teacher when deeper interpretation is wanted.
+The Vedic UI follows an evidence-first rule: users can inspect house-lord placements, natal evidence, current Dasha/Gochar and major transit timing without starting the teacher. Topic pages surface the most important 4–6 facts as two-column visual mini-cards, with full evidence still available below when needed. The teacher is used to connect and explain those facts, not to reveal hidden source data. Important-period cards still hand exact context to Live teacher when deeper interpretation is wanted.
 
 ### AI and Live teacher grounding
 
