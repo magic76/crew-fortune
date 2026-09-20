@@ -43,6 +43,8 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -105,6 +107,7 @@ public final class MainActivity extends Activity {
     private TextView aiLoadingStageText;
     private int aiLoadingStage = 0;
     private int selectedResultTab = 0;
+    private LocalDate selectedVedicTransitDate;
     private LinearLayout resultTabContent;
 
     @Override protected void onCreate(Bundle state) {
@@ -425,6 +428,7 @@ public final class MainActivity extends Activity {
             currentResult = null;
             currentFacts = null;
             aiCopy = null;
+            selectedVedicTransitDate = null;
             selectedResultTab = 0;
             if (resultCard != null) resultCard.setVisibility(View.GONE);
         }
@@ -455,6 +459,7 @@ public final class MainActivity extends Activity {
             return;
         }
         selectedResultTab = 0;
+        selectedVedicTransitDate = null;
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         closeTeacher();
         closeAgent();
@@ -1147,17 +1152,49 @@ public final class MainActivity extends Activity {
 
         addPanelSection(
                 panel,
-                "目前 Gochar · " + currentFacts.detailText("currentTransitDate"),
+                (selectedVedicTransitDate == null ? "目前 Gochar · " : "查看 Gochar · ")
+                        + currentFacts.detailText("currentTransitDate"),
                 VedicFactsFormatter.currentGochar(currentFacts));
         String gocharHighlights = VedicFactsFormatter.gocharHighlights(currentFacts);
         if (!gocharHighlights.isEmpty()) {
             addPanelSection(panel, "Gochar × 本命重點", gocharHighlights);
         }
+
+        LinearLayout gocharActions = new LinearLayout(this);
+        gocharActions.setOrientation(LinearLayout.HORIZONTAL);
+        Button pickTransitDate = secondaryButton("選擇 Gochar 日期");
+        pickTransitDate.setOnClickListener(v -> showVedicTransitDatePicker());
+        LinearLayout.LayoutParams pickLp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        gocharActions.addView(pickTransitDate, pickLp);
+        if (selectedVedicTransitDate != null) {
+            Button today = secondaryButton("回到今天");
+            today.setOnClickListener(v -> applyVedicTransitDate(null));
+            LinearLayout.LayoutParams todayLp = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            todayLp.leftMargin = dp(6);
+            gocharActions.addView(today, todayLp);
+        }
+        panel.addView(gocharActions, marginTop(8));
+
         TextView gocharRule = text(
-                "Gochar 使用目前 Lahiri sidereal 行星位置，宮位以本命 Lagna 的 Whole Sign Houses 計算。",
+                "Gochar 使用所選日期的 Lahiri sidereal 行星位置，宮位以本命 Lagna 的 Whole Sign Houses 計算。",
                 11, MUTED, false);
         gocharRule.setLineSpacing(dp(2), 1f);
         panel.addView(gocharRule, marginTop(7));
+
+        String majorTimeline = VedicFactsFormatter.majorTransitTimeline(currentFacts);
+        if (!majorTimeline.isEmpty()) {
+            addPanelSection(
+                    panel,
+                    "未來 3 年主要 Gochar 換宮",
+                    majorTimeline);
+            TextView timelineHint = text(
+                    "只列 Jupiter、Saturn、Rahu、Ketu 的換星座／換本命宮事件，減少快行星造成的雜訊。",
+                    11, MUTED, false);
+            timelineHint.setLineSpacing(dp(2), 1f);
+            panel.addView(timelineHint, marginTop(5));
+        }
 
         TextView visualTitle = text("Dasha 視覺時間軸", 13, GOLD, true);
         panel.addView(visualTitle, marginTop(14));
@@ -3659,6 +3696,70 @@ public final class MainActivity extends Activity {
                 calendar.get(Calendar.DAY_OF_MONTH));
         dialog.getDatePicker().setMaxDate(System.currentTimeMillis());
         dialog.show();
+    }
+
+    private void showVedicTransitDatePicker() {
+        LocalDate base;
+        try {
+            base = LocalDate.parse(currentFacts == null
+                    ? LocalDate.now().toString()
+                    : currentFacts.detailText("currentTransitDate"));
+        } catch (Exception ignored) {
+            base = LocalDate.now();
+        }
+
+        DatePickerDialog dialog = new DatePickerDialog(
+                this,
+                (view, year, month, day) ->
+                        applyVedicTransitDate(LocalDate.of(year, month + 1, day)),
+                base.getYear(),
+                base.getMonthValue() - 1,
+                base.getDayOfMonth());
+        LocalDate today = LocalDate.now();
+        dialog.getDatePicker().setMinDate(
+                java.util.Date.from(
+                        today.minusYears(1)
+                                .atStartOfDay(ZoneId.systemDefault())
+                                .toInstant()).getTime());
+        dialog.getDatePicker().setMaxDate(
+                java.util.Date.from(
+                        today.plusYears(3)
+                                .atTime(23, 59)
+                                .atZone(ZoneId.systemDefault())
+                                .toInstant()).getTime());
+        dialog.show();
+    }
+
+    private void applyVedicTransitDate(LocalDate targetDate) {
+        if (selectedMode != FortuneMode.VEDIC_ASTROLOGY) return;
+        closeTeacher();
+        closeAgent();
+        try {
+            FortuneProfile profile = buildCurrentProfile();
+            Date target;
+            if (targetDate == null) {
+                target = new Date();
+                selectedVedicTransitDate = null;
+            } else {
+                ZoneId zone = ZoneId.of(selectedTimeZoneId);
+                target = Date.from(targetDate.atTime(12, 0).atZone(zone).toInstant());
+                selectedVedicTransitDate = targetDate;
+            }
+            currentFacts = engine.calculateFacts(FortuneMode.VEDIC_ASTROLOGY, profile, target);
+            currentResult = engine.calculate(FortuneMode.VEDIC_ASTROLOGY, profile, target);
+            aiCopy = null;
+            selectedResultTab = 2;
+            renderResult(currentResult, false);
+            OperationLog.add(
+                    this,
+                    "VEDIC_TRANSIT_DATE_SELECTED",
+                    currentFacts.detailText("currentTransitDate"));
+        } catch (Exception error) {
+            Toast.makeText(
+                    this,
+                    "Gochar 日期切換失敗：" + safeErrorMessage(error),
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showTimePicker() {
