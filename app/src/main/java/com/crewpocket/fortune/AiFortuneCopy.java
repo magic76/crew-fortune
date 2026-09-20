@@ -21,6 +21,7 @@ public final class AiFortuneCopy {
     public final String keyYears;
     public final String timing;
     public final List<String> topTraits;
+    public final List<String> topTraitEvidence;
     public final List<String> followUps;
     public final String translation;
     public final String punchline;
@@ -38,6 +39,7 @@ public final class AiFortuneCopy {
             String longTerm,
             String keyYears,
             List<String> topTraits,
+            List<String> topTraitEvidence,
             List<String> followUps,
             String translation,
             String punchline,
@@ -55,6 +57,7 @@ public final class AiFortuneCopy {
         this.keyYears = keyYears;
         this.timing = combineTiming(currentCycle, longTerm, keyYears);
         this.topTraits = immutable(topTraits);
+        this.topTraitEvidence = immutable(topTraitEvidence);
         this.followUps = immutable(followUps);
         this.translation = translation;
         this.punchline = punchline;
@@ -124,6 +127,10 @@ public final class AiFortuneCopy {
                 optionalList(object, "topTraits"),
                 optionalList(object, "topInsights"),
                 optionalList(object, "mostLikeYou"));
+        List<String> topTraitEvidence = firstNonEmptyList(
+                optionalList(object, "topTraitEvidence"),
+                optionalList(object, "traitEvidence"),
+                optionalList(object, "topInsightsEvidence"));
         List<String> followUps = firstNonEmptyList(
                 optionalList(object, "followUps"),
                 optionalList(object, "suggestedQuestions"),
@@ -156,6 +163,7 @@ public final class AiFortuneCopy {
                 longTerm,
                 keyYears,
                 topTraits,
+                topTraitEvidence,
                 followUps,
                 translation,
                 punchline,
@@ -175,6 +183,7 @@ public final class AiFortuneCopy {
                 mode == FortuneMode.BA_ZI ? 320 : 260);
         requireLength(issues, "keyYears", keyYears, 220);
         requireListSize(issues, "topTraits", topTraits, 3);
+        requireListSize(issues, "topTraitEvidence", topTraitEvidence, 3);
         requireListSize(issues, "followUps", followUps, 4);
         requireLength(issues, "advice", advice, 100);
         return join(issues, ", ");
