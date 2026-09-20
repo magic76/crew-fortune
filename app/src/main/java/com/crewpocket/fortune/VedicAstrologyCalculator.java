@@ -318,7 +318,7 @@ public final class VedicAstrologyCalculator {
             Spherical moon = Astronomy.eclipticGeoMoon(time);
             return normalize(moon.getLon());
         }
-        Ecliptic ecliptic = Astronomy.ecliptic(
+        Ecliptic ecliptic = Astronomy.equatorialToEcliptic(
                 Astronomy.geoVector(body, time, Aberration.Corrected));
         return normalize(ecliptic.getElon());
     }
