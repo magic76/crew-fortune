@@ -8,9 +8,10 @@ public final class FortuneLocalReport {
     private FortuneLocalReport() {}
 
     public static LinkedHashMap<String, String> sections(FortuneFacts facts) {
-        return facts != null && facts.mode == FortuneMode.BA_ZI
-                ? bazi(facts)
-                : tarot(facts);
+        if (facts == null) return new LinkedHashMap<String, String>();
+        if (facts.mode == FortuneMode.BA_ZI) return bazi(facts);
+        if (facts.mode == FortuneMode.VEDIC_ASTROLOGY) return vedic(facts);
+        return tarot(facts);
     }
 
     private static LinkedHashMap<String, String> bazi(FortuneFacts f) {
@@ -58,6 +59,30 @@ public final class FortuneLocalReport {
                 "目前的「旺衰」是以天干、藏干與月令加權的簡化模型；"
                         + "「平衡參考元素」為 " + f.detailText("balancingElements")
                         + "，不直接宣稱是唯一喜用神。正式格局、調候與用神在不同八字流派會有不同取法。");
+        return out;
+    }
+
+    private static LinkedHashMap<String, String> vedic(FortuneFacts f) {
+        LinkedHashMap<String, String> out = new LinkedHashMap<String, String>();
+        out.put("核心總覽",
+                VedicFactsFormatter.coreSummary(f)
+                        + "\n\n" + VedicFactsFormatter.dashaSummary(f));
+        out.put("九曜落點", VedicFactsFormatter.planets(f));
+        out.put("12 宮與宮主", VedicFactsFormatter.houses(f));
+        out.put("相位與合相",
+                VedicFactsFormatter.aspects(f).isEmpty()
+                        ? "目前沒有符合 v1 規則的合相；Drishti 仍以 house aspect 保存於 deterministic facts。"
+                        : VedicFactsFormatter.aspects(f));
+        out.put("工作", VedicFactsFormatter.profileEvidence(f, "careerProfile"));
+        out.put("財務", VedicFactsFormatter.profileEvidence(f, "wealthProfile"));
+        out.put("感情", VedicFactsFormatter.profileEvidence(f, "relationshipProfile"));
+        out.put("家庭／子女", VedicFactsFormatter.profileEvidence(f, "familyChildrenProfile"));
+        out.put("目前 Dasha", VedicFactsFormatter.dashaSummary(f)
+                + "\n\n接下來幾個時期\n" + VedicFactsFormatter.importantPeriods(f));
+        out.put("解讀邊界",
+                "本版本固定採 Sidereal Zodiac、Lahiri ayanamsa、Whole Sign Houses、Mean Rahu/Ketu。"
+                        + " Drishti 只採七曜的傳統 7th aspect，以及 Mars 4/8、Jupiter 5/9、Saturn 3/10。"
+                        + " 第一版不計 Navamsa D9、Yoga、Shadbala、Ashtakavarga 或 Gochar，因此不會用缺少的資料硬做推論。");
         return out;
     }
 
