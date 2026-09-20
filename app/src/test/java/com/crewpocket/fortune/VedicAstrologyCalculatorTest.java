@@ -15,6 +15,21 @@ public final class VedicAstrologyCalculatorTest {
     private static final Date J2000_NOON =
             new Date(946728000000L); // 2000-01-01T12:00:00Z
 
+    @Test public void lahiriPolynomialTracksSwissReferenceAcrossTwoCenturies() {
+        assertEquals(22.4605497063,
+                VedicAstrologyCalculator.lahiriAyanamsaDegrees(-0.9999726214921287),
+                0.001);
+        assertEquals(23.8570923537,
+                VedicAstrologyCalculator.lahiriAyanamsaDegrees(0.0),
+                0.001);
+        assertEquals(24.2203231045,
+                VedicAstrologyCalculator.lahiriAyanamsaDegrees(0.26001368925393564),
+                0.001);
+        assertEquals(25.2542874036,
+                VedicAstrologyCalculator.lahiriAyanamsaDegrees(1.0),
+                0.001);
+    }
+
     @Test public void matchesSwissEphemerisLahiriReferenceAtJ2000() {
         Map<String, Object> facts = new VedicAstrologyCalculator().calculate(
                 "2000-01-01",
