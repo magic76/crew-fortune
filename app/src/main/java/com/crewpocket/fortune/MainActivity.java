@@ -1602,24 +1602,18 @@ public final class MainActivity extends Activity {
                         ? "你一定會想問"
                         : "這一頁可以直接問",
                 13, GOLD, true);
-        resultCard.addView(title, marginTop(9));
+        resultCard.addView(title, marginTop(12));
 
         int index = 0;
-        LinearLayout row = null;
         for (final String question : questions) {
             if (index >= 4) break;
-            if (index % 2 == 0) {
-                row = new LinearLayout(this);
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                resultCard.addView(row, marginTop(5));
-            }
 
-            Button button = secondaryButton(question);
-            button.setTextSize(12);
-            button.setGravity(Gravity.CENTER);
-            button.setMinHeight(dp(64));
+            Button button = secondaryButton(question + "  ›");
+            button.setTextSize(13);
+            button.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+            button.setMinHeight(dp(56));
             button.setMinimumHeight(0);
-            button.setPadding(dp(9), dp(9), dp(9), dp(9));
+            button.setPadding(dp(14), dp(10), dp(14), dp(10));
             button.setSingleLine(false);
             button.setMaxLines(3);
             button.setOnClickListener(v -> {
@@ -1630,11 +1624,9 @@ public final class MainActivity extends Activity {
                 startTeacherExplanation(question);
             });
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            lp.gravity = Gravity.TOP;
-            if (index % 2 == 0) lp.rightMargin = dp(6);
-            row.addView(button, lp);
+            LinearLayout.LayoutParams lp = marginTop(index == 0 ? 6 : 7);
+            lp.height = LinearLayout.LayoutParams.WRAP_CONTENT;
+            resultCard.addView(button, lp);
             index++;
         }
     }
