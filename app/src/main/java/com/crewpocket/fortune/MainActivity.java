@@ -1617,7 +1617,11 @@ public final class MainActivity extends Activity {
             Button button = secondaryButton(question);
             button.setTextSize(12);
             button.setGravity(Gravity.CENTER);
-            button.setPadding(dp(7), dp(3), dp(7), dp(3));
+            button.setMinHeight(dp(64));
+            button.setMinimumHeight(0);
+            button.setPadding(dp(9), dp(9), dp(9), dp(9));
+            button.setSingleLine(false);
+            button.setMaxLines(3);
             button.setOnClickListener(v -> {
                 OperationLog.add(
                         MainActivity.this,
@@ -1627,8 +1631,9 @@ public final class MainActivity extends Activity {
             });
 
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    0, dp(58), 1f);
-            if (index % 2 == 0) lp.rightMargin = dp(5);
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            lp.gravity = Gravity.TOP;
+            if (index % 2 == 0) lp.rightMargin = dp(6);
             row.addView(button, lp);
             index++;
         }
@@ -1740,7 +1745,7 @@ public final class MainActivity extends Activity {
 
         for (FortuneYearHighlightBuilder.Highlight highlight : highlights) {
             LinearLayout card = column();
-            card.setPadding(dp(9), dp(9), dp(9), dp(9));
+            card.setPadding(dp(10), dp(10), dp(10), dp(13));
             card.setBackground(roundBorder(
                     Color.rgb(55, 42, 82),
                     Color.rgb(111, 91, 157),
@@ -1790,8 +1795,13 @@ public final class MainActivity extends Activity {
             String question) {
         Button ask = secondaryButton(label);
         ask.setTextSize(12);
+        ask.setMinHeight(dp(44));
+        ask.setMinimumHeight(0);
+        ask.setPadding(dp(12), dp(8), dp(12), dp(8));
         ask.setOnClickListener(v -> startTeacherExplanation(question));
-        card.addView(ask, fixedHeightTop(40, 7));
+        LinearLayout.LayoutParams askLp = marginTop(7);
+        askLp.height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        card.addView(ask, askLp);
     }
 
     private void showTraitEvidenceDialog(String trait, String evidence) {
@@ -1914,7 +1924,7 @@ public final class MainActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setPadding(dp(10), dp(10), dp(10), dp(10));
+        card.setPadding(dp(11), dp(11), dp(11), dp(14));
         card.setBackground(roundBorder(
                 Color.rgb(45, 35, 67),
                 Color.rgb(111, 91, 157),
@@ -2214,7 +2224,7 @@ public final class MainActivity extends Activity {
 
     private LinearLayout resultPanel() {
         LinearLayout panel = column();
-        panel.setPadding(dp(10), dp(11), dp(10), dp(11));
+        panel.setPadding(dp(11), dp(12), dp(11), dp(16));
         panel.setBackground(roundBorder(
                 CARD_2, Color.rgb(86, 70, 119), 16, 1));
         resultTabContent.addView(panel, marginTop(4));
@@ -2279,17 +2289,26 @@ public final class MainActivity extends Activity {
 
         TextView more = text("查看完整依據 ›", 11, ACCENT, true);
         more.setOnClickListener(v -> action.run());
-        actions.addView(more, new LinearLayout.LayoutParams(
-                0, dp(36), 1f));
+        TextView moreView = more;
+        moreView.setGravity(Gravity.CENTER_VERTICAL);
+        moreView.setPadding(0, dp(5), 0, dp(5));
+        LinearLayout.LayoutParams moreLp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        moreLp.gravity = Gravity.CENTER_VERTICAL;
+        actions.addView(moreView, moreLp);
 
         if (askQuestion != null && !askQuestion.trim().isEmpty()) {
             Button ask = secondaryButton("問老師");
             ask.setTextSize(11);
             ask.setOnClickListener(v ->
                     startTeacherExplanation(askQuestion));
+            ask.setMinHeight(dp(44));
+            ask.setMinimumHeight(0);
+            ask.setPadding(dp(10), dp(7), dp(10), dp(7));
             LinearLayout.LayoutParams askLp = new LinearLayout.LayoutParams(
-                    dp(82), dp(36));
+                    dp(88), LinearLayout.LayoutParams.WRAP_CONTENT);
             askLp.leftMargin = dp(6);
+            askLp.gravity = Gravity.CENTER_VERTICAL;
             actions.addView(ask, askLp);
         }
 
@@ -3953,6 +3972,9 @@ public final class MainActivity extends Activity {
         button.setTextSize(13);
         button.setAllCaps(false);
         button.setTextColor(TEXT);
+        button.setMinHeight(dp(44));
+        button.setMinimumHeight(0);
+        button.setPadding(dp(12), dp(8), dp(12), dp(8));
         button.setBackground(round(CARD_2, 14));
         return button;
     }
