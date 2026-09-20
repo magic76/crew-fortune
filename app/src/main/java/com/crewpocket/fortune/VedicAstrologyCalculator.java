@@ -200,7 +200,7 @@ public final class VedicAstrologyCalculator {
         Map<String, Object> convention = new LinkedHashMap<String, Object>();
         convention.put("planetSource", EPHEMERIS + " geocentric apparent ecliptic-of-date");
         convention.put("lahiri",
-                "J2000 23.85305556° + 1.39722222°×T + 0.00018°×T² - 0.000005°×T³; T=Julian centuries from J2000 TT");
+                "Swiss-Lahiri J2000 anchor 23.85709235° + 1.39722222°×T + 0.00018°×T² - 0.000005°×T³; T=Julian centuries from J2000 TT");
         convention.put("ascendant",
                 "Meeus horizon/ecliptic intersection from GAST + longitude, latitude and mean obliquity; converted with same Lahiri ayanamsa");
         convention.put("rahuKetu", "mean lunar node; Ketu exactly 180° opposite Rahu");
@@ -218,7 +218,7 @@ public final class VedicAstrologyCalculator {
 
     static double lahiriAyanamsaDegrees(double julianCenturiesFromJ2000) {
         double t = julianCenturiesFromJ2000;
-        return normalize(23.8530555556
+        return normalize(23.8570923537
                 + 1.3972222222 * t
                 + 0.00018 * t * t
                 - 0.000005 * t * t * t);
