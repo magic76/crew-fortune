@@ -1064,10 +1064,20 @@ public final class MainActivity extends Activity {
         LinearLayout panel = resultPanel();
 
         TextView intro = text(
-                "本命頁只展示 deterministic chart facts。點任一顆星或宮位可查看完整欄位；AI 不會在這一頁重新排盤。",
+                "這一頁是你的「出生底盤」：看你天生比較容易把力氣放在哪裡、怎麼思考、怎麼做事，以及不同人生主題的基本結構。"
+                        + "下面的星座、宮位、Nakshatra 與宮主是原始命盤資料；不熟印度占星時，不需要自己逐條翻譯。",
                 13, MUTED, false);
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
+
+        addVedicPageTeacherGuide(
+                panel,
+                "看不懂這些星和宮位？",
+                "讓老師先從 Lagna、Moon、Sun、最重要的宮主與行星落點，挑 3–5 個真正值得你知道的本命重點，再告訴你它們在個性、工作與關係上怎麼一起作用。",
+                "老師幫我講本命",
+                "請把我的本命頁講成人話。不要逐條念資料，也不要先講流年。"
+                        + "請從 Lagna、Moon、Sun、Lagna lord、最重要的 house lord placements、行星落宮、Nakshatra、dignity、retrograde、Drishti/Conjunctions 中挑 3 到 5 個最關鍵的結構。"
+                        + "先說結論，再說每個結論的 deterministic evidence，最後告訴我這些結構在個性、工作方式與關係模式上怎麼彼此連動。");
 
         addPanelSection(panel, "Lagna / Moon / Sun",
                 VedicFactsFormatter.coreSummary(currentFacts));
@@ -1075,14 +1085,14 @@ public final class MainActivity extends Activity {
         TextView chartTitle = text("本命盤 · Whole Sign", 13, GOLD, true);
         panel.addView(chartTitle, marginTop(14));
         TextView chartHint = text(
-                "South Indian layout · 宮位固定，H1 標示 Lagna；內容只來自 deterministic houses / planets。",
+                "這張圖是本命盤位置圖。H1 是你的上升起點；其他宮位代表工作、財務、關係、家庭等不同人生領域。",
                 11, MUTED, false);
         chartHint.setLineSpacing(dp(2), 1f);
         panel.addView(chartHint, marginTop(3));
         VedicNatalChartView natalChart = new VedicNatalChartView(this, currentFacts);
         panel.addView(natalChart, marginTop(6));
 
-        TextView planetsTitle = text("九曜", 13, GOLD, true);
+        TextView planetsTitle = text("九曜 · 行星落點", 13, GOLD, true);
         panel.addView(planetsTitle, marginTop(14));
         Object planetsRaw = currentFacts.detail("planets");
         if (planetsRaw instanceof List) {
@@ -1112,7 +1122,7 @@ public final class MainActivity extends Activity {
             }
         }
 
-        TextView housesTitle = text("12 Houses · Whole Sign", 13, GOLD, true);
+        TextView housesTitle = text("12 宮 · 人生領域", 13, GOLD, true);
         panel.addView(housesTitle, marginTop(18));
         Object housesRaw = currentFacts.detail("houses");
         if (housesRaw instanceof List) {
@@ -1138,11 +1148,11 @@ public final class MainActivity extends Activity {
 
         addPanelSection(
                 panel,
-                "12 宮主實際落點",
+                "12 宮主跑到哪裡",
                 VedicFactsFormatter.houseLordPlacements(currentFacts));
 
         String aspects = VedicFactsFormatter.aspects(currentFacts);
-        addPanelSection(panel, "Drishti / Conjunctions",
+        addPanelSection(panel, "行星之間的影響 · Drishti / Conjunctions",
                 aspects.isEmpty() ? "目前沒有符合 v1 規則的合相；Drishti 仍保存在 deterministic facts。" : aspects);
 
         TextView boundary = text(
@@ -1156,13 +1166,23 @@ public final class MainActivity extends Activity {
         LinearLayout panel = resultPanel();
 
         TextView intro = text(
-                "這一頁把 Vimshottari Dasha 與目前 Gochar 一起看。"
-                        + "Dasha 是人生週期背景，Gochar 是現在天空中的行星走到你本命哪一宮；兩者都不是吉凶百分比。",
+                "這一頁在看「現在走到人生哪一段，以及最近哪些主題比較容易被碰到」。"
+                        + "Dasha 像人生目前的大章節，Antardasha 是章節裡的小段落；Gochar 則是現在天空中的行星正在碰你本命的哪些位置。",
                 13, MUTED, false);
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
 
-        addPanelSection(panel, "目前 Mahadasha / Antardasha",
+        addVedicPageTeacherGuide(
+                panel,
+                "這頁時間資料很多，該先看哪個？",
+                "讓老師先把目前 Dasha、Antardasha 與 Gochar 疊在一起，只挑現在最有感的 3–5 個時間重點，說明工作、財務、感情或生活節奏目前比較容易被哪裡帶動。",
+                "老師幫我看現在",
+                "請把我的流年頁講成人話。請以目前選擇的 currentTransitDate 為基準，"
+                        + "先說 currentMahadasha/currentAntardasha 代表的人生背景，再疊加 currentTransits、transitAspectsToNatal、transitConjunctionsToNatal。"
+                        + "只挑 3 到 5 個目前最值得注意的時間訊號，分清楚哪些來自 Dasha、哪些來自 Gochar。"
+                        + "如果談未來，只能引用 majorTransitTimeline 與既有 Dasha 日期；不要自行補沒有計算的 transit，也不要把任何訊號說成必然事件。");
+
+        addPanelSection(panel, "目前人生週期 · Mahadasha / Antardasha",
                 VedicFactsFormatter.dashaSummary(currentFacts));
 
         addPanelSection(
@@ -1200,7 +1220,7 @@ public final class MainActivity extends Activity {
 
         addPanelSection(
                 panel,
-                "Dasha × Gochar · 直接看",
+                "目前週期碰上現在行運 · Dasha × Gochar",
                 VedicFactsFormatter.dashaSummary(currentFacts)
                         + (gocharHighlights.isEmpty()
                         ? ""
@@ -1210,7 +1230,7 @@ public final class MainActivity extends Activity {
         if (!majorTimeline.isEmpty()) {
             addPanelSection(
                     panel,
-                    "未來 3 年主要 Gochar 換宮",
+                    "未來 3 年主要行運變化",
                     majorTimeline);
             TextView timelineHint = text(
                     "只列 Jupiter、Saturn、Rahu、Ketu 的換星座／換本命宮事件，減少快行星造成的雜訊。",
@@ -1219,7 +1239,7 @@ public final class MainActivity extends Activity {
             panel.addView(timelineHint, marginTop(5));
         }
 
-        TextView visualTitle = text("Dasha 視覺時間軸", 13, GOLD, true);
+        TextView visualTitle = text("人生大週期時間軸 · Dasha", 13, GOLD, true);
         panel.addView(visualTitle, marginTop(14));
         TextView visualHint = text(
                 "長條代表完整 Mahadasha 序列；紫色高亮目前週期，金線代表今天。",
@@ -1267,6 +1287,31 @@ public final class MainActivity extends Activity {
                 11, MUTED, false);
         convention.setLineSpacing(dp(2), 1f);
         panel.addView(convention, marginTop(9));
+    }
+
+    private void addVedicPageTeacherGuide(
+            LinearLayout panel,
+            String title,
+            String body,
+            String buttonLabel,
+            String question) {
+        LinearLayout guide = column();
+        guide.setPadding(dp(11), dp(11), dp(11), dp(12));
+        guide.setBackground(roundBorder(
+                Color.rgb(47, 36, 72),
+                Color.rgb(105, 84, 146),
+                16,
+                1));
+
+        TextView titleView = text(title, 14, TEXT, true);
+        guide.addView(titleView);
+
+        TextView bodyView = text(body, 12, MUTED, false);
+        bodyView.setLineSpacing(dp(2), 1f);
+        guide.addView(bodyView, marginTop(4));
+
+        addAskTeacherAction(guide, buttonLabel, question);
+        panel.addView(guide, marginTop(9));
     }
 
     private void addVedicTopicAnalysisTab() {
