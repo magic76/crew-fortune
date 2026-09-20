@@ -307,6 +307,7 @@ public final class MainActivity extends Activity {
                 10, MUTED, false);
         locationHint.setLineSpacing(dp(2), 1f);
         vedicLocationSection.addView(locationHint, marginTop(4));
+        vedicLocationSection.setVisibility(View.GONE);
         form.addView(vedicLocationSection, marginTop(6));
 
         LinearLayout presetRow = new LinearLayout(this);
@@ -409,8 +410,8 @@ public final class MainActivity extends Activity {
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         closeTeacher();
         closeAgent();
-        FortuneProfile profile = buildCurrentProfile();
         try {
+            FortuneProfile profile = buildCurrentProfile();
             currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
             currentResult = engine.calculate(selectedMode, profile, new Date());
             FortunePresetStore.saveLast(this, currentPreset());
@@ -624,7 +625,7 @@ public final class MainActivity extends Activity {
 
         value.append("creativeVariant=").append(System.nanoTime()).append('\n');
         value.append("creativeVariant 只允許改變措辭與笑點。")
-                .append("所有數字、干支、十神、大運、流年、塔羅牌、天賦數")
+                .append("所有數字、干支、十神、大運、流年、塔羅牌、天賦數、行星、宮位、Nakshatra、Dasha")
                 .append("都必須逐字遵守 deterministicFacts。");
         return value.toString();
     }
@@ -2897,13 +2898,49 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private FortuneProfile buildCurrentProfile() {
+        BirthPlace birthPlace = null;
+        if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+            String latitudeText = latitudeInput == null ? "" : latitudeInput.getText().toString().trim();
+            String longitudeText = longitudeInput == null ? "" : longitudeInput.getText().toString().trim();
+            String zoneText = timeZoneInput == null ? "" : timeZoneInput.getText().toString().trim();
+            if (latitudeText.isEmpty() || longitudeText.isEmpty() || zoneText.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "印度星盤需要出生地 latitude、longitude 與 timezone");
+            }
+            final double latitude;
+            final double longitude;
+            try {
+                latitude = Double.parseDouble(latitudeText);
+                longitude = Double.parseDouble(longitudeText);
+            } catch (NumberFormatException error) {
+                throw new IllegalArgumentException("出生地座標格式不正確", error);
+            }
+            birthPlace = new BirthPlace(
+                    birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString(),
+                    latitude,
+                    longitude,
+                    zoneText);
+        }
+        return new FortuneProfile(
+                nameInput.getText().toString(),
+                birthInput.getText().toString(),
+                birthTimeInput.getText().toString(),
+                selectedGender,
+                birthPlace);
+    }
+
     private FortunePreset currentPreset() {
         return new FortunePreset(
                 nameInput.getText().toString(),
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
                 selectedGender,
-                selectedMode);
+                selectedMode,
+                birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString(),
+                latitudeInput == null ? "" : latitudeInput.getText().toString(),
+                longitudeInput == null ? "" : longitudeInput.getText().toString(),
+                timeZoneInput == null ? "" : timeZoneInput.getText().toString());
     }
 
     private void restoreLastProfile() {
@@ -2921,8 +2958,21 @@ public final class MainActivity extends Activity {
             Toast.makeText(this, "先選生日再儲存 preset", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (preset.mode == FortuneMode.BA_ZI && preset.birthTime.isEmpty()) {
-            Toast.makeText(this, "八字 preset 需要出生時間", Toast.LENGTH_SHORT).show();
+        if ((preset.mode == FortuneMode.BA_ZI
+                || preset.mode == FortuneMode.VEDIC_ASTROLOGY)
+                && preset.birthTime.isEmpty()) {
+            Toast.makeText(this,
+                    preset.mode == FortuneMode.BA_ZI
+                            ? "八字 preset 需要出生時間"
+                            : "印度星盤 preset 需要出生時間",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (preset.mode == FortuneMode.VEDIC_ASTROLOGY
+                && preset.birthPlaceOrNull() == null) {
+            Toast.makeText(this,
+                    "印度星盤 preset 需要有效的出生地座標與時區",
+                    Toast.LENGTH_SHORT).show();
             return;
         }
         if (preset.mode == FortuneMode.BA_ZI && preset.gender.isEmpty()) {
@@ -2963,6 +3013,10 @@ public final class MainActivity extends Activity {
         nameInput.setText(preset.name);
         birthInput.setText(preset.birthDate);
         birthTimeInput.setText(preset.birthTime);
+        if (birthPlaceNameInput != null) birthPlaceNameInput.setText(preset.birthPlaceName);
+        if (latitudeInput != null) latitudeInput.setText(preset.latitude);
+        if (longitudeInput != null) longitudeInput.setText(preset.longitude);
+        if (timeZoneInput != null) timeZoneInput.setText(preset.timeZoneId);
         selectMode(preset.mode);
         if (!preset.gender.isEmpty()) selectGender(preset.gender);
         else {
@@ -2979,6 +3033,18 @@ public final class MainActivity extends Activity {
             nameInput.setText(state.getString("state_name", ""));
             birthInput.setText(state.getString("state_birth_date", ""));
             birthTimeInput.setText(state.getString("state_birth_time", ""));
+            if (birthPlaceNameInput != null) {
+                birthPlaceNameInput.setText(state.getString("state_birth_place_name", ""));
+            }
+            if (latitudeInput != null) {
+                latitudeInput.setText(state.getString("state_latitude", ""));
+            }
+            if (longitudeInput != null) {
+                longitudeInput.setText(state.getString("state_longitude", ""));
+            }
+            if (timeZoneInput != null) {
+                timeZoneInput.setText(state.getString("state_timezone", ""));
+            }
             selectedGender = state.getString("state_gender", "");
             selectedMode = FortuneMode.valueOf(
                     state.getString("state_mode", FortuneMode.BA_ZI.name()));
@@ -2991,11 +3057,7 @@ public final class MainActivity extends Activity {
             updateAiStyleButtons();
 
             if (state.getBoolean("state_has_result", false)) {
-                FortuneProfile profile = new FortuneProfile(
-                        nameInput.getText().toString(),
-                        birthInput.getText().toString(),
-                        birthTimeInput.getText().toString(),
-                        selectedGender);
+                FortuneProfile profile = buildCurrentProfile();
                 currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
                 currentResult = engine.calculate(selectedMode, profile, new Date());
 
@@ -3226,6 +3288,8 @@ public final class MainActivity extends Activity {
 
     private void updateModeSelectionUi() {
         boolean bazi = selectedMode == FortuneMode.BA_ZI;
+        boolean tarot = selectedMode == FortuneMode.TAROT_NUMEROLOGY;
+        boolean vedic = selectedMode == FortuneMode.VEDIC_ASTROLOGY;
         if (baZiModeButton != null) {
             baZiModeButton.setBackground(roundBorder(
                     bazi ? ACCENT : CARD_2,
@@ -3235,15 +3299,32 @@ public final class MainActivity extends Activity {
         }
         if (tarotModeButton != null) {
             tarotModeButton.setBackground(roundBorder(
-                    !bazi ? ACCENT : CARD_2,
-                    !bazi ? ACCENT : Color.rgb(80, 65, 111),
+                    tarot ? ACCENT : CARD_2,
+                    tarot ? ACCENT : Color.rgb(80, 65, 111),
                     16, 1));
-            tarotModeButton.setTextColor(!bazi ? Color.rgb(30, 22, 46) : TEXT);
+            tarotModeButton.setTextColor(tarot ? Color.rgb(30, 22, 46) : TEXT);
+        }
+        if (vedicModeButton != null) {
+            vedicModeButton.setBackground(roundBorder(
+                    vedic ? ACCENT : CARD_2,
+                    vedic ? ACCENT : Color.rgb(80, 65, 111),
+                    16, 1));
+            vedicModeButton.setTextColor(vedic ? Color.rgb(30, 22, 46) : TEXT);
         }
         if (modeLabel != null) {
-            modeLabel.setText(bazi
-                    ? "四柱、十神、大運、逐年流年 · 需要出生時間與性別\n以出生地當地民用時間排盤，目前不做真太陽時校正"
-                    : "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n名字只用來稱呼你；計算只使用生日，不使用姓名或出生時間");
+            if (bazi) {
+                modeLabel.setText(
+                        "四柱、十神、大運、逐年流年 · 需要出生時間與性別\n"
+                                + "以出生地當地民用時間排盤，目前不做真太陽時校正");
+            } else if (tarot) {
+                modeLabel.setText(
+                        "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n"
+                                + "名字只用來稱呼你；計算只使用生日，不使用姓名或出生時間");
+            } else {
+                modeLabel.setText(
+                        "Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu\n"
+                                + "需要精確出生時間、latitude、longitude 與出生地 timezone");
+            }
         }
     }
 
