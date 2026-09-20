@@ -180,7 +180,8 @@ public final class AiFortuneCopy {
         requireLength(issues, "relationships", relationships, 180);
         requireLength(issues, "currentCycle", currentCycle, 180);
         requireLength(issues, "longTerm", longTerm,
-                mode == FortuneMode.BA_ZI ? 320 : 260);
+                mode == FortuneMode.BA_ZI ? 320
+                        : mode == FortuneMode.VEDIC_ASTROLOGY ? 300 : 260);
         requireLength(issues, "keyYears", keyYears, 220);
         requireListSize(issues, "topTraits", topTraits, 3);
         requireListSize(issues, "topTraitEvidence", topTraitEvidence, 3);
