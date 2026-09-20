@@ -159,6 +159,8 @@ public final class VedicAstrologyCalculator {
                 buildTransitAspectsToNatal(currentTransits, planets);
         List<Map<String, Object>> transitConjunctions =
                 buildTransitConjunctionsToNatal(currentTransits, planets);
+        List<Map<String, Object>> majorTransitTimeline =
+                buildMajorTransitTimeline(nowInstant, zone, lagna.signIndex);
 
         Map<String, Object> details = new LinkedHashMap<String, Object>();
         details.put("methodVersion", METHOD_VERSION);
@@ -209,11 +211,15 @@ public final class VedicAstrologyCalculator {
         details.put("currentTransits", currentTransits);
         details.put("transitAspectsToNatal", transitAspects);
         details.put("transitConjunctionsToNatal", transitConjunctions);
+        details.put("majorTransitTimeline", majorTransitTimeline);
+        details.put("majorTransitTimelineEndDate",
+                nowInstant.atZone(zone).toLocalDate().plusYears(3).toString());
         details.put("gocharConvention",
                 "Lahiri sidereal geocentric transits at calculation time · "
                         + "houses measured from natal Lagna with Whole Sign houses · "
                         + "classical graha drishti to natal houses · "
-                        + "transit-to-natal conjunction <= 3°");
+                        + "transit-to-natal conjunction <= 3° · "
+                        + "3-year major timeline tracks Jupiter/Saturn/Rahu/Ketu sign-house ingresses");
 
         Map<String, Object> convention = new LinkedHashMap<String, Object>();
         convention.put("planetSource", EPHEMERIS + " geocentric apparent ecliptic-of-date");
@@ -448,6 +454,120 @@ public final class VedicAstrologyCalculator {
         ketu.put("natalHouse", ketuHouse);
         out.add(ketu);
         return out;
+    }
+
+    private static List<Map<String, Object>> buildMajorTransitTimeline(
+            Instant startInstant,
+            ZoneId zone,
+            int natalLagnaSignIndex) {
+        List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
+        LocalDate startDate = startInstant.atZone(zone).toLocalDate();
+        LocalDate endDate = startDate.plusYears(3);
+        String[] names = {"Jupiter", "Saturn", "Rahu", "Ketu"};
+
+        for (String name : names) {
+            LocalDate previousDate = startDate;
+            Map<String, Object> previous =
+                    majorTransitState(name, instantAtLocalNoon(previousDate, zone), natalLagnaSignIndex);
+
+            for (LocalDate sampleDate = startDate.plusDays(7);
+                    !sampleDate.isAfter(endDate);
+                    sampleDate = sampleDate.plusDays(7)) {
+                Map<String, Object> sample =
+                        majorTransitState(name, instantAtLocalNoon(sampleDate, zone), natalLagnaSignIndex);
+                int previousSign = intValue(previous.get("signIndex"));
+                int sampleSign = intValue(sample.get("signIndex"));
+                if (previousSign != sampleSign) {
+                    LocalDate eventDate = firstDateOutsideSign(
+                            name,
+                            previousDate,
+                            sampleDate,
+                            previousSign,
+                            zone,
+                            natalLagnaSignIndex);
+                    Map<String, Object> eventState =
+                            majorTransitState(name, instantAtLocalNoon(eventDate, zone), natalLagnaSignIndex);
+
+                    Map<String, Object> event = new LinkedHashMap<String, Object>();
+                    event.put("date", eventDate.toString());
+                    event.put("planet", name);
+                    event.put("fromSign", previous.get("sign"));
+                    event.put("toSign", eventState.get("sign"));
+                    event.put("fromHouse", previous.get("natalHouse"));
+                    event.put("toHouse", eventState.get("natalHouse"));
+                    event.put("retrograde", eventState.get("retrograde"));
+                    event.put("direction",
+                            Boolean.TRUE.equals(eventState.get("retrograde")) ? "retrograde" : "direct");
+                    out.add(event);
+                }
+                previousDate = sampleDate;
+                previous = sample;
+            }
+        }
+
+        Collections.sort(out, (a, b) ->
+                text(a.get("date")).compareTo(text(b.get("date"))));
+        return out;
+    }
+
+    private static LocalDate firstDateOutsideSign(
+            String planetName,
+            LocalDate lowDate,
+            LocalDate highDate,
+            int oldSignIndex,
+            ZoneId zone,
+            int natalLagnaSignIndex) {
+        long low = lowDate.plusDays(1).toEpochDay();
+        long high = highDate.toEpochDay();
+        while (low < high) {
+            long mid = low + (high - low) / 2L;
+            LocalDate midDate = LocalDate.ofEpochDay(mid);
+            Map<String, Object> state = majorTransitState(
+                    planetName,
+                    instantAtLocalNoon(midDate, zone),
+                    natalLagnaSignIndex);
+            if (intValue(state.get("signIndex")) == oldSignIndex) low = mid + 1L;
+            else high = mid;
+        }
+        return LocalDate.ofEpochDay(low);
+    }
+
+    private static Instant instantAtLocalNoon(LocalDate date, ZoneId zone) {
+        return date.atTime(LocalTime.NOON).atZone(zone).toInstant();
+    }
+
+    private static Map<String, Object> majorTransitState(
+            String name,
+            Instant instant,
+            int natalLagnaSignIndex) {
+        Time time = astronomyTime(instant);
+        double centuries = time.getTt() / 36525.0;
+        double ayanamsa = lahiriAyanamsaDegrees(centuries);
+        double tropical;
+        boolean retrograde;
+
+        if ("Jupiter".equals(name)) {
+            tropical = tropicalLongitude(Body.Jupiter, time);
+            retrograde = isRetrograde(Body.Jupiter, time);
+        } else if ("Saturn".equals(name)) {
+            tropical = tropicalLongitude(Body.Saturn, time);
+            retrograde = isRetrograde(Body.Saturn, time);
+        } else {
+            double rahu = meanLunarNodeDegrees(centuries);
+            tropical = "Ketu".equals(name) ? normalize(rahu + 180.0) : rahu;
+            retrograde = true;
+        }
+
+        double sidereal = normalize(tropical - ayanamsa);
+        Position p = positionOf(sidereal);
+        Map<String, Object> state = new LinkedHashMap<String, Object>();
+        state.put("planet", name);
+        state.put("signIndex", p.signIndex);
+        state.put("sign", p.sign);
+        state.put("degreeInSign", round(p.degreeInSign, 6));
+        state.put("natalHouse", wholeSignHouse(natalLagnaSignIndex, p.signIndex));
+        state.put("retrograde", retrograde);
+        return state;
     }
 
     private static List<Map<String, Object>> buildTransitAspectsToNatal(

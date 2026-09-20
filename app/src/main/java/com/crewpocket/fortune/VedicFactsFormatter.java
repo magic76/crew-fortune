@@ -199,6 +199,32 @@ public final class VedicFactsFormatter {
         return out.toString();
     }
 
+    public static String majorTransitTimeline(FortuneFacts facts) {
+        StringBuilder out = new StringBuilder();
+        Object raw = facts.detail("majorTransitTimeline");
+        if (!(raw instanceof List)) return "";
+        int count = 0;
+        for (Object item : (List<?>) raw) {
+            if (!(item instanceof Map)) continue;
+            Map<?, ?> e = (Map<?, ?>) item;
+            if (out.length() > 0) out.append("\n");
+            out.append(text(e.get("date")))
+                    .append("｜")
+                    .append(text(e.get("planet")))
+                    .append(" ")
+                    .append(text(e.get("fromSign")))
+                    .append(" → ")
+                    .append(text(e.get("toSign")))
+                    .append(" · H")
+                    .append(text(e.get("fromHouse")))
+                    .append(" → H")
+                    .append(text(e.get("toHouse")));
+            if (Boolean.TRUE.equals(e.get("retrograde"))) out.append(" · R");
+            if (++count >= 16) break;
+        }
+        return out.toString();
+    }
+
     public static String importantPeriods(FortuneFacts facts) {
         StringBuilder out = new StringBuilder();
         Object raw = facts.detail("importantPeriods");
