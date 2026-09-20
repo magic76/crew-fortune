@@ -23,6 +23,7 @@ import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -39,6 +40,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -85,6 +87,8 @@ public final class MainActivity extends Activity {
     private TextView teacherOutputText;
     private boolean pendingTeacherStart;
     private String pendingTeacherQuestion = "";
+    private TextView aiLoadingStageText;
+    private int aiLoadingStage = 0;
     private int selectedResultTab = 0;
     private LinearLayout resultTabContent;
 
@@ -178,6 +182,18 @@ public final class MainActivity extends Activity {
             showApiKeyDialog();
         });
         top.addView(aiStatus);
+
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.ic_launcher_foreground_art);
+        logo.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        logo.setPadding(dp(2), dp(2), dp(2), dp(2));
+        logo.setBackground(round(CARD_2, 12));
+        logo.setContentDescription("Crew Fortune");
+        logo.setOnClickListener(v -> showAboutDialog());
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(34), dp(34));
+        logoLp.leftMargin = dp(8);
+        top.addView(logo, logoLp);
+
         root.addView(top);
 
         TextView title = text("很認真算，\n別太認真信。", 34, TEXT, true);
@@ -360,6 +376,7 @@ public final class MainActivity extends Activity {
     }
 
     private void startAiCopy(FortuneProfile profile) {
+        updateAiLoadingStage(0);
         OperationLog.add(this, "AI_INTERPRETATION_START",
                 selectedMode.name() + " · " + selectedAiStyle.name());
         startAiCopyAttempt(profile, 0, "");
@@ -383,6 +400,9 @@ public final class MainActivity extends Activity {
                     if (event == null) return;
                     switch (event.type()) {
                         case MODEL_TEXT:
+                            if (aiLoadingStage < 1) {
+                                runOnUiThread(() -> updateAiLoadingStage(1));
+                            }
                             synchronized (aiBuffer) {
                                 aiBuffer.append(event.text());
                             }
@@ -416,6 +436,7 @@ public final class MainActivity extends Activity {
                                             MainActivity.this,
                                             "AI_INTERPRETATION_RETRY",
                                             detail);
+                                    runOnUiThread(() -> updateAiLoadingStage(2));
                                     closeAgent();
                                     runOnUiThread(() ->
                                             startAiCopyAttempt(profile, 1, retryCause));
@@ -443,6 +464,7 @@ public final class MainActivity extends Activity {
                                         MainActivity.this,
                                         "AI_INTERPRETATION_RETRY",
                                         detail);
+                                runOnUiThread(() -> updateAiLoadingStage(2));
                                 closeAgent();
                                 runOnUiThread(() ->
                                         startAiCopyAttempt(profile, 1, retryCause));
@@ -541,7 +563,7 @@ public final class MainActivity extends Activity {
             value.append("這次必須重新輸出一個完整、可解析的 JSON object。")
                     .append("不得輸出 markdown code fence、前言、後記或任何 JSON 外文字。")
                     .append("不得省略 title, overview, personality, career, wealth, relationships, ")
-                    .append("currentCycle, longTerm, keyYears, topTraits, followUps, translation, punchline, advice, shareText。")
+                    .append("currentCycle, longTerm, keyYears, topTraits, topTraitEvidence, followUps, translation, punchline, advice, shareText。")
                     .append("不要縮短內容來逃避欄位要求。\n");
         }
 
@@ -2556,6 +2578,7 @@ public final class MainActivity extends Activity {
                     .put("longTerm", copy.longTerm)
                     .put("keyYears", copy.keyYears)
                     .put("topTraits", new JSONArray(copy.topTraits))
+                    .put("topTraitEvidence", new JSONArray(copy.topTraitEvidence))
                     .put("followUps", new JSONArray(copy.followUps))
                     .put("translation", copy.translation)
                     .put("punchline", copy.punchline)
