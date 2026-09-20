@@ -14,7 +14,7 @@ Crew Fortune 是 Crew 系列的娛樂型算命 App。核心原則是：**用可�
 
 ## Fortune systems
 
-Crew Fortune now intentionally exposes only two calculation systems:
+Crew Fortune currently exposes three deterministic calculation systems:
 
 1. **八字 / Four Pillars**
    - Four Pillars (年／月／日／時)
@@ -33,6 +33,14 @@ Crew Fortune now intentionally exposes only two calculation systems:
    - Four Challenge numbers
    - Three Period cycles
    - Current Personal Year and Personal Month
+
+3. **印度星盤 / Vedic Astrology / Jyotish**
+   - Sidereal Zodiac with Lahiri / Chitrapaksha ayanamsa
+   - Whole Sign Houses
+   - Lagna, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Mean Rahu and Ketu
+   - Sidereal longitude, Rashi, house, Nakshatra and Pada
+   - House lords, classical Graha Drishti, conjunctions, basic dignity and reliable retrograde flags
+   - Vimshottari Mahadasha and Antardasha timelines with current periods
 
 ## Architecture
 
@@ -321,3 +329,141 @@ The loading banner reflects real generation progress:
 3. repairing / expanding content when a retry is required
 
 This release does not change deterministic BaZi or Tarot calculation rules.
+
+
+## v0.12.0 deterministic Vedic astrology
+
+Crew Fortune adds **印度星盤 / Vedic Astrology / Jyotish** as the third fortune system while keeping the same product rule as BaZi and Tarot:
+
+```text
+Birth date + exact local birth time + deterministic birth place
+    ↓
+VedicAstrologyCalculator
+    ↓
+FortuneFacts
+    ↓
+shared five-tab result UI
+    ↓
+Gemini interpretation / Gemini Live teacher
+```
+
+Gemini never calculates or repairs the chart. It receives the completed deterministic facts and may only explain them.
+
+### Ephemeris and license
+
+The astronomical position layer uses:
+
+```groovy
+implementation 'io.github.cosinekitty:astronomy:2.1.19'
+```
+
+Astronomy Engine is MIT licensed and is used only for astronomical positions / sidereal time. Crew Fortune owns the astrology convention layer.
+
+Swiss Ephemeris was evaluated because it is a strong fit for Lahiri/sidereal astrology, but its GPL-or-Professional dual license would change the distribution obligations of the Android app unless a Professional License is purchased. It is therefore **not bundled** in v0.12.0. Swiss Ephemeris is used only as an external reference source for regression fixtures.
+
+### Fixed v1 calculation convention
+
+- Zodiac: **Sidereal**
+- Ayanamsa: **Lahiri / Chitrapaksha**
+- Houses: **Whole Sign**
+- Nodes: **Mean Rahu / Ketu**, exactly 180° apart
+- Lagna: calculated from birth UTC, latitude, longitude, Greenwich apparent sidereal time and obliquity, then converted with the same Lahiri ayanamsa
+- Graha Drishti:
+  - all seven classical planets: 7th
+  - Mars: additional 4th / 8th
+  - Jupiter: additional 5th / 9th
+  - Saturn: additional 3rd / 10th
+  - no disputed special Rahu/Ketu aspects in v1
+- Conjunction: same sidereal sign and within 8°
+- Dignity: sign-level exaltation / debilitation / own-sign for the seven classical planets; node dignity is intentionally unassigned
+- Vimshottari: 120-year sequence derived from the Moon Nakshatra at birth; Mahadasha and Antardasha expose start/end dates and ages
+
+The calculation details include a `methodVersion` and a `calculationConvention` object so changes remain auditable and testable.
+
+### Birth place input
+
+A Vedic chart never substitutes the phone's current location for the birthplace.
+
+The first release intentionally uses a low-maintenance deterministic input model:
+
+- optional city/display label
+- required latitude
+- required longitude
+- required IANA timezone ID such as `Asia/Taipei`, or an explicit UTC offset when necessary
+
+The city label is not used for calculation and is never sent to AI to guess coordinates. Historical timezone rules are resolved from the supplied timezone. DST gaps are rejected; ambiguous repeated DST times require an explicit offset instead of guessing.
+
+A future city-search/geocoding layer can safely populate the same three calculation fields without changing the chart engine.
+
+### Shared result UI
+
+Vedic uses the same five result tabs as the existing modes:
+
+- **總覽** — Lagna, Moon, Sun, Moon Nakshatra, current Mahadasha / Antardasha, top traits and AI summary
+- **本命** — 12 houses, 9 grahas, Rashi, Nakshatra / Pada, house lords, Drishti, conjunctions and dignity
+- **流年** — v1 is explicitly a Vimshottari Dasha page; Gochar/transits are not silently mixed in
+- **主題** — personality/talent, career, wealth, relationships and family/children, each tied to deterministic evidence and the current Dasha
+- **解讀** — full local/AI interpretation plus grounded Gemini Live follow-up
+
+Important-period cards expose the underlying Dasha facts and can hand the exact context to the Live teacher.
+
+### AI and Live teacher grounding
+
+For Vedic mode, text AI and Gemini Live may cite only:
+
+- Lagna
+- planets
+- houses / house lords
+- Nakshatra / Pada
+- Drishti / conjunctions
+- dignity / retrograde facts
+- Mahadasha / Antardasha timelines and current periods
+- deterministic topic-evidence profiles
+
+If the required evidence is absent, the response must say the current chart facts are insufficient. The prompts explicitly forbid recalculation, changing ayanamsa/house system/node convention, filling missing values or inventing transit claims.
+
+STRICT / NORMAL / FUNNY remain supported. FUNNY still follows observation → chart evidence → serious explanation → one restrained dry punchline.
+
+### Intentionally omitted from v0.12.0
+
+These features are not calculated until a reliable, tested implementation is added:
+
+- Navamsa D9
+- Yogas
+- Shadbala
+- Ashtakavarga
+- Gochar / transit forecasting
+
+The app and prompts explicitly disclose those omissions rather than approximating them.
+
+### Share card and privacy
+
+The existing 1080×1350 PNG renderer is reused. Vedic cards contain Lagna, Moon/Nakshatra, current Mahadasha/Antardasha, upcoming Dasha periods and one AI/local line.
+
+The card does **not** expose:
+
+- full name
+- birth date
+- birth time
+- city name
+- latitude / longitude
+- raw deterministic JSON
+
+### Verification
+
+Unit coverage includes:
+
+- external Swiss Ephemeris Lahiri reference values for a fixed J2000/London fixture
+- Lagna and nine-graha sidereal longitudes
+- Rashi / Nakshatra / Pada
+- 12 Whole Sign houses and house lords
+- Mean Rahu/Ketu opposition
+- retrograde facts
+- Vimshottari current Mahadasha / Antardasha
+- DST ambiguity rejection instead of timezone guessing
+- FortuneEngine integration
+- grounded Live teacher rules
+- Vedic share-card privacy
+- explicit omission boundaries for unimplemented Vedic layers
+
+Existing BaZi and Tarot deterministic calculation rules are unchanged.

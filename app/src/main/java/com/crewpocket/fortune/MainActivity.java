@@ -70,6 +70,12 @@ public final class MainActivity extends Activity {
     private TextView modeLabel;
     private Button baZiModeButton;
     private Button tarotModeButton;
+    private Button vedicModeButton;
+    private LinearLayout vedicLocationSection;
+    private EditText birthPlaceNameInput;
+    private EditText latitudeInput;
+    private EditText longitudeInput;
+    private EditText timeZoneInput;
     private TextView aiStatus;
     private Button strictStyleButton;
     private Button normalStyleButton;
@@ -130,6 +136,14 @@ public final class MainActivity extends Activity {
         outState.putString("state_birth_date", birthInput == null ? "" : birthInput.getText().toString());
         outState.putString("state_birth_time", birthTimeInput == null ? "" : birthTimeInput.getText().toString());
         outState.putString("state_gender", selectedGender);
+        outState.putString("state_birth_place_name",
+                birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString());
+        outState.putString("state_latitude",
+                latitudeInput == null ? "" : latitudeInput.getText().toString());
+        outState.putString("state_longitude",
+                longitudeInput == null ? "" : longitudeInput.getText().toString());
+        outState.putString("state_timezone",
+                timeZoneInput == null ? "" : timeZoneInput.getText().toString());
         outState.putString("state_mode", selectedMode.name());
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
@@ -215,12 +229,20 @@ public final class MainActivity extends Activity {
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
         baZiModeButton = modeButton("八字");
         tarotModeButton = modeButton("塔羅生命靈數");
+        vedicModeButton = modeButton("印度星盤");
+        baZiModeButton.setTextSize(12);
+        tarotModeButton.setTextSize(12);
+        vedicModeButton.setTextSize(12);
         baZiModeButton.setOnClickListener(v -> selectMode(FortuneMode.BA_ZI));
         tarotModeButton.setOnClickListener(v -> selectMode(FortuneMode.TAROT_NUMEROLOGY));
+        vedicModeButton.setOnClickListener(v -> selectMode(FortuneMode.VEDIC_ASTROLOGY));
         LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        modeLp.rightMargin = dp(6);
+        modeLp.rightMargin = dp(5);
         modeRow.addView(baZiModeButton, modeLp);
-        modeRow.addView(tarotModeButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
+        LinearLayout.LayoutParams tarotLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
+        tarotLp.rightMargin = dp(5);
+        modeRow.addView(tarotModeButton, tarotLp);
+        modeRow.addView(vedicModeButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
         form.addView(modeRow, marginTop(6));
 
         modeLabel = text("", 12, MUTED, false);
@@ -253,6 +275,40 @@ public final class MainActivity extends Activity {
         genderRow.addView(maleButton, genderLp);
         genderRow.addView(femaleButton, new LinearLayout.LayoutParams(0, dp(44), 1f));
         form.addView(genderRow, marginTop(6));
+
+        vedicLocationSection = column();
+        TextView vedicRule = text(
+                "印度星盤 · Sidereal · Lahiri · Whole Sign\n"
+                        + "城市名稱只做顯示；計算直接使用座標與出生地時區，不會交給 AI 猜。",
+                11, GOLD, true);
+        vedicRule.setLineSpacing(dp(2), 1f);
+        vedicLocationSection.addView(vedicRule);
+
+        birthPlaceNameInput = input("出生城市，例如 新北市（只做稱呼）");
+        latitudeInput = input("Latitude，例如 25.0120");
+        longitudeInput = input("Longitude，例如 121.4657");
+        timeZoneInput = input("Timezone，例如 Asia/Taipei 或 +08:00");
+        latitudeInput.setInputType(
+                InputType.TYPE_CLASS_NUMBER
+                        | InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        longitudeInput.setInputType(
+                InputType.TYPE_CLASS_NUMBER
+                        | InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        vedicLocationSection.addView(birthPlaceNameInput, marginTop(6));
+        vedicLocationSection.addView(latitudeInput, marginTop(6));
+        vedicLocationSection.addView(longitudeInput, marginTop(6));
+        vedicLocationSection.addView(timeZoneInput, marginTop(6));
+
+        TextView locationHint = text(
+                "第一版不綁 geocoding API，避免城市同名、配額與 API key 影響排盤。"
+                        + "之後可直接把城市搜尋結果回填這三個 deterministic 欄位。",
+                10, MUTED, false);
+        locationHint.setLineSpacing(dp(2), 1f);
+        vedicLocationSection.addView(locationHint, marginTop(4));
+        vedicLocationSection.setVisibility(View.GONE);
+        form.addView(vedicLocationSection, marginTop(6));
 
         LinearLayout presetRow = new LinearLayout(this);
         presetRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -310,7 +366,7 @@ public final class MainActivity extends Activity {
 
         updateModeSelectionUi();
 
-        TextView foot = text("娛樂用途 · 八字＋生日型塔羅生命靈數 · v0.11.0", 12, MUTED, false);
+        TextView foot = text("娛樂用途 · 八字＋塔羅生命靈數＋印度星盤", 12, MUTED, false);
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(9));
         return scroll;
@@ -330,8 +386,12 @@ public final class MainActivity extends Activity {
             if (resultCard != null) resultCard.setVisibility(View.GONE);
         }
         boolean isBaZi = mode == FortuneMode.BA_ZI;
-        birthTimeInput.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
+        boolean isVedic = mode == FortuneMode.VEDIC_ASTROLOGY;
+        birthTimeInput.setVisibility((isBaZi || isVedic) ? View.VISIBLE : View.GONE);
         genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
+        if (vedicLocationSection != null) {
+            vedicLocationSection.setVisibility(isVedic ? View.VISIBLE : View.GONE);
+        }
         updateModeSelectionUi();
     }
 
@@ -350,12 +410,8 @@ public final class MainActivity extends Activity {
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         closeTeacher();
         closeAgent();
-        FortuneProfile profile = new FortuneProfile(
-                nameInput.getText().toString(),
-                birthInput.getText().toString(),
-                birthTimeInput.getText().toString(),
-                selectedGender);
         try {
+            FortuneProfile profile = buildCurrentProfile();
             currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
             currentResult = engine.calculate(selectedMode, profile, new Date());
             FortunePresetStore.saveLast(this, currentPreset());
@@ -569,7 +625,7 @@ public final class MainActivity extends Activity {
 
         value.append("creativeVariant=").append(System.nanoTime()).append('\n');
         value.append("creativeVariant 只允許改變措辭與笑點。")
-                .append("所有數字、干支、十神、大運、流年、塔羅牌、天賦數")
+                .append("所有數字、干支、十神、大運、流年、塔羅牌、天賦數、行星、宮位、Nakshatra、Dasha")
                 .append("都必須逐字遵守 deterministicFacts。");
         return value.toString();
     }
@@ -626,7 +682,8 @@ public final class MainActivity extends Activity {
         resultCard.addView(title, marginTop(8));
 
         if (result.mode == FortuneMode.BA_ZI
-                || result.mode == FortuneMode.TAROT_NUMEROLOGY) {
+                || result.mode == FortuneMode.TAROT_NUMEROLOGY
+                || result.mode == FortuneMode.VEDIC_ASTROLOGY) {
             addUnifiedTabbedResult(result, aiLoading);
             resultCard.setVisibility(View.VISIBLE);
             return;
@@ -774,22 +831,42 @@ public final class MainActivity extends Activity {
                     addBaZiOverviewTab(result, aiLoading);
                     break;
             }
-        } else {
+            return;
+        }
+
+        if (result.mode == FortuneMode.VEDIC_ASTROLOGY) {
             switch (selectedResultTab) {
                 case 1:
-                    addTarotResultPanel();
+                    addVedicNatalTab();
                     break;
                 case 2:
-                    addTarotTimelineTab();
+                    addVedicDashaTimelineTab();
                     break;
                 case 3:
-                    addTarotTopicAnalysisTab();
+                    addVedicTopicAnalysisTab();
                     break;
                 case 0:
                 default:
-                    addTarotOverviewTab(result, aiLoading);
+                    addVedicOverviewTab(result, aiLoading);
                     break;
             }
+            return;
+        }
+
+        switch (selectedResultTab) {
+            case 1:
+                addTarotResultPanel();
+                break;
+            case 2:
+                addTarotTimelineTab();
+                break;
+            case 3:
+                addTarotTopicAnalysisTab();
+                break;
+            case 0:
+            default:
+                addTarotOverviewTab(result, aiLoading);
+                break;
         }
     }
 
@@ -820,11 +897,18 @@ public final class MainActivity extends Activity {
             }
             if (!aiCopy.longTerm.isEmpty()) {
                 addPanelSection(panel,
-                        result.mode == FortuneMode.BA_ZI ? "未來十年" : "未來幾年",
+                        result.mode == FortuneMode.BA_ZI
+                                ? "未來十年"
+                                : result.mode == FortuneMode.VEDIC_ASTROLOGY
+                                ? "Dasha 長期節奏"
+                                : "未來幾年",
                         aiCopy.longTerm);
             }
             if (!aiCopy.keyYears.isEmpty()) {
-                addPanelSection(panel, "重要年份", aiCopy.keyYears);
+                addPanelSection(panel,
+                        result.mode == FortuneMode.VEDIC_ASTROLOGY
+                                ? "重要時期" : "重要年份",
+                        aiCopy.keyYears);
             }
             if (!aiCopy.translation.isEmpty()) {
                 addPanelSection(panel, "翻譯成人話", aiCopy.translation);
@@ -848,10 +932,281 @@ public final class MainActivity extends Activity {
         TextView hint = text(
                 result.mode == FortuneMode.BA_ZI
                         ? "下面的老師可以繼續追問：未來十年、財運、工作、感情、指定年份。"
+                        : result.mode == FortuneMode.VEDIC_ASTROLOGY
+                        ? "下面的老師可以繼續追問：目前 Mahadasha／Antardasha、工作、財運、感情或指定 Dasha 時期。"
                         : "下面的老師可以繼續追問：未來幾年、工作、感情、指定流年或今年某個月份。",
                 12, GOLD, true);
         hint.setLineSpacing(dp(2), 1f);
         panel.addView(hint, marginTop(11));
+    }
+
+    private void addVedicOverviewTab(FortuneResult result, boolean aiLoading) {
+        LinearLayout panel = resultPanel();
+
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.HORIZONTAL);
+        hero.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout lagna = column();
+        lagna.addView(text("Lagna", 11, GOLD, true));
+        lagna.addView(text(currentFacts.detailText("lagnaSign"), 22, TEXT, true), marginTop(3));
+        lagna.addView(text(
+                currentFacts.detailText("lagnaNakshatra")
+                        + " · Pada " + currentFacts.detailText("lagnaPada"),
+                11, MUTED, false), marginTop(2));
+        hero.addView(lagna, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        LinearLayout moon = column();
+        TextView moonLabel = text("Moon", 11, GOLD, true);
+        moonLabel.setGravity(Gravity.END);
+        moon.addView(moonLabel);
+        TextView moonSign = text(currentFacts.detailText("moonSign"), 22, ACCENT, true);
+        moonSign.setGravity(Gravity.END);
+        moon.addView(moonSign, marginTop(3));
+        TextView moonNakshatra = text(
+                currentFacts.detailText("moonNakshatra")
+                        + " · Pada " + currentFacts.detailText("moonPada"),
+                11, MUTED, false);
+        moonNakshatra.setGravity(Gravity.END);
+        moon.addView(moonNakshatra, marginTop(2));
+        hero.addView(moon, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        panel.addView(hero);
+
+        addPanelSection(panel, "本命核心", VedicFactsFormatter.coreSummary(currentFacts));
+        addPanelSection(panel, "目前 Dasha", VedicFactsFormatter.dashaSummary(currentFacts));
+
+        if (!aiLoading && aiCopy != null && !aiCopy.topTraits.isEmpty()) {
+            addTopTraits(panel);
+        }
+
+        String summary;
+        if (aiLoading) {
+            summary = localReportSection("核心總覽");
+        } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
+            summary = aiCopy.overview;
+        } else {
+            summary = localReportSection("核心總覽");
+        }
+        if (!summary.isEmpty()) addPanelSection(panel, "AI 重點", summary);
+
+        TextView rule = text(
+                "計算規則｜Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu",
+                11, MUTED, false);
+        panel.addView(rule, marginTop(9));
+    }
+
+    private void addVedicNatalTab() {
+        LinearLayout panel = resultPanel();
+
+        TextView intro = text(
+                "本命頁只展示 deterministic chart facts。點任一顆星或宮位可查看完整欄位；AI 不會在這一頁重新排盤。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addPanelSection(panel, "Lagna / Moon / Sun",
+                VedicFactsFormatter.coreSummary(currentFacts));
+
+        TextView planetsTitle = text("九曜", 13, GOLD, true);
+        panel.addView(planetsTitle, marginTop(14));
+        Object planetsRaw = currentFacts.detail("planets");
+        if (planetsRaw instanceof List) {
+            for (Object raw : (List<?>) planetsRaw) {
+                if (!(raw instanceof Map)) continue;
+                final Map<?, ?> planet = (Map<?, ?>) raw;
+                String title = mapValue(planet, "name")
+                        + " · " + mapValue(planet, "sign")
+                        + " · H" + mapValue(planet, "house");
+                String summary = String.format(
+                        java.util.Locale.US,
+                        "%.2f° sidereal",
+                        numberValue(planet.get("siderealLongitude")))
+                        + " · " + mapValue(planet, "nakshatra")
+                        + " P" + mapValue(planet, "pada")
+                        + (Boolean.TRUE.equals(planet.get("retrograde")) ? " · R" : "")
+                        + " · " + mapValue(planet, "dignity");
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
+                        () -> showFactDetailDialog(
+                                mapValue(planet, "name") + " deterministic facts", planet),
+                        "請只用 deterministic facts 解釋 "
+                                + mapValue(planet, "name")
+                                + " 的 sign、house、Nakshatra、dignity 與它所主宮位對我代表什麼。");
+            }
+        }
+
+        TextView housesTitle = text("12 Houses · Whole Sign", 13, GOLD, true);
+        panel.addView(housesTitle, marginTop(18));
+        Object housesRaw = currentFacts.detail("houses");
+        if (housesRaw instanceof List) {
+            for (Object raw : (List<?>) housesRaw) {
+                if (!(raw instanceof Map)) continue;
+                final Map<?, ?> house = (Map<?, ?>) raw;
+                String title = "H" + mapValue(house, "house")
+                        + " · " + mapValue(house, "sign")
+                        + " · lord " + mapValue(house, "lord");
+                String summary = "宮內：" + compactValue(house.get("planets"));
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
+                        () -> showFactDetailDialog(
+                                "House " + mapValue(house, "house"), house),
+                        "請只用 deterministic facts 解釋第 "
+                                + mapValue(house, "house")
+                                + " 宮、宮主 " + mapValue(house, "lord")
+                                + " 與宮內行星的結構。");
+            }
+        }
+
+        String aspects = VedicFactsFormatter.aspects(currentFacts);
+        addPanelSection(panel, "Drishti / Conjunctions",
+                aspects.isEmpty() ? "目前沒有符合 v1 規則的合相；Drishti 仍保存在 deterministic facts。" : aspects);
+
+        TextView boundary = text(
+                "v1 不計 D9、Yoga、Shadbala、Ashtakavarga；Rahu/Ketu 不套用有爭議的特殊 Drishti 或 dignity。",
+                11, MUTED, false);
+        boundary.setLineSpacing(dp(2), 1f);
+        panel.addView(boundary, marginTop(9));
+    }
+
+    private void addVedicDashaTimelineTab() {
+        LinearLayout panel = resultPanel();
+
+        TextView intro = text(
+                "第一版的「流年」以 Vimshottari Dasha 為主，不混入尚未實作的 Gochar/transit。"
+                        + "Mahadasha 是長週期背景，Antardasha 是其中較細的時間段；不是吉凶百分比。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addPanelSection(panel, "目前 Mahadasha / Antardasha",
+                VedicFactsFormatter.dashaSummary(currentFacts));
+        addYearHighlights(panel);
+
+        TextView mdTitle = text("Mahadasha timeline", 13, GOLD, true);
+        panel.addView(mdTitle, marginTop(18));
+        Object raw = currentFacts.detail("mahadashaTimeline");
+        String currentLord = mapValue(currentFacts.detail("currentMahadasha"), "lord");
+        if (raw instanceof List) {
+            for (Object itemRaw : (List<?>) raw) {
+                if (!(itemRaw instanceof Map)) continue;
+                final Map<?, ?> item = (Map<?, ?>) itemRaw;
+                String lord = mapValue(item, "lord");
+                String title = (lord.equals(currentLord) ? "● " : "○ ")
+                        + lord + " Mahadasha";
+                String summary = mapValue(item, "startDate")
+                        + " → " + mapValue(item, "endDate")
+                        + " · age " + mapValue(item, "startAge")
+                        + "–" + mapValue(item, "endAge");
+                addClickableFactCard(
+                        panel,
+                        title,
+                        summary,
+                        () -> showFactDetailDialog(lord + " Mahadasha", item),
+                        "請直接解釋 " + lord
+                                + " Mahadasha 對我代表什麼，只引用本命 planets、houses、houseLords 與這段 Dasha facts。");
+            }
+        }
+
+        TextView adTitle = text("目前 Mahadasha 的 Antardasha", 13, GOLD, true);
+        panel.addView(adTitle, marginTop(18));
+        String adTimeline = VedicFactsFormatter.antardashaTimeline(currentFacts);
+        addPanelSection(panel, "時間軸",
+                adTimeline.isEmpty() ? "目前 Mahadasha 不在已產生的時間範圍內。" : adTimeline);
+
+        TextView convention = text(
+                currentFacts.detailText("vimshottariConvention"),
+                11, MUTED, false);
+        convention.setLineSpacing(dp(2), 1f);
+        panel.addView(convention, marginTop(9));
+    }
+
+    private void addVedicTopicAnalysisTab() {
+        LinearLayout panel = resultPanel();
+
+        TextView intro = text(
+                "不做吉凶分數。每個主題都拆成「結論範圍 → deterministic evidence → 目前時間 → AI 解讀 → 問老師」。",
+                13, MUTED, false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro);
+
+        addVedicTopicCard(
+                panel,
+                "個性 / 天賦",
+                "Lagna × Moon × Sun × Lagna lord",
+                "personalityProfile",
+                aiCopy == null ? "" : aiCopy.personality,
+                "請直接講我的個性、優勢與盲點。只用 personalityProfile、Lagna、Moon、Sun、house lords 與本命 deterministic facts。");
+
+        addVedicTopicCard(
+                panel,
+                "工作 / Career",
+                "10宮 × 10宮主 × Saturn/Jupiter × Dasha",
+                "careerProfile",
+                aiCopy == null ? "" : aiCopy.career,
+                "請直接講我的工作方向與目前職涯節奏。只用 careerProfile、10宮、10宮主、Saturn/Jupiter 與目前 Dasha。");
+
+        addVedicTopicCard(
+                panel,
+                "財務 / Wealth",
+                "2宮 × 11宮 × Jupiter/Venus × Dasha",
+                "wealthProfile",
+                aiCopy == null ? "" : aiCopy.wealth,
+                "請直接講我的財務與資源節奏。只用 wealthProfile、2宮、11宮及宮主、Jupiter/Venus 與目前 Dasha，不做投資預測。");
+
+        addVedicTopicCard(
+                panel,
+                "感情 / Relationships",
+                "7宮 × 7宮主 × Venus × Dasha",
+                "relationshipProfile",
+                aiCopy == null ? "" : aiCopy.relationships,
+                "請直接講我的感情與關係模式。只用 relationshipProfile、7宮、7宮主、Venus 與目前 Dasha，不把訊號說成必然事件。");
+
+        addVedicTopicCard(
+                panel,
+                "家庭 / Children",
+                "4宮 × 5宮 × Moon/Jupiter",
+                "familyChildrenProfile",
+                "",
+                "請只用 familyChildrenProfile、4宮、5宮及宮主、Moon/Jupiter 說明家庭與子女主題。不要預測懷孕必然結果。");
+
+        TextView boundary = text(
+                "娛樂與自我反思用途。工作、財務、感情與家庭可以談結構與節奏；不做死亡、嚴重疾病、懷孕必然、犯罪或災難斷言。",
+                11, MUTED, false);
+        boundary.setLineSpacing(dp(2), 1f);
+        panel.addView(boundary, marginTop(9));
+    }
+
+    private void addVedicTopicCard(
+            LinearLayout panel,
+            String title,
+            String subtitle,
+            String profileKey,
+            String aiText,
+            String question) {
+        LinearLayout card = topicCard(panel, title, subtitle);
+        Object raw = currentFacts.detail(profileKey);
+        String rule = mapValue(raw, "rule");
+        Object evidence = raw instanceof Map ? ((Map<?, ?>) raw).get("evidence") : null;
+        addTopicLine(card, "結論範圍", rule);
+        addTopicLine(card, "deterministic evidence", compactValue(evidence));
+        addTopicLine(card, "時間", VedicFactsFormatter.dashaSummary(currentFacts));
+        addTopicLine(card, "AI 解讀",
+                aiText == null || aiText.trim().isEmpty()
+                        ? "AI 完成後會只根據上面的 deterministic evidence 解讀；目前先保留可驗證依據。"
+                        : aiText);
+        addAskTeacherAction(card, "問老師", question);
+    }
+
+    private double numberValue(Object value) {
+        if (value instanceof Number) return ((Number) value).doubleValue();
+        try { return Double.parseDouble(String.valueOf(value)); }
+        catch (Exception ignored) { return 0.0; }
     }
 
     private void addTarotOverviewTab(FortuneResult result, boolean aiLoading) {
@@ -1216,7 +1571,7 @@ public final class MainActivity extends Activity {
 
         if (selectedResultTab == 0 || selectedResultTab == 4) {
             out.addAll(aiCopy.followUps);
-            return out;
+            return trimQuestions(out, 4);
         }
 
         if (selectedResultTab == 1) {
@@ -1225,6 +1580,11 @@ public final class MainActivity extends Activity {
                 out.add("我的十神組合最明顯的優勢是什麼？");
                 out.add("我的本命最容易卡在哪裡？");
                 out.add("五行結構對我的做事方式有什麼影響？");
+            } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+                out.add("我的 Lagna 和 Lagna lord 最像我的地方是什麼？");
+                out.add("Moon Nakshatra 對我的內在節奏代表什麼？");
+                out.add("本命裡最值得注意的 house lord 落點是什麼？");
+                out.add("哪些 Drishti 或 conjunction 最影響我的做事方式？");
             } else {
                 out.add("外在人格牌和內在靈魂牌最大的落差是什麼？");
                 out.add("生命道路 " + currentFacts.detailText("lifePathDisplay") + " 最像我的地方是什麼？");
@@ -1243,6 +1603,9 @@ public final class MainActivity extends Activity {
             if (selectedMode == FortuneMode.BA_ZI) {
                 out.add("未來幾年哪一年工作變動訊號最明顯？");
                 out.add("未來幾年哪一年財運與資源訊號最值得看？");
+            } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+                out.add("我現在這個 Mahadasha 對工作代表什麼？");
+                out.add("接下來哪個 Antardasha 最值得我先理解？");
             } else {
                 out.add("未來幾年哪個流年轉折最大？");
                 out.add("今年哪幾個月份最值得我注意？");
@@ -1256,6 +1619,11 @@ public final class MainActivity extends Activity {
                 out.add("直接講我的財運重點，不要只講好壞。");
                 out.add("直接講我的感情與人際盲點。");
                 out.add("這三個主題裡，未來三年哪個變化最大？");
+            } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+                out.add("我的工作適合什麼方向？請引用 10 宮與目前 Dasha。");
+                out.add("財運比較明顯在哪些 Dasha 時期？");
+                out.add("感情最大的盲點是什麼？請引用 7 宮與 Venus。");
+                out.add("目前 Mahadasha / Antardasha 對哪個生活主題最有關聯？");
             } else {
                 out.add("直接講我的工作優勢與目前節奏。");
                 out.add("直接講我的資源與成果節奏。");
@@ -1285,12 +1653,18 @@ public final class MainActivity extends Activity {
                 FortuneYearHighlightBuilder.build(selectedMode, currentFacts);
         if (highlights.isEmpty()) return;
 
-        TextView title = text("重要年份 · 先看這幾個", 13, GOLD, true);
+        TextView title = text(
+                selectedMode == FortuneMode.VEDIC_ASTROLOGY
+                        ? "重要時期 · 先看這幾個"
+                        : "重要年份 · 先看這幾個",
+                13, GOLD, true);
         panel.addView(title, marginTop(11));
 
         TextView hint = text(
                 selectedMode == FortuneMode.BA_ZI
                         ? "依十神、合沖與工作／財務／感情訊號挑出；不是吉凶排名。"
+                        : selectedMode == FortuneMode.VEDIC_ASTROLOGY
+                        ? "依 Vimshottari Mahadasha / Antardasha 的實際起訖順序顯示；不是吉凶排名。"
                         : "依個人流年的週期主題挑出；不是吉凶排名。",
                 11, MUTED, false);
         panel.addView(hint, marginTop(2));
@@ -1445,16 +1819,26 @@ public final class MainActivity extends Activity {
 
     private String aiLoadingStageLabel(FortuneMode mode) {
         if (aiLoadingStage == 2) {
-            return "正在補足內容與格式，避免漏掉重要年份或依據";
+            return mode == FortuneMode.VEDIC_ASTROLOGY
+                    ? "正在補足內容與格式，避免漏掉 Dasha 時期或星盤依據"
+                    : "正在補足內容與格式，避免漏掉重要年份或依據";
         }
         if (aiLoadingStage == 1) {
-            return mode == FortuneMode.BA_ZI
-                    ? "正在撰寫個性、工作、財運、感情與未來十年"
-                    : "正在撰寫個性、工作、資源、感情與未來幾年";
+            if (mode == FortuneMode.BA_ZI) {
+                return "正在撰寫個性、工作、財運、感情與未來十年";
+            }
+            if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+                return "正在撰寫個性、工作、財務、感情與 Dasha 長期節奏";
+            }
+            return "正在撰寫個性、工作、資源、感情與未來幾年";
         }
-        return mode == FortuneMode.BA_ZI
-                ? "正在整理本命、大運、流年與主題訊號"
-                : "正在整理本命牌、人生階段、個人流年與主題";
+        if (mode == FortuneMode.BA_ZI) {
+            return "正在整理本命、大運、流年與主題訊號";
+        }
+        if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+            return "正在整理 Lagna、九曜、12 宮、Nakshatra 與 Vimshottari Dasha";
+        }
+        return "正在整理本命牌、人生階段、個人流年與主題";
     }
 
     private void addAiLoadingBanner(FortuneMode mode) {
@@ -1497,22 +1881,32 @@ public final class MainActivity extends Activity {
         TextView title = text("完整解讀正在生成", 16, TEXT, true);
         panel.addView(title);
 
-        TextView subtitle = text(
-                mode == FortuneMode.BA_ZI
-                        ? "本命、流年等資料已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。"
-                        : "本命與流年資料已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。",
-                13, MUTED, false);
+        String subtitleValue;
+        if (mode == FortuneMode.BA_ZI) {
+            subtitleValue = "本命、流年等資料已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。";
+        } else if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+            subtitleValue = "Lagna、九曜、12 宮與 Dasha 已經可以先看；AI 正在只依 deterministic Vedic facts 整理完整報告。";
+        } else {
+            subtitleValue = "本命與流年資料已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。";
+        }
+        TextView subtitle = text(subtitleValue, 13, MUTED, false);
         subtitle.setLineSpacing(dp(2), 1f);
         panel.addView(subtitle, marginTop(5));
 
+        String longTerm = mode == FortuneMode.BA_ZI
+                ? "未來十年"
+                : mode == FortuneMode.VEDIC_ASTROLOGY
+                ? "Dasha 長期節奏"
+                : "未來幾年";
+        String timingLabel = mode == FortuneMode.VEDIC_ASTROLOGY ? "重要時期" : "重要年份";
         String[] sections = {
                 "總覽",
                 "性格、優勢與盲點",
                 "工作",
                 "財運與資源",
                 "感情與人際",
-                mode == FortuneMode.BA_ZI ? "未來十年" : "未來幾年",
-                "重要年份"
+                longTerm,
+                timingLabel
         };
         for (String section : sections) {
             LinearLayout row = new LinearLayout(this);
@@ -2842,13 +3236,49 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private FortuneProfile buildCurrentProfile() {
+        BirthPlace birthPlace = null;
+        if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+            String latitudeText = latitudeInput == null ? "" : latitudeInput.getText().toString().trim();
+            String longitudeText = longitudeInput == null ? "" : longitudeInput.getText().toString().trim();
+            String zoneText = timeZoneInput == null ? "" : timeZoneInput.getText().toString().trim();
+            if (latitudeText.isEmpty() || longitudeText.isEmpty() || zoneText.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "印度星盤需要出生地 latitude、longitude 與 timezone");
+            }
+            final double latitude;
+            final double longitude;
+            try {
+                latitude = Double.parseDouble(latitudeText);
+                longitude = Double.parseDouble(longitudeText);
+            } catch (NumberFormatException error) {
+                throw new IllegalArgumentException("出生地座標格式不正確", error);
+            }
+            birthPlace = new BirthPlace(
+                    birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString(),
+                    latitude,
+                    longitude,
+                    zoneText);
+        }
+        return new FortuneProfile(
+                nameInput.getText().toString(),
+                birthInput.getText().toString(),
+                birthTimeInput.getText().toString(),
+                selectedGender,
+                birthPlace);
+    }
+
     private FortunePreset currentPreset() {
         return new FortunePreset(
                 nameInput.getText().toString(),
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
                 selectedGender,
-                selectedMode);
+                selectedMode,
+                birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString(),
+                latitudeInput == null ? "" : latitudeInput.getText().toString(),
+                longitudeInput == null ? "" : longitudeInput.getText().toString(),
+                timeZoneInput == null ? "" : timeZoneInput.getText().toString());
     }
 
     private void restoreLastProfile() {
@@ -2866,8 +3296,21 @@ public final class MainActivity extends Activity {
             Toast.makeText(this, "先選生日再儲存 preset", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (preset.mode == FortuneMode.BA_ZI && preset.birthTime.isEmpty()) {
-            Toast.makeText(this, "八字 preset 需要出生時間", Toast.LENGTH_SHORT).show();
+        if ((preset.mode == FortuneMode.BA_ZI
+                || preset.mode == FortuneMode.VEDIC_ASTROLOGY)
+                && preset.birthTime.isEmpty()) {
+            Toast.makeText(this,
+                    preset.mode == FortuneMode.BA_ZI
+                            ? "八字 preset 需要出生時間"
+                            : "印度星盤 preset 需要出生時間",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (preset.mode == FortuneMode.VEDIC_ASTROLOGY
+                && preset.birthPlaceOrNull() == null) {
+            Toast.makeText(this,
+                    "印度星盤 preset 需要有效的出生地座標與時區",
+                    Toast.LENGTH_SHORT).show();
             return;
         }
         if (preset.mode == FortuneMode.BA_ZI && preset.gender.isEmpty()) {
@@ -2908,6 +3351,10 @@ public final class MainActivity extends Activity {
         nameInput.setText(preset.name);
         birthInput.setText(preset.birthDate);
         birthTimeInput.setText(preset.birthTime);
+        if (birthPlaceNameInput != null) birthPlaceNameInput.setText(preset.birthPlaceName);
+        if (latitudeInput != null) latitudeInput.setText(preset.latitude);
+        if (longitudeInput != null) longitudeInput.setText(preset.longitude);
+        if (timeZoneInput != null) timeZoneInput.setText(preset.timeZoneId);
         selectMode(preset.mode);
         if (!preset.gender.isEmpty()) selectGender(preset.gender);
         else {
@@ -2924,6 +3371,18 @@ public final class MainActivity extends Activity {
             nameInput.setText(state.getString("state_name", ""));
             birthInput.setText(state.getString("state_birth_date", ""));
             birthTimeInput.setText(state.getString("state_birth_time", ""));
+            if (birthPlaceNameInput != null) {
+                birthPlaceNameInput.setText(state.getString("state_birth_place_name", ""));
+            }
+            if (latitudeInput != null) {
+                latitudeInput.setText(state.getString("state_latitude", ""));
+            }
+            if (longitudeInput != null) {
+                longitudeInput.setText(state.getString("state_longitude", ""));
+            }
+            if (timeZoneInput != null) {
+                timeZoneInput.setText(state.getString("state_timezone", ""));
+            }
             selectedGender = state.getString("state_gender", "");
             selectedMode = FortuneMode.valueOf(
                     state.getString("state_mode", FortuneMode.BA_ZI.name()));
@@ -2936,11 +3395,7 @@ public final class MainActivity extends Activity {
             updateAiStyleButtons();
 
             if (state.getBoolean("state_has_result", false)) {
-                FortuneProfile profile = new FortuneProfile(
-                        nameInput.getText().toString(),
-                        birthInput.getText().toString(),
-                        birthTimeInput.getText().toString(),
-                        selectedGender);
+                FortuneProfile profile = buildCurrentProfile();
                 currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
                 currentResult = engine.calculate(selectedMode, profile, new Date());
 
@@ -3171,6 +3626,8 @@ public final class MainActivity extends Activity {
 
     private void updateModeSelectionUi() {
         boolean bazi = selectedMode == FortuneMode.BA_ZI;
+        boolean tarot = selectedMode == FortuneMode.TAROT_NUMEROLOGY;
+        boolean vedic = selectedMode == FortuneMode.VEDIC_ASTROLOGY;
         if (baZiModeButton != null) {
             baZiModeButton.setBackground(roundBorder(
                     bazi ? ACCENT : CARD_2,
@@ -3180,15 +3637,32 @@ public final class MainActivity extends Activity {
         }
         if (tarotModeButton != null) {
             tarotModeButton.setBackground(roundBorder(
-                    !bazi ? ACCENT : CARD_2,
-                    !bazi ? ACCENT : Color.rgb(80, 65, 111),
+                    tarot ? ACCENT : CARD_2,
+                    tarot ? ACCENT : Color.rgb(80, 65, 111),
                     16, 1));
-            tarotModeButton.setTextColor(!bazi ? Color.rgb(30, 22, 46) : TEXT);
+            tarotModeButton.setTextColor(tarot ? Color.rgb(30, 22, 46) : TEXT);
+        }
+        if (vedicModeButton != null) {
+            vedicModeButton.setBackground(roundBorder(
+                    vedic ? ACCENT : CARD_2,
+                    vedic ? ACCENT : Color.rgb(80, 65, 111),
+                    16, 1));
+            vedicModeButton.setTextColor(vedic ? Color.rgb(30, 22, 46) : TEXT);
         }
         if (modeLabel != null) {
-            modeLabel.setText(bazi
-                    ? "四柱、十神、大運、逐年流年 · 需要出生時間與性別\n以出生地當地民用時間排盤，目前不做真太陽時校正"
-                    : "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n名字只用來稱呼你；計算只使用生日，不使用姓名或出生時間");
+            if (bazi) {
+                modeLabel.setText(
+                        "四柱、十神、大運、逐年流年 · 需要出生時間與性別\n"
+                                + "以出生地當地民用時間排盤，目前不做真太陽時校正");
+            } else if (tarot) {
+                modeLabel.setText(
+                        "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n"
+                                + "名字只用來稱呼你；計算只使用生日，不使用姓名或出生時間");
+            } else {
+                modeLabel.setText(
+                        "Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu\n"
+                                + "需要精確出生時間、latitude、longitude 與出生地 timezone");
+            }
         }
     }
 

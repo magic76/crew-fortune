@@ -47,9 +47,13 @@ public final class FortuneShareCardData {
         if (mode == null || facts == null || result == null) {
             throw new IllegalArgumentException("share card requires result facts");
         }
-        return mode == FortuneMode.BA_ZI
-                ? fromBaZi(facts, result, aiCopy, displayName)
-                : fromTarot(facts, result, aiCopy, displayName);
+        if (mode == FortuneMode.BA_ZI) {
+            return fromBaZi(facts, result, aiCopy, displayName);
+        }
+        if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+            return fromVedic(facts, result, aiCopy, displayName);
+        }
+        return fromTarot(facts, result, aiCopy, displayName);
     }
 
     private static FortuneShareCardData fromBaZi(
@@ -91,6 +95,51 @@ public final class FortuneShareCardData {
                 joinLines(luckTitle, luckSummary),
                 "接下來三年",
                 years,
+                safeQuote(aiCopy, result, displayName));
+    }
+
+    private static FortuneShareCardData fromVedic(
+            FortuneFacts facts,
+            FortuneResult result,
+            AiFortuneCopy aiCopy,
+            String displayName) {
+        String core = "Lagna｜" + facts.detailText("lagnaSign")
+                + "\nMoon｜" + facts.detailText("moonSign")
+                + "\nNakshatra｜" + facts.detailText("moonNakshatra")
+                + " Pada " + facts.detailText("moonPada");
+
+        Object md = facts.detail("currentMahadasha");
+        Object ad = facts.detail("currentAntardasha");
+        String cycle = "Mahadasha｜" + mapText(md, "lord")
+                + "  " + mapText(md, "startDate") + "–" + mapText(md, "endDate")
+                + "\nAntardasha｜" + mapText(ad, "lord")
+                + "  " + mapText(ad, "startDate") + "–" + mapText(ad, "endDate");
+
+        List<String> periods = new ArrayList<String>();
+        Object raw = facts.detail("importantPeriods");
+        if (raw instanceof List) {
+            for (Object item : (List<?>) raw) {
+                if (!(item instanceof Map)) continue;
+                Map<?, ?> period = (Map<?, ?>) item;
+                String mdLord = mapText(period, "mahadashaLord");
+                String adLord = mapText(period, "lord");
+                periods.add((mdLord.isEmpty() ? "" : mdLord + "/") + adLord
+                        + "｜" + mapText(period, "startDate")
+                        + " → " + mapText(period, "endDate"));
+                if (periods.size() >= 3) break;
+            }
+        }
+        if (periods.isEmpty()) periods.add("目前沒有後續 Dasha period 可分享");
+
+        return new FortuneShareCardData(
+                FortuneMode.VEDIC_ASTROLOGY,
+                "印度星盤",
+                "你的星盤核心",
+                core,
+                "目前 Dasha",
+                cycle,
+                "接下來幾個時期",
+                periods,
                 safeQuote(aiCopy, result, displayName));
     }
 
