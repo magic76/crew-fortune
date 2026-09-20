@@ -914,6 +914,7 @@ public final class MainActivity extends Activity {
                         + "｜流年 " + currentFacts.detailText("personalYear")
                         + "「" + currentFacts.detailText("personalYearCardName") + "」"
                         + "\n" + currentTarotYearSummary());
+        addYearHighlights(panel);
 
         TextView yearsTitle = text(
                 "年度時間軸 · " + currentFacts.detailText("personalYearTimelineStartYear")
@@ -984,6 +985,10 @@ public final class MainActivity extends Activity {
                 aiCopy != null && !aiCopy.personality.isEmpty()
                         ? aiCopy.personality
                         : localReportSection("內在 vs 外在"));
+        addAskTeacherAction(
+                personality,
+                "問老師個性",
+                "請直接回答我的外在人格牌、內在靈魂牌與生命道路之間最明顯的性格落差與優勢。");
 
         LinearLayout career = topicCard(panel, "工作與資源", "生命道路 × 態度數 × 巔峰 × 當前流年");
         addTopicLine(career, "依據",
@@ -998,6 +1003,10 @@ public final class MainActivity extends Activity {
                 aiCopy != null && !aiCopy.career.isEmpty()
                         ? aiCopy.career
                         : localReportSection("工作與財務"));
+        addAskTeacherAction(
+                career,
+                "問老師工作",
+                "請直接回答我的工作優勢與現在的職涯節奏。請用生命道路、態度數、巔峰與個人流年說明。");
 
         LinearLayout wealth = topicCard(panel, "財運與資源", "生命道路 × 巔峰 × 個人流年");
         addTopicLine(wealth, "依據",
@@ -1010,6 +1019,10 @@ public final class MainActivity extends Activity {
                 aiCopy != null && !aiCopy.wealth.isEmpty()
                         ? aiCopy.wealth
                         : "塔羅生命靈數的財務解讀以資源使用、成果節奏與年度主題為主，不把牌義當成投資預測。");
+        addAskTeacherAction(
+                wealth,
+                "問老師資源",
+                "請直接回答我目前的資源與成果節奏。請用生命道路、巔峰與個人流年說明，不做投資預測。");
 
         LinearLayout relationship = topicCard(panel, "感情與人際", "內外牌 × 挑戰數 × 年度節奏");
         addTopicLine(relationship, "依據",
@@ -1024,6 +1037,10 @@ public final class MainActivity extends Activity {
                 aiCopy != null && !aiCopy.relationships.isEmpty()
                         ? aiCopy.relationships
                         : localReportSection("感情與人際"));
+        addAskTeacherAction(
+                relationship,
+                "問老師感情",
+                "請直接回答我的感情與人際模式。請用外在人格牌、內在靈魂牌、挑戰數與目前流年說明。");
 
         TextView boundary = text(
                 "塔羅生命靈數用於娛樂與自我反思；流年表示主題循環，不代表特定事件一定發生。",
@@ -1062,8 +1079,11 @@ public final class MainActivity extends Activity {
                 aiLoading);
         resultCard.addView(source, marginTop(aiLoading ? 5 : 6));
 
-        if (!aiLoading && aiCopy != null && !aiCopy.followUps.isEmpty()) {
-            addFollowUpQuestions();
+        if (!aiLoading && aiCopy != null) {
+            List<String> contextualQuestions = buildContextFollowUps();
+            if (!contextualQuestions.isEmpty()) {
+                addFollowUpQuestions(contextualQuestions);
+            }
         }
 
         Button teacher = new Button(this);
@@ -1126,13 +1146,17 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void addFollowUpQuestions() {
-        TextView title = text("你一定會想問", 13, GOLD, true);
+    private void addFollowUpQuestions(List<String> questions) {
+        TextView title = text(
+                selectedResultTab == 0 || selectedResultTab == 4
+                        ? "你一定會想問"
+                        : "這一頁可以直接問",
+                13, GOLD, true);
         resultCard.addView(title, marginTop(9));
 
         int index = 0;
         LinearLayout row = null;
-        for (final String question : aiCopy.followUps) {
+        for (final String question : questions) {
             if (index >= 4) break;
             if (index % 2 == 0) {
                 row = new LinearLayout(this);
@@ -1183,12 +1207,9 @@ public final class MainActivity extends Activity {
         TextView title = text("AI 命理師正在整理完整解讀", 14, TEXT, true);
         copy.addView(title);
 
-        String detail = mode == FortuneMode.BA_ZI
-                ? "正在串起本命、大運、逐年流年、工作、財運與感情"
-                : "正在串起本命牌、人生階段、個人流年、工作、資源與感情";
-        TextView subtitle = text(detail, 12, MUTED, false);
-        subtitle.setLineSpacing(dp(1), 1f);
-        copy.addView(subtitle, marginTop(2));
+        aiLoadingStageText = text(aiLoadingStageLabel(mode), 12, MUTED, false);
+        aiLoadingStageText.setLineSpacing(dp(1), 1f);
+        copy.addView(aiLoadingStageText, marginTop(2));
 
         TextView wait = text("完成後會自動更新，不需要重新按一次。", 11, ACCENT, true);
         copy.addView(wait, marginTop(3));
@@ -1308,6 +1329,7 @@ public final class MainActivity extends Activity {
                         + " 有財星不等於一定賺錢、有沖也不等於一定出事。");
 
         addPanelSection(panel, "目前大運", summaryLuck(currentFacts.detail("currentLuckPillar")));
+        addYearHighlights(panel);
 
         TextView luckTitle = text("大運時間軸", 13, GOLD, true);
         panel.addView(luckTitle, marginTop(11));
@@ -1393,6 +1415,10 @@ public final class MainActivity extends Activity {
                         ? aiCopy.wealth
                         : "AI 完成後會把財星、大運與流年證據翻成白話；沒有 AI 時仍可直接看上面的 deterministic evidence。");
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
+        addAskTeacherAction(
+                card,
+                "問老師我的財運",
+                "請直接回答我的財運重點。請從 wealthProfile、目前大運與逐年流年挑最重要的依據，不要重新排盤。");
     }
 
     private void addCareerTopic(LinearLayout panel) {
@@ -1411,6 +1437,10 @@ public final class MainActivity extends Activity {
                         ? aiCopy.career
                         : "官殺偏責任與規範、印偏資源與學習、食傷偏輸出與表達；要再和大運、流年一起看。");
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
+        addAskTeacherAction(
+                card,
+                "問老師工作",
+                "請直接回答我的工作與職涯重點。請從 careerProfile、目前大運與逐年流年挑最重要的依據，不要重新排盤。");
     }
 
     private void addRelationshipTopic(LinearLayout panel) {
@@ -1430,6 +1460,10 @@ public final class MainActivity extends Activity {
                         ? aiCopy.relationships
                         : "這裡只標出配偶宮與財官訊號被碰到的年份，不直接等同戀愛、結婚或分手。");
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
+        addAskTeacherAction(
+                card,
+                "問老師感情",
+                "請直接回答我的感情與人際盲點。請從 relationshipProfile、配偶宮與逐年流年挑最重要的依據，不要重新排盤。");
     }
 
     private LinearLayout resultPanel() {
