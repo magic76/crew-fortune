@@ -864,10 +864,40 @@ public final class MainActivity extends Activity {
         }
         resultCard.addView(tabScroll, marginTop(6));
 
+        if (result.mode == FortuneMode.VEDIC_ASTROLOGY) {
+            TextView vedicTabGuide = text(
+                    "本命＝看出生底盤　｜　流年＝看現在與未來節奏",
+                    11, MUTED, true);
+            vedicTabGuide.setLineSpacing(dp(2), 1f);
+            resultCard.addView(vedicTabGuide, marginTop(5));
+
+            TextView selectedTabGuide = text(
+                    vedicSelectedTabDescription(),
+                    12, ACCENT, false);
+            selectedTabGuide.setLineSpacing(dp(2), 1f);
+            resultCard.addView(selectedTabGuide, marginTop(3));
+        }
+
         resultTabContent = column();
         resultCard.addView(resultTabContent, marginTop(4));
         renderUnifiedTab(result, aiLoading);
         addSharedResultActions(aiLoading, result.mode);
+    }
+
+    private String vedicSelectedTabDescription() {
+        switch (selectedResultTab) {
+            case 1:
+                return "這頁可看：Lagna、Moon、Sun、九曜落點、12 宮、宮主、Nakshatra、逆行與行星互動。";
+            case 2:
+                return "這頁可看：目前 Mahadasha / Antardasha、指定日期 Gochar、Dasha × Gochar，以及未來 3 年主要行運變化。";
+            case 3:
+                return "這頁可看：個性、工作、財務、感情、家庭各自用了哪些本命與時間證據。";
+            case 4:
+                return "這頁可看：AI 命理老師把本命、Dasha 與 Gochar 整理成完整白話解讀。";
+            case 0:
+            default:
+                return "這頁可看：你的核心命盤身份、目前人生週期，以及最值得先理解的幾個重點。";
+        }
     }
 
     private void renderUnifiedTab(FortuneResult result, boolean aiLoading) {
