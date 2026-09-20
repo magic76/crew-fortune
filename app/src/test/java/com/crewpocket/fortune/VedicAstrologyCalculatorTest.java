@@ -78,6 +78,15 @@ public final class VedicAstrologyCalculatorTest {
         assertNotNull(facts.get("currentTransitDate"));
         assertTrue(facts.get("transitAspectsToNatal") instanceof List);
         assertTrue(facts.get("transitConjunctionsToNatal") instanceof List);
+        assertTrue(facts.get("majorTransitTimeline") instanceof List);
+        assertEquals("2003-01-01", facts.get("majorTransitTimelineEndDate"));
+        List<?> majorTimeline = (List<?>) facts.get("majorTransitTimeline");
+        assertFalse(majorTimeline.isEmpty());
+        Map<?, ?> firstTransitEvent = (Map<?, ?>) majorTimeline.get(0);
+        assertNotNull(firstTransitEvent.get("date"));
+        assertNotNull(firstTransitEvent.get("planet"));
+        assertNotNull(firstTransitEvent.get("fromHouse"));
+        assertNotNull(firstTransitEvent.get("toHouse"));
 
         Map<?, ?> currentMd = (Map<?, ?>) facts.get("currentMahadasha");
         Map<?, ?> currentAd = (Map<?, ?>) facts.get("currentAntardasha");
