@@ -1116,15 +1116,27 @@ public final class MainActivity extends Activity {
         int index = 0;
         for (String trait : aiCopy.topTraits) {
             if (index >= 3) break;
+            final int traitIndex = index;
+            final String traitValue = trait;
+            final String evidence = traitIndex < aiCopy.topTraitEvidence.size()
+                    ? aiCopy.topTraitEvidence.get(traitIndex)
+                    : "這一點來自完整解讀與 deterministic facts；此結果沒有獨立證據摘要。";
+
             LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.TOP);
+            row.setOrientation(LinearLayout.VERTICAL);
             row.setPadding(dp(9), dp(8), dp(9), dp(8));
             row.setBackground(roundBorder(
                     Color.rgb(43, 33, 65),
                     Color.rgb(80, 65, 111),
                     13,
                     1));
+            row.setClickable(true);
+            row.setOnClickListener(v ->
+                    showTraitEvidenceDialog(traitValue, evidence));
+
+            LinearLayout headline = new LinearLayout(this);
+            headline.setOrientation(LinearLayout.HORIZONTAL);
+            headline.setGravity(Gravity.TOP);
 
             TextView number = text(
                     index == 0 ? "①" : index == 1 ? "②" : "③",
@@ -1134,12 +1146,16 @@ public final class MainActivity extends Activity {
             LinearLayout.LayoutParams numberLp = new LinearLayout.LayoutParams(
                     dp(30), LinearLayout.LayoutParams.WRAP_CONTENT);
             numberLp.rightMargin = dp(5);
-            row.addView(number, numberLp);
+            headline.addView(number, numberLp);
 
             TextView body = text(trait, 13, TEXT, true);
             body.setLineSpacing(dp(2), 1f);
-            row.addView(body, new LinearLayout.LayoutParams(
+            headline.addView(body, new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(headline);
+
+            TextView why = text("為什麼這樣說？查看依據 ›", 11, ACCENT, true);
+            row.addView(why, marginTop(4));
 
             panel.addView(row, marginTop(5));
             index++;
@@ -1182,6 +1198,253 @@ public final class MainActivity extends Activity {
             row.addView(button, lp);
             index++;
         }
+    }
+
+    private List<String> buildContextFollowUps() {
+        List<String> out = new ArrayList<String>();
+        if (aiCopy == null) return out;
+
+        if (selectedResultTab == 0 || selectedResultTab == 4) {
+            out.addAll(aiCopy.followUps);
+            return out;
+        }
+
+        if (selectedResultTab == 1) {
+            if (selectedMode == FortuneMode.BA_ZI) {
+                out.add("我的日主和旺衰放到生活裡，最像什麼？");
+                out.add("我的十神組合最明顯的優勢是什麼？");
+                out.add("我的本命最容易卡在哪裡？");
+                out.add("五行結構對我的做事方式有什麼影響？");
+            } else {
+                out.add("外在人格牌和內在靈魂牌最大的落差是什麼？");
+                out.add("生命道路 " + currentFacts.detailText("lifePathDisplay") + " 最像我的地方是什麼？");
+                out.add("我的天賦數最適合怎麼用？");
+                out.add("四大挑戰裡，哪一個最值得我注意？");
+            }
+            return out;
+        }
+
+        if (selectedResultTab == 2) {
+            for (FortuneYearHighlightBuilder.Highlight highlight
+                    : FortuneYearHighlightBuilder.build(selectedMode, currentFacts)) {
+                out.add(highlight.question);
+                if (out.size() >= 2) break;
+            }
+            if (selectedMode == FortuneMode.BA_ZI) {
+                out.add("未來幾年哪一年工作變動訊號最明顯？");
+                out.add("未來幾年哪一年財運與資源訊號最值得看？");
+            } else {
+                out.add("未來幾年哪個流年轉折最大？");
+                out.add("今年哪幾個月份最值得我注意？");
+            }
+            return trimQuestions(out, 4);
+        }
+
+        if (selectedResultTab == 3) {
+            if (selectedMode == FortuneMode.BA_ZI) {
+                out.add("直接講我的工作優勢與盲點。");
+                out.add("直接講我的財運重點，不要只講好壞。");
+                out.add("直接講我的感情與人際盲點。");
+                out.add("這三個主題裡，未來三年哪個變化最大？");
+            } else {
+                out.add("直接講我的工作優勢與目前節奏。");
+                out.add("直接講我的資源與成果節奏。");
+                out.add("直接講我的感情與人際模式。");
+                out.add("未來三年哪個主題最值得我注意？");
+            }
+            return out;
+        }
+
+        out.addAll(aiCopy.followUps);
+        return trimQuestions(out, 4);
+    }
+
+    private List<String> trimQuestions(List<String> source, int max) {
+        List<String> out = new ArrayList<String>();
+        for (String item : source) {
+            if (item == null || item.trim().isEmpty()) continue;
+            if (out.contains(item.trim())) continue;
+            out.add(item.trim());
+            if (out.size() >= max) break;
+        }
+        return out;
+    }
+
+    private void addYearHighlights(LinearLayout panel) {
+        List<FortuneYearHighlightBuilder.Highlight> highlights =
+                FortuneYearHighlightBuilder.build(selectedMode, currentFacts);
+        if (highlights.isEmpty()) return;
+
+        TextView title = text("重要年份 · 先看這幾個", 13, GOLD, true);
+        panel.addView(title, marginTop(11));
+
+        TextView hint = text(
+                selectedMode == FortuneMode.BA_ZI
+                        ? "依十神、合沖與工作／財務／感情訊號挑出；不是吉凶排名。"
+                        : "依個人流年的週期主題挑出；不是吉凶排名。",
+                11, MUTED, false);
+        panel.addView(hint, marginTop(2));
+
+        for (FortuneYearHighlightBuilder.Highlight highlight : highlights) {
+            LinearLayout card = column();
+            card.setPadding(dp(9), dp(9), dp(9), dp(9));
+            card.setBackground(roundBorder(
+                    Color.rgb(55, 42, 82),
+                    Color.rgb(111, 91, 157),
+                    14,
+                    1));
+
+            LinearLayout head = new LinearLayout(this);
+            head.setOrientation(LinearLayout.HORIZONTAL);
+            head.setGravity(Gravity.CENTER_VERTICAL);
+            TextView year = text(
+                    highlight.year + "｜" + highlight.theme,
+                    15, TEXT, true);
+            head.addView(year, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            TextView badge = text("值得先看", 10, GOLD, true);
+            head.addView(badge);
+            card.addView(head);
+
+            TextView summary = text(highlight.summary, 12, MUTED, false);
+            summary.setLineSpacing(dp(2), 1f);
+            card.addView(summary, marginTop(3));
+
+            LinearLayout actions = new LinearLayout(this);
+            actions.setOrientation(LinearLayout.HORIZONTAL);
+            Button why = secondaryButton("查看依據");
+            Button ask = secondaryButton("問老師");
+            why.setTextSize(11);
+            ask.setTextSize(11);
+            why.setOnClickListener(v ->
+                    showHighlightEvidenceDialog(highlight));
+            ask.setOnClickListener(v ->
+                    startTeacherExplanation(highlight.question));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    0, dp(38), 1f);
+            lp.rightMargin = dp(5);
+            actions.addView(why, lp);
+            actions.addView(ask, new LinearLayout.LayoutParams(0, dp(38), 1f));
+            card.addView(actions, marginTop(6));
+
+            panel.addView(card, marginTop(6));
+        }
+    }
+
+    private void addAskTeacherAction(
+            LinearLayout card,
+            String label,
+            String question) {
+        Button ask = secondaryButton(label);
+        ask.setTextSize(12);
+        ask.setOnClickListener(v -> startTeacherExplanation(question));
+        card.addView(ask, fixedHeightTop(40, 7));
+    }
+
+    private void showTraitEvidenceDialog(String trait, String evidence) {
+        LinearLayout panel = column();
+        panel.setPadding(dp(14), dp(14), dp(14), dp(12));
+        panel.setBackground(roundBorder(
+                CARD, Color.rgb(92, 73, 127), 20, 1));
+
+        panel.addView(text("為什麼這樣說？", 20, TEXT, true));
+        TextView traitView = text(trait, 14, ACCENT, true);
+        traitView.setLineSpacing(dp(2), 1f);
+        panel.addView(traitView, marginTop(6));
+
+        TextView evidenceView = text(
+                "依據\n" + evidence,
+                13, TEXT, false);
+        evidenceView.setLineSpacing(dp(3), 1f);
+        evidenceView.setPadding(dp(9), dp(9), dp(9), dp(9));
+        evidenceView.setBackground(roundBorder(
+                CARD_2, Color.rgb(80, 65, 111), 14, 1));
+        panel.addView(evidenceView, marginTop(8));
+
+        Button ask = secondaryButton("問老師這一點");
+        Button close = secondaryButton("關閉");
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        lp.rightMargin = dp(6);
+        actions.addView(ask, lp);
+        actions.addView(close, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        panel.addView(actions, marginTop(8));
+
+        final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
+        ask.setOnClickListener(v -> {
+            dialog.dismiss();
+            startTeacherExplanation(
+                    "請直接解釋這一點為什麼像我：「" + trait
+                            + "」。請用 deterministic facts，尤其是：" + evidence);
+        });
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        styleDarkDialog(dialog);
+    }
+
+    private void showHighlightEvidenceDialog(
+            FortuneYearHighlightBuilder.Highlight highlight) {
+        LinearLayout panel = column();
+        panel.setPadding(dp(14), dp(14), dp(14), dp(12));
+        panel.setBackground(roundBorder(
+                CARD, Color.rgb(92, 73, 127), 20, 1));
+
+        panel.addView(text(
+                highlight.year + "｜" + highlight.theme,
+                20, TEXT, true));
+        TextView summary = text(highlight.summary, 13, ACCENT, true);
+        summary.setLineSpacing(dp(2), 1f);
+        panel.addView(summary, marginTop(6));
+
+        TextView evidence = text(
+                "為什麼挑這年\n" + highlight.evidence,
+                13, TEXT, false);
+        evidence.setLineSpacing(dp(3), 1f);
+        evidence.setPadding(dp(9), dp(9), dp(9), dp(9));
+        evidence.setBackground(roundBorder(
+                CARD_2, Color.rgb(80, 65, 111), 14, 1));
+        panel.addView(evidence, marginTop(8));
+
+        Button ask = secondaryButton("問老師這一年");
+        Button close = secondaryButton("關閉");
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        lp.rightMargin = dp(6);
+        actions.addView(ask, lp);
+        actions.addView(close, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        panel.addView(actions, marginTop(8));
+
+        final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
+        ask.setOnClickListener(v -> {
+            dialog.dismiss();
+            startTeacherExplanation(highlight.question);
+        });
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        styleDarkDialog(dialog);
+    }
+
+    private void updateAiLoadingStage(int stage) {
+        aiLoadingStage = Math.max(0, Math.min(2, stage));
+        if (aiLoadingStageText != null && currentResult != null) {
+            aiLoadingStageText.setText(aiLoadingStageLabel(currentResult.mode));
+        }
+    }
+
+    private String aiLoadingStageLabel(FortuneMode mode) {
+        if (aiLoadingStage == 2) {
+            return "正在補足內容與格式，避免漏掉重要年份或依據";
+        }
+        if (aiLoadingStage == 1) {
+            return mode == FortuneMode.BA_ZI
+                    ? "正在撰寫個性、工作、財運、感情與未來十年"
+                    : "正在撰寫個性、工作、資源、感情與未來幾年";
+        }
+        return mode == FortuneMode.BA_ZI
+                ? "正在整理本命、大運、流年與主題訊號"
+                : "正在整理本命牌、人生階段、個人流年與主題";
     }
 
     private void addAiLoadingBanner(FortuneMode mode) {
