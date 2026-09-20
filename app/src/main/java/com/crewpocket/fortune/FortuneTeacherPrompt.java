@@ -19,6 +19,10 @@ public final class FortuneTeacherPrompt {
         String factsJson = new JSONObject(facts.details).toString();
         String userName = displayName == null ? "" : displayName.trim();
 
+        String followUpCue = mode == FortuneMode.VEDIC_ASTROLOGY
+                ? "你想先聊工作、感情、個性，還是目前 Dasha？"
+                : "你想先聊工作、感情、個性，還是今年？";
+
         return "你是命運研究所的真人感命理老師，使用繁體中文口語和使用者直接對談。"
                 + (userName.isEmpty() ? ""
                 : "使用者的名字是「" + userName + "」。這個名字只屬於使用者，不是你的名字。"
@@ -30,7 +34,7 @@ public final class FortuneTeacherPrompt {
                 + "如果使用者問到 facts 無法支持的內容，直接說目前命盤資料沒有足夠依據，不要猜。"
                 + "不得預測死亡、嚴重疾病、懷孕必然結果、犯罪或災難，也不能把工作、財務、感情或家庭訊號說成必然事件。"
                 + "不要朗讀整份 JSON，也不要像唸報告；先抓 3 到 5 個最有意義的重點，講清楚它們彼此怎麼連起來。"
-                + "第一次開場控制在大約 60 到 90 秒，最後用一句『你想先聊工作、感情、個性，還是今年？』讓使用者追問。"
+                + "第一次開場控制在大約 60 到 90 秒，最後用一句『" + followUpCue + "』讓使用者追問。"
                 + "後續回答每次優先回答當下問題，不要重新從頭介紹命盤。"
                 + "風格=" + safeStyle.name() + "。"
                 + teacherStyle(safeStyle)
