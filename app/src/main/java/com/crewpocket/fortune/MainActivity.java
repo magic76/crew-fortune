@@ -2805,7 +2805,7 @@ public final class MainActivity extends Activity {
         panel.addView(slogan, marginTop(4));
 
         TextView version = text(
-                "v" + BuildConfig.VERSION_NAME + " · deterministic facts + AI interpretation",
+                "v" + appVersionName() + " · deterministic facts + AI interpretation",
                 11, MUTED, false);
         version.setGravity(Gravity.CENTER);
         panel.addView(version, marginTop(5));
@@ -2817,6 +2817,16 @@ public final class MainActivity extends Activity {
         close.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
         styleDarkDialog(dialog);
+    }
+
+    private String appVersionName() {
+        try {
+            return getPackageManager()
+                    .getPackageInfo(getPackageName(), 0)
+                    .versionName;
+        } catch (Exception ignored) {
+            return "";
+        }
     }
 
     private void refreshAiStatus() {
