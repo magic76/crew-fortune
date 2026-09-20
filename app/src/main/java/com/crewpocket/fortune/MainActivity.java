@@ -1338,19 +1338,136 @@ public final class MainActivity extends Activity {
         Object evidence = raw instanceof Map ? ((Map<?, ?>) raw).get("evidence") : null;
 
         addTopicLine(card, "怎麼看", rule);
-        addTopicLine(card, "本命依據", compactValue(evidence));
 
         String timingEvidence =
                 VedicFactsFormatter.topicTimingEvidence(currentFacts, profileKey);
-        if (!timingEvidence.isEmpty()) {
-            addTopicLine(card, "目前時間", timingEvidence);
-        }
+        addVedicEvidenceCardGrid(card, evidence, timingEvidence);
 
         addTopicLine(card, "老師解讀",
                 aiText == null || aiText.trim().isEmpty()
                         ? "上面的本命與時間資料已經可以直接看；AI 命理老師只負責把它們之間的關係講清楚。"
                         : aiText);
         addAskTeacherAction(card, "問老師怎麼串起來", question);
+    }
+
+    private void addVedicEvidenceCardGrid(
+            LinearLayout card,
+            Object natalEvidence,
+            String timingEvidence) {
+        List<String> items = new ArrayList<String>();
+
+        if (natalEvidence instanceof List) {
+            for (Object value : (List<?>) natalEvidence) {
+                String item = String.valueOf(value == null ? "" : value).trim();
+                if (!item.isEmpty()) items.add(item);
+                if (items.size() >= 4) break;
+            }
+        }
+
+        if (timingEvidence != null && !timingEvidence.trim().isEmpty()) {
+            String[] timingLines = timingEvidence.split("\\n");
+            for (String line : timingLines) {
+                String item = line == null ? "" : line.trim();
+                if (item.isEmpty()) continue;
+                items.add(item);
+                if (items.size() >= 6) break;
+            }
+        }
+
+        if (items.isEmpty()) return;
+
+        TextView sectionTitle = text("關鍵資料", 11, GOLD, true);
+        card.addView(sectionTitle, marginTop(10));
+
+        for (int i = 0; i < items.size(); i += 2) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.TOP);
+
+            addVedicEvidenceMiniCard(row, items.get(i), false);
+            if (i + 1 < items.size()) {
+                addVedicEvidenceMiniCard(row, items.get(i + 1), true);
+            } else {
+                View spacer = new View(this);
+                LinearLayout.LayoutParams spacerLp =
+                        new LinearLayout.LayoutParams(0, 1, 1f);
+                spacerLp.leftMargin = dp(6);
+                row.addView(spacer, spacerLp);
+            }
+            card.addView(row, marginTop(6));
+        }
+
+        if (natalEvidence instanceof List && ((List<?>) natalEvidence).size() > 4) {
+            addTopicLine(card, "完整本命依據", compactValue(natalEvidence));
+        }
+        if (timingEvidence != null && timingEvidence.split("\\n").length > 2) {
+            addTopicLine(card, "完整目前時間", timingEvidence);
+        }
+    }
+
+    private void addVedicEvidenceMiniCard(
+            LinearLayout row,
+            String rawValue,
+            boolean withLeftMargin) {
+        LinearLayout mini = column();
+        mini.setPadding(dp(9), dp(8), dp(9), dp(9));
+        mini.setBackground(roundBorder(
+                Color.rgb(45, 34, 69),
+                Color.rgb(83, 67, 112),
+                13,
+                1));
+
+        String label = vedicEvidenceLabel(rawValue);
+        String value = vedicEvidenceValue(rawValue, label);
+
+        TextView labelView = text(label, 10, GOLD, true);
+        mini.addView(labelView);
+
+        TextView valueView = text(value, 12, TEXT, true);
+        valueView.setLineSpacing(dp(2), 1f);
+        valueView.setMaxLines(4);
+        mini.addView(valueView, marginTop(3));
+
+        LinearLayout.LayoutParams lp =
+                new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        if (withLeftMargin) lp.leftMargin = dp(6);
+        row.addView(mini, lp);
+    }
+
+    private String vedicEvidenceLabel(String raw) {
+        String value = raw == null ? "" : raw.trim();
+        if (value.startsWith("Mahadasha｜")) return "Mahadasha";
+        if (value.startsWith("Antardasha｜")) return "Antardasha";
+        if (value.startsWith("Gochar ")) {
+            int arrow = value.indexOf(" →");
+            return arrow > 7 ? value.substring(7, arrow).trim() + " Gochar" : "Gochar";
+        }
+        if (value.startsWith("Transit ")) return "Transit";
+        if (value.startsWith("目前 Mahadasha")) return "Dasha";
+        int space = value.indexOf(' ');
+        if (space > 0 && space <= 12) return value.substring(0, space).trim();
+        return "命盤";
+    }
+
+    private String vedicEvidenceValue(String raw, String label) {
+        String value = raw == null ? "" : raw.trim();
+        if ("Mahadasha".equals(label) && value.startsWith("Mahadasha｜")) {
+            return value.substring("Mahadasha｜".length()).trim();
+        }
+        if ("Antardasha".equals(label) && value.startsWith("Antardasha｜")) {
+            return value.substring("Antardasha｜".length()).trim();
+        }
+        if (label.endsWith(" Gochar") && value.startsWith("Gochar ")) {
+            int arrow = value.indexOf(" →");
+            return arrow >= 0 ? value.substring(arrow + 1).trim() : value;
+        }
+        if ("Transit".equals(label) && value.startsWith("Transit ")) {
+            return value.substring("Transit ".length()).trim();
+        }
+        if (value.startsWith(label + " ")) {
+            return value.substring(label.length() + 1).trim();
+        }
+        return value;
     }
 
     private double numberValue(Object value) {
