@@ -75,7 +75,9 @@ public final class MainActivity extends Activity {
     private EditText birthPlaceNameInput;
     private EditText latitudeInput;
     private EditText longitudeInput;
-    private EditText timeZoneInput;
+    private Button timeZoneButton;
+    private LinearLayout vedicCoordinateFields;
+    private String selectedTimeZoneId = "+08:00";
     private TextView aiStatus;
     private Button strictStyleButton;
     private Button normalStyleButton;
@@ -142,8 +144,7 @@ public final class MainActivity extends Activity {
                 latitudeInput == null ? "" : latitudeInput.getText().toString());
         outState.putString("state_longitude",
                 longitudeInput == null ? "" : longitudeInput.getText().toString());
-        outState.putString("state_timezone",
-                timeZoneInput == null ? "" : timeZoneInput.getText().toString());
+        outState.putString("state_timezone", selectedTimeZoneId);
         outState.putString("state_mode", selectedMode.name());
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
@@ -279,15 +280,24 @@ public final class MainActivity extends Activity {
         vedicLocationSection = column();
         TextView vedicRule = text(
                 "印度星盤 · Sidereal · Lahiri · Whole Sign\n"
-                        + "城市名稱只做顯示；計算直接使用座標與出生地時區，不會交給 AI 猜。",
+                        + "先填出生城市與時區；精確座標放在進階設定，不會交給 AI 猜。",
                 11, GOLD, true);
         vedicRule.setLineSpacing(dp(2), 1f);
         vedicLocationSection.addView(vedicRule);
 
-        birthPlaceNameInput = input("出生城市，例如 新北市（只做稱呼）");
+        birthPlaceNameInput = input("出生城市，例如 新北市");
+
+        timeZoneButton = secondaryButton("時區：UTC+08:00");
+        timeZoneButton.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        timeZoneButton.setPadding(dp(12), 0, dp(12), 0);
+        timeZoneButton.setOnClickListener(v -> showTimeZonePicker());
+
+        Button advancedCoordinates = secondaryButton("進階設定：Latitude / Longitude");
+        advancedCoordinates.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        advancedCoordinates.setPadding(dp(12), 0, dp(12), 0);
+
         latitudeInput = input("Latitude，例如 25.0120");
         longitudeInput = input("Longitude，例如 121.4657");
-        timeZoneInput = input("Timezone，例如 Asia/Taipei 或 +08:00");
         latitudeInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER
                         | InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -296,14 +306,28 @@ public final class MainActivity extends Activity {
                 InputType.TYPE_CLASS_NUMBER
                         | InputType.TYPE_NUMBER_FLAG_DECIMAL
                         | InputType.TYPE_NUMBER_FLAG_SIGNED);
+
+        vedicCoordinateFields = column();
+        vedicCoordinateFields.addView(latitudeInput);
+        vedicCoordinateFields.addView(longitudeInput, marginTop(6));
+        vedicCoordinateFields.setVisibility(View.GONE);
+        advancedCoordinates.setOnClickListener(v -> {
+            boolean opening = vedicCoordinateFields.getVisibility() != View.VISIBLE;
+            vedicCoordinateFields.setVisibility(opening ? View.VISIBLE : View.GONE);
+            advancedCoordinates.setText(
+                    opening
+                            ? "收起進階設定：Latitude / Longitude"
+                            : "進階設定：Latitude / Longitude");
+        });
+
         vedicLocationSection.addView(birthPlaceNameInput, marginTop(6));
-        vedicLocationSection.addView(latitudeInput, marginTop(6));
-        vedicLocationSection.addView(longitudeInput, marginTop(6));
-        vedicLocationSection.addView(timeZoneInput, marginTop(6));
+        vedicLocationSection.addView(timeZoneButton, marginTop(6));
+        vedicLocationSection.addView(advancedCoordinates, marginTop(6));
+        vedicLocationSection.addView(vedicCoordinateFields, marginTop(4));
 
         TextView locationHint = text(
-                "第一版不綁 geocoding API，避免城市同名、配額與 API key 影響排盤。"
-                        + "之後可直接把城市搜尋結果回填這三個 deterministic 欄位。",
+                "時區預設 UTC+08:00。Latitude / Longitude 仍是 deterministic 排盤必要資料，"
+                        + "但收在進階設定裡，避免主畫面充滿技術欄位。",
                 10, MUTED, false);
         locationHint.setLineSpacing(dp(2), 1f);
         vedicLocationSection.addView(locationHint, marginTop(4));
@@ -3241,7 +3265,7 @@ public final class MainActivity extends Activity {
         if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
             String latitudeText = latitudeInput == null ? "" : latitudeInput.getText().toString().trim();
             String longitudeText = longitudeInput == null ? "" : longitudeInput.getText().toString().trim();
-            String zoneText = timeZoneInput == null ? "" : timeZoneInput.getText().toString().trim();
+            String zoneText = selectedTimeZoneId == null ? "" : selectedTimeZoneId.trim();
             if (latitudeText.isEmpty() || longitudeText.isEmpty() || zoneText.isEmpty()) {
                 throw new IllegalArgumentException(
                         "印度星盤需要出生地 latitude、longitude 與 timezone");
@@ -3278,7 +3302,7 @@ public final class MainActivity extends Activity {
                 birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString(),
                 latitudeInput == null ? "" : latitudeInput.getText().toString(),
                 longitudeInput == null ? "" : longitudeInput.getText().toString(),
-                timeZoneInput == null ? "" : timeZoneInput.getText().toString());
+                selectedTimeZoneId);
     }
 
     private void restoreLastProfile() {
@@ -3354,7 +3378,7 @@ public final class MainActivity extends Activity {
         if (birthPlaceNameInput != null) birthPlaceNameInput.setText(preset.birthPlaceName);
         if (latitudeInput != null) latitudeInput.setText(preset.latitude);
         if (longitudeInput != null) longitudeInput.setText(preset.longitude);
-        if (timeZoneInput != null) timeZoneInput.setText(preset.timeZoneId);
+        setTimeZoneSelection(preset.timeZoneId);
         selectMode(preset.mode);
         if (!preset.gender.isEmpty()) selectGender(preset.gender);
         else {
@@ -3380,9 +3404,7 @@ public final class MainActivity extends Activity {
             if (longitudeInput != null) {
                 longitudeInput.setText(state.getString("state_longitude", ""));
             }
-            if (timeZoneInput != null) {
-                timeZoneInput.setText(state.getString("state_timezone", ""));
-            }
+            setTimeZoneSelection(state.getString("state_timezone", "+08:00"));
             selectedGender = state.getString("state_gender", "");
             selectedMode = FortuneMode.valueOf(
                     state.getString("state_mode", FortuneMode.BA_ZI.name()));
@@ -3593,6 +3615,81 @@ public final class MainActivity extends Activity {
                 true).show();
     }
 
+    private void showTimeZonePicker() {
+        final String[] labels = new String[] {
+                "UTC+08:00（預設）",
+                "Asia/Taipei（台灣）",
+                "UTC+09:00",
+                "Asia/Tokyo（日本）",
+                "UTC+07:00",
+                "Asia/Bangkok（泰國）",
+                "UTC+05:30",
+                "Asia/Kolkata（印度）",
+                "UTC+00:00",
+                "Europe/London（英國）",
+                "UTC+01:00",
+                "Europe/Paris（中歐）",
+                "UTC-05:00",
+                "America/New_York（美東）",
+                "UTC-08:00",
+                "America/Los_Angeles（美西）"
+        };
+        final String[] values = new String[] {
+                "+08:00",
+                "Asia/Taipei",
+                "+09:00",
+                "Asia/Tokyo",
+                "+07:00",
+                "Asia/Bangkok",
+                "+05:30",
+                "Asia/Kolkata",
+                "UTC",
+                "Europe/London",
+                "+01:00",
+                "Europe/Paris",
+                "-05:00",
+                "America/New_York",
+                "-08:00",
+                "America/Los_Angeles"
+        };
+
+        int selected = 0;
+        for (int i = 0; i < values.length; i++) {
+            if (values[i].equals(selectedTimeZoneId)) {
+                selected = i;
+                break;
+            }
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("選擇出生地時區")
+                .setSingleChoiceItems(labels, selected, (dialog, which) -> {
+                    setTimeZoneSelection(values[which]);
+                    OperationLog.add(this, "VEDIC_TIMEZONE_SELECTED", values[which]);
+                    dialog.dismiss();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void setTimeZoneSelection(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isEmpty()) normalized = "+08:00";
+        selectedTimeZoneId = normalized;
+        if (timeZoneButton != null) {
+            String label = normalized;
+            if ("+08:00".equals(normalized)) label = "UTC+08:00";
+            else if ("+09:00".equals(normalized)) label = "UTC+09:00";
+            else if ("+07:00".equals(normalized)) label = "UTC+07:00";
+            else if ("+05:30".equals(normalized)) label = "UTC+05:30";
+            else if ("+01:00".equals(normalized)) label = "UTC+01:00";
+            else if ("-05:00".equals(normalized)) label = "UTC-05:00";
+            else if ("-08:00".equals(normalized)) label = "UTC-08:00";
+            else if ("UTC".equals(normalized)) label = "UTC+00:00";
+            timeZoneButton.setText("時區：" + label);
+        }
+    }
+
     private void selectAiStyle(AiStyle style) {
         selectedAiStyle = style == null ? AiStyle.FUNNY : style;
         OperationLog.add(this, "AI_STYLE_SELECTED", selectedAiStyle.name());
@@ -3661,7 +3758,7 @@ public final class MainActivity extends Activity {
             } else {
                 modeLabel.setText(
                         "Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu\n"
-                                + "需要精確出生時間、latitude、longitude 與出生地 timezone");
+                                + "需要精確出生時間與出生地；時區可直接選，座標放在進階設定");
             }
         }
     }
