@@ -397,7 +397,8 @@ The Android UI now includes city search backed by Open-Meteo geocoding. A select
 
 ### Shared result UI
 
-Vedic uses the same five result tabs as the existing modes:
+Vedic uses the same five result tabs as the existing modes. The natal tab also includes a deterministic South Indian Whole Sign chart visualization, and the timing tab includes a visual Vimshottari Mahadasha timeline with the current period highlighted and a today marker.
+
 
 - **總覽** — Lagna, Moon, Sun, Moon Nakshatra, current Mahadasha / Antardasha, top traits and AI summary
 - **本命** — 12 houses, 9 grahas, Rashi, Nakshatra / Pada, house lords, Drishti, conjunctions and dignity
