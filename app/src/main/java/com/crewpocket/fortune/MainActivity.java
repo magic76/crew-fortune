@@ -1123,7 +1123,7 @@ public final class MainActivity extends Activity {
         } else {
             summary = localReportSection("核心總覽");
         }
-        if (!summary.isEmpty()) addPanelSection(panel, "AI 重點", summary);
+        if (!summary.isEmpty()) addPanelSection(panel, "重點解讀", summary);
 
         TextView rule = text(
                 "計算規則｜Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu",
@@ -2491,7 +2491,7 @@ public final class MainActivity extends Activity {
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.wealth.isEmpty()
                         ? aiCopy.wealth
-                        : "AI 完成後會把財星、大運與流年證據翻成白話；沒有 AI 時仍可直接看上面的 deterministic evidence。");
+                        : localReportSection("工作與財務"));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
                 card,
@@ -2513,7 +2513,7 @@ public final class MainActivity extends Activity {
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.career.isEmpty()
                         ? aiCopy.career
-                        : "官殺偏責任與規範、印偏資源與學習、食傷偏輸出與表達；要再和大運、流年一起看。");
+                        : localReportSection("工作與財務"));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
                 card,
@@ -2536,7 +2536,7 @@ public final class MainActivity extends Activity {
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.relationships.isEmpty()
                         ? aiCopy.relationships
-                        : "這裡只標出配偶宮與財官訊號被碰到的年份，不直接等同戀愛、結婚或分手。");
+                        : localReportSection("感情與人際"));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
                 card,
