@@ -21,7 +21,6 @@ final class VedicResultRenderer {
     VedicResultRenderer(MainActivity host) {
         this.host = host;
     }
-
     void addVedicOverviewTab(FortuneResult result, boolean aiLoading) {
         LinearLayout panel = host.resultPanel();
 
@@ -31,11 +30,17 @@ final class VedicResultRenderer {
 
         LinearLayout lagna = host.column();
         lagna.addView(host.text("Lagna", 11, MainActivity.GOLD, true));
-        lagna.addView(host.text(host.rendererFacts().detailText("lagnaSign"), 22, MainActivity.TEXT, true), host.marginTop(3));
+        lagna.addView(host.text(
+                host.rendererFacts().detailText("lagnaSign"),
+                22,
+                MainActivity.TEXT,
+                true), host.marginTop(3));
         lagna.addView(host.text(
                 host.rendererFacts().detailText("lagnaNakshatra")
                         + " · Pada " + host.rendererFacts().detailText("lagnaPada"),
-                11, MainActivity.MUTED, false), host.marginTop(2));
+                11,
+                MainActivity.MUTED,
+                false), host.marginTop(2));
         hero.addView(lagna, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
@@ -43,40 +48,56 @@ final class VedicResultRenderer {
         TextView moonLabel = host.text("Moon", 11, MainActivity.GOLD, true);
         moonLabel.setGravity(Gravity.END);
         moon.addView(moonLabel);
-        TextView moonSign = host.text(host.rendererFacts().detailText("moonSign"), 22, MainActivity.ACCENT, true);
+        TextView moonSign = host.text(
+                host.rendererFacts().detailText("moonSign"),
+                22,
+                MainActivity.ACCENT,
+                true);
         moonSign.setGravity(Gravity.END);
         moon.addView(moonSign, host.marginTop(3));
         TextView moonNakshatra = host.text(
                 host.rendererFacts().detailText("moonNakshatra")
                         + " · Pada " + host.rendererFacts().detailText("moonPada"),
-                11, MainActivity.MUTED, false);
+                11,
+                MainActivity.MUTED,
+                false);
         moonNakshatra.setGravity(Gravity.END);
         moon.addView(moonNakshatra, host.marginTop(2));
         hero.addView(moon, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         panel.addView(hero);
 
-        host.addPanelSection(panel, "本命核心", VedicFactsFormatter.coreSummary(host.rendererFacts()));
-        host.addPanelSection(panel, "目前 Dasha", VedicFactsFormatter.dashaSummary(host.rendererFacts()));
-
-        if (!aiLoading && host.rendererCopy() != null && !host.rendererCopy().topTraits.isEmpty()) {
-            host.addTopTraits(panel);
-        }
+        host.addOverviewTakeaways(panel, FortuneMode.VEDIC_ASTROLOGY);
+        host.addOverviewTiming(panel, FortuneMode.VEDIC_ASTROLOGY);
 
         String summary;
         if (aiLoading) {
             summary = host.localReportSection("核心總覽");
-        } else if (host.rendererCopy() != null && !host.rendererCopy().overview.isEmpty()) {
+        } else if (host.rendererCopy() != null
+                && !host.rendererCopy().overview.isEmpty()) {
             summary = host.rendererCopy().overview;
         } else {
             summary = host.localReportSection("核心總覽");
         }
-        if (!summary.isEmpty()) host.addPanelSection(panel, "重點解讀", summary);
+        summary = FortuneResultTabCopy.compactInterpretation(summary, "");
+        if (!summary.isEmpty()) {
+            host.addPanelSection(panel, "一句總結", summary);
+        }
+
+        TextView next = host.text(
+                "想看行星、宮位與 Nakshatra →「本命」；想看 Dasha／Gochar →「流年」。",
+                11,
+                MainActivity.MUTED,
+                false);
+        next.setLineSpacing(host.dp(2), 1f);
+        panel.addView(next, host.marginTop(9));
 
         TextView rule = host.text(
-                "計算規則｜Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu",
-                11, MainActivity.MUTED, false);
-        panel.addView(rule, host.marginTop(9));
+                "Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu",
+                10,
+                MainActivity.MUTED,
+                false);
+        panel.addView(rule, host.marginTop(5));
     }
     void addVedicNatalTab() {
         LinearLayout panel = host.resultPanel();
