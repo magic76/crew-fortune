@@ -93,6 +93,7 @@ public final class MainActivity extends Activity {
     private final FortuneTeacherController teacherController = new FortuneTeacherController(this);
     private final FortuneShareController shareController = new FortuneShareController(this);
     private final FortuneProfileController profileController = new FortuneProfileController(this);
+    private final FortuneDialogController dialogController = new FortuneDialogController(this);
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -182,7 +183,7 @@ public final class MainActivity extends Activity {
         TextView history = text("記錄", 13, GOLD, true);
         history.setGravity(Gravity.END);
         history.setPadding(dp(8), dp(6), 0, dp(6));
-        history.setOnClickListener(v -> showOperationLog());
+        history.setOnClickListener(v -> dialogController.showOperationLog());
         top.addView(history);
 
         aiStatus = text("", 13, ACCENT, true);
@@ -190,7 +191,7 @@ public final class MainActivity extends Activity {
         aiStatus.setPadding(dp(10), dp(6), 0, dp(6));
         aiStatus.setOnClickListener(v -> {
             OperationLog.add(this, "OPEN_AI_SETTINGS", "");
-            showApiKeyDialog();
+            dialogController.showApiKey();
         });
         top.addView(aiStatus);
 
@@ -200,7 +201,7 @@ public final class MainActivity extends Activity {
         logo.setPadding(0, 0, 0, 0);
         logo.setBackground(round(CARD_2, 12));
         logo.setContentDescription("Crew Fortune");
-        logo.setOnClickListener(v -> showAboutDialog());
+        logo.setOnClickListener(v -> dialogController.showAbout());
         LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(34), dp(34));
         logoLp.leftMargin = dp(8);
         top.addView(logo, logoLp);
@@ -317,7 +318,6 @@ public final class MainActivity extends Activity {
         updateModeSelectionUi();
     }
 
-
     void selectModeFromProfileController(FortuneMode mode) {
         selectMode(mode);
     }
@@ -358,7 +358,6 @@ public final class MainActivity extends Activity {
             Toast.makeText(this, error.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-
 
      String safeErrorMessage(Throwable error) {
         if (error == null) return "unknown";
@@ -475,7 +474,6 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.VISIBLE);
     }
 
-
     private void addUnifiedTabbedResult(FortuneResult result, boolean aiLoading) {
         TextView basis = text("計算依據｜" + result.basis, 12, MUTED, false);
         resultCard.addView(basis, marginTop(6));
@@ -528,9 +526,17 @@ public final class MainActivity extends Activity {
         addSharedResultActions(aiLoading, result.mode);
     }
 
+    void showFactDetailDialog(String titleValue, Object value) {
+        dialogController.showFactDetail(titleValue, value);
+    }
 
+    void askTeacherFromDialog(String question) {
+        startTeacherExplanation(question);
+    }
 
-
+    void refreshAiStatusFromController() {
+        refreshAiStatus();
+    }
 
     FortuneResult shareResultForController() { return currentResult; }
 
@@ -703,25 +709,11 @@ public final class MainActivity extends Activity {
         panel.addView(hint, marginTop(11));
     }
 
-
-
-
-
-
-
-
-
-
-
      double numberValue(Object value) {
         if (value instanceof Number) return ((Number) value).doubleValue();
         try { return Double.parseDouble(String.valueOf(value)); }
         catch (Exception ignored) { return 0.0; }
     }
-
-
-
-
 
     private void addSharedResultActions(boolean aiLoading, FortuneMode mode) {
         if (aiLoading) {
@@ -789,7 +781,7 @@ public final class MainActivity extends Activity {
                     1));
             row.setClickable(true);
             row.setOnClickListener(v ->
-                    showTraitEvidenceDialog(traitValue, evidence));
+                    dialogController.showTraitEvidence(traitValue, evidence));
 
             LinearLayout headline = new LinearLayout(this);
             headline.setOrientation(LinearLayout.HORIZONTAL);
@@ -991,7 +983,7 @@ public final class MainActivity extends Activity {
             why.setTextSize(11);
             ask.setTextSize(11);
             why.setOnClickListener(v ->
-                    showHighlightEvidenceDialog(highlight));
+                    dialogController.showHighlightEvidence(highlight));
             ask.setOnClickListener(v ->
                     startTeacherExplanation(highlight.question));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -1018,91 +1010,6 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams askLp = marginTop(7);
         askLp.height = LinearLayout.LayoutParams.WRAP_CONTENT;
         card.addView(ask, askLp);
-    }
-
-    private void showTraitEvidenceDialog(String trait, String evidence) {
-        LinearLayout panel = column();
-        panel.setPadding(dp(14), dp(14), dp(14), dp(12));
-        panel.setBackground(roundBorder(
-                CARD, Color.rgb(92, 73, 127), 20, 1));
-
-        panel.addView(text("為什麼這樣說？", 20, TEXT, true));
-        TextView traitView = text(trait, 14, ACCENT, true);
-        traitView.setLineSpacing(dp(2), 1f);
-        panel.addView(traitView, marginTop(6));
-
-        TextView evidenceView = text(
-                "依據\n" + evidence,
-                13, TEXT, false);
-        evidenceView.setLineSpacing(dp(3), 1f);
-        evidenceView.setPadding(dp(9), dp(9), dp(9), dp(9));
-        evidenceView.setBackground(roundBorder(
-                CARD_2, Color.rgb(80, 65, 111), 14, 1));
-        panel.addView(evidenceView, marginTop(8));
-
-        Button ask = secondaryButton("問老師這一點");
-        Button close = secondaryButton("關閉");
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        lp.rightMargin = dp(6);
-        actions.addView(ask, lp);
-        actions.addView(close, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        panel.addView(actions, marginTop(8));
-
-        final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
-        ask.setOnClickListener(v -> {
-            dialog.dismiss();
-            startTeacherExplanation(
-                    "請直接解釋這一點為什麼像我：「" + trait
-                            + "」。請用 deterministic facts，尤其是：" + evidence);
-        });
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-        styleDarkDialog(dialog);
-    }
-
-    private void showHighlightEvidenceDialog(
-            FortuneYearHighlightBuilder.Highlight highlight) {
-        LinearLayout panel = column();
-        panel.setPadding(dp(14), dp(14), dp(14), dp(12));
-        panel.setBackground(roundBorder(
-                CARD, Color.rgb(92, 73, 127), 20, 1));
-
-        panel.addView(text(
-                highlight.year + "｜" + highlight.theme,
-                20, TEXT, true));
-        TextView summary = text(highlight.summary, 13, ACCENT, true);
-        summary.setLineSpacing(dp(2), 1f);
-        panel.addView(summary, marginTop(6));
-
-        TextView evidence = text(
-                "為什麼挑這年\n" + highlight.evidence,
-                13, TEXT, false);
-        evidence.setLineSpacing(dp(3), 1f);
-        evidence.setPadding(dp(9), dp(9), dp(9), dp(9));
-        evidence.setBackground(roundBorder(
-                CARD_2, Color.rgb(80, 65, 111), 14, 1));
-        panel.addView(evidence, marginTop(8));
-
-        Button ask = secondaryButton("問老師這一年");
-        Button close = secondaryButton("關閉");
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        lp.rightMargin = dp(6);
-        actions.addView(ask, lp);
-        actions.addView(close, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        panel.addView(actions, marginTop(8));
-
-        final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
-        ask.setOnClickListener(v -> {
-            dialog.dismiss();
-            startTeacherExplanation(highlight.question);
-        });
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-        styleDarkDialog(dialog);
     }
 
      void updateAiLoadingStage(int stage) {
@@ -1221,12 +1128,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-
-
-
-
-
-
      LinearLayout resultPanel() {
         LinearLayout panel = column();
         panel.setPadding(dp(11), dp(12), dp(11), dp(16));
@@ -1248,8 +1149,6 @@ public final class MainActivity extends Activity {
         parent.addView(card, marginTop(6));
         return card;
     }
-
-
 
      void addTopicLine(LinearLayout card, String label, String value) {
         TextView l = text(label, 11, GOLD, true);
@@ -1325,35 +1224,6 @@ public final class MainActivity extends Activity {
         parent.addView(card, marginTop(8));
     }
 
-     void showFactDetailDialog(String titleValue, Object value) {
-        LinearLayout panel = column();
-        panel.setPadding(dp(14), dp(14), dp(14), dp(12));
-        panel.setBackground(roundBorder(
-                CARD, Color.rgb(92, 73, 127), 20, 1));
-
-        panel.addView(text(titleValue, 21, TEXT, true));
-        TextView detail = text(formatStructured(value), 13, TEXT, false);
-        detail.setLineSpacing(dp(2), 1f);
-        detail.setPadding(dp(9), dp(9), dp(9), dp(9));
-        detail.setBackground(roundBorder(
-                CARD_2, Color.rgb(80, 65, 111), 14, 1));
-
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(detail);
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(420));
-        scrollLp.topMargin = dp(8);
-        panel.addView(scroll, scrollLp);
-
-        Button close = secondaryButton("關閉");
-        panel.addView(close, fixedHeightTop(44, 8));
-
-        final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-        styleDarkDialog(dialog);
-    }
-
      String summaryLuck(Object value) {
         if (!(value instanceof Map)) return "目前沒有對應的大運資料";
         return mapValue(value, "ganZhi")
@@ -1406,47 +1276,6 @@ public final class MainActivity extends Activity {
         return "與本命主要地支互動較少";
     }
 
-    private String formatStructured(Object value) {
-        return formatStructured(value, 0);
-    }
-
-    private String formatStructured(Object value, int depth) {
-        if (value == null) return "—";
-        String indent = "";
-        for (int i = 0; i < depth; i++) indent += "  ";
-
-        if (value instanceof Map) {
-            StringBuilder out = new StringBuilder();
-            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
-                if (out.length() > 0) out.append("\n");
-                Object child = entry.getValue();
-                if (child instanceof Map || child instanceof List) {
-                    out.append(indent).append(entry.getKey()).append("：\n")
-                            .append(formatStructured(child, depth + 1));
-                } else {
-                    out.append(indent).append(entry.getKey()).append("：")
-                            .append(String.valueOf(child));
-                }
-            }
-            return out.toString();
-        }
-
-        if (value instanceof List) {
-            StringBuilder out = new StringBuilder();
-            for (Object child : (List<?>) value) {
-                if (out.length() > 0) out.append("\n");
-                if (child instanceof Map || child instanceof List) {
-                    out.append(indent).append("•\n")
-                            .append(formatStructured(child, depth + 1));
-                } else {
-                    out.append(indent).append("• ").append(String.valueOf(child));
-                }
-            }
-            return out.toString();
-        }
-        return indent + String.valueOf(value);
-    }
-
     private String displayFactKey(String key) {
         if ("ganZhi".equals(key)) return "干支";
         if ("startYear".equals(key)) return "起始年";
@@ -1486,7 +1315,7 @@ public final class MainActivity extends Activity {
         return "";
     }
 
-    private LinearLayout.LayoutParams fixedHeightTop(int heightDp, int topDp) {
+     LinearLayout.LayoutParams fixedHeightTop(int heightDp, int topDp) {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(heightDp));
         lp.topMargin = dp(topDp);
@@ -1502,7 +1331,6 @@ public final class MainActivity extends Activity {
         }
         return result.score + " / 100";
     }
-
 
      void addPillarCard(LinearLayout row,
                                String label,
@@ -1578,7 +1406,6 @@ public final class MainActivity extends Activity {
         rowLp.topMargin = dp(1);
         parent.addView(row, rowLp);
     }
-
 
      void addNumerologyIdentityCard(LinearLayout row,
                                                 String heading,
@@ -1752,7 +1579,7 @@ public final class MainActivity extends Activity {
         }
         if (!AppConfig.hasGeminiApiKey(this)) {
             Toast.makeText(this, "先設定 Gemini Key 才能使用語音老師", Toast.LENGTH_SHORT).show();
-            showApiKeyDialog();
+            dialogController.showApiKey();
             return;
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
@@ -1789,100 +1616,6 @@ public final class MainActivity extends Activity {
             pendingTeacherStart = false;
             pendingTeacherQuestion = "";
             Toast.makeText(this, "需要麥克風權限才能跟老師對話", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-
-    private void showApiKeyDialog() {
-        final EditText keyInput = new EditText(this);
-        keyInput.setSingleLine(true);
-        keyInput.setHint("Gemini API Key");
-        keyInput.setText(AppConfig.getGeminiApiKey(this));
-        keyInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        keyInput.setPadding(dp(16), dp(8), dp(16), dp(8));
-
-        new AlertDialog.Builder(this)
-                .setTitle("AI 模式")
-                .setMessage("Gemini 只負責解讀與文案，底層命盤由本地 deterministic engine 計算。可在主畫面切換嚴謹／普通／風趣三種回應風格。")
-                .setView(keyInput)
-                .setPositiveButton("儲存", (dialog, which) -> {
-                    try {
-                        AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
-                        OperationLog.add(this, "GEMINI_KEY_SAVED", "encrypted");
-                        refreshAiStatus();
-                        Toast.makeText(
-                                this,
-                                "Gemini Key 已加密儲存於本機",
-                                Toast.LENGTH_SHORT).show();
-                    } catch (RuntimeException error) {
-                        OperationLog.add(this, "GEMINI_KEY_SAVE_FAILED", safeErrorMessage(error));
-                        Toast.makeText(
-                                this,
-                                "無法安全儲存 Gemini Key，請稍後再試",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .setNeutralButton("清除", (dialog, which) -> {
-                    try {
-                        AppConfig.setGeminiApiKey(this, "");
-                        OperationLog.add(this, "GEMINI_KEY_CLEARED", "");
-                        refreshAiStatus();
-                    } catch (RuntimeException error) {
-                        OperationLog.add(this, "GEMINI_KEY_CLEAR_FAILED", safeErrorMessage(error));
-                        Toast.makeText(
-                                this,
-                                "無法清除本機金鑰",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .show();
-    }
-
-    private void showAboutDialog() {
-        LinearLayout panel = column();
-        panel.setPadding(dp(16), dp(16), dp(16), dp(14));
-        panel.setBackground(roundBorder(
-                CARD, Color.rgb(92, 73, 127), 22, 1));
-
-        ImageView logo = new ImageView(this);
-        logo.setImageResource(R.drawable.ic_launcher_foreground_art);
-        logo.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(
-                dp(72), dp(72));
-        logoLp.gravity = Gravity.CENTER_HORIZONTAL;
-        panel.addView(logo, logoLp);
-
-        TextView title = text("Crew Fortune · 命運研究所", 20, TEXT, true);
-        title.setGravity(Gravity.CENTER);
-        panel.addView(title, marginTop(8));
-
-        TextView slogan = text("很認真算，別太認真信。", 14, GOLD, true);
-        slogan.setGravity(Gravity.CENTER);
-        panel.addView(slogan, marginTop(4));
-
-        TextView version = text(
-                "v" + appVersionName() + " · deterministic facts + AI interpretation",
-                11, MUTED, false);
-        version.setGravity(Gravity.CENTER);
-        panel.addView(version, marginTop(5));
-
-        Button close = secondaryButton("關閉");
-        panel.addView(close, fixedHeightTop(44, 10));
-
-        final AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-        styleDarkDialog(dialog);
-    }
-
-    private String appVersionName() {
-        try {
-            return getPackageManager()
-                    .getPackageInfo(getPackageName(), 0)
-                    .versionName;
-        } catch (Exception ignored) {
-            return "";
         }
     }
 
@@ -1989,109 +1722,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void showOperationLog() {
-        OperationLog.add(this, "OPEN_OPERATION_LOG", "");
-        List<OperationLog.Entry> entries = OperationLog.list(this);
-
-        LinearLayout panel = column();
-        panel.setPadding(dp(12), dp(12), dp(12), dp(10));
-        panel.setBackground(roundBorder(
-                CARD, Color.rgb(92, 73, 127), 24, 1));
-
-        TextView title = text("操作記錄", 22, TEXT, true);
-        panel.addView(title);
-
-        TextView hint = text("最近 200 筆 · 點任一筆查看完整內容", 12, MUTED, false);
-        panel.addView(hint, marginTop(4));
-
-        LinearLayout body = column();
-        body.setPadding(0, dp(2), 0, dp(4));
-
-        if (entries.isEmpty()) {
-            body.addView(text("目前還沒有操作記錄", 14, MUTED, false), marginTop(9));
-        } else {
-            for (final OperationLog.Entry entry : entries) {
-                TextView item = text(entry.listLabel(), 13, TEXT, true);
-                item.setPadding(dp(10), dp(8), dp(10), dp(8));
-                item.setBackground(roundBorder(
-                        CARD_2, Color.rgb(80, 65, 111), 14, 1));
-                item.setClickable(true);
-                item.setOnClickListener(v -> {
-                    OperationLog.add(this, "OPERATION_LOG_ITEM_OPENED", entry.action);
-                    showOperationLogDetail(entry);
-                });
-                body.addView(item, marginTop(5));
-            }
-        }
-
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(false);
-        scroll.addView(body);
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(400));
-        scrollLp.topMargin = dp(8);
-        panel.addView(scroll, scrollLp);
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        Button clear = secondaryButton("清除記錄");
-        Button close = secondaryButton("關閉");
-        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        actionLp.rightMargin = dp(6);
-        actions.addView(clear, actionLp);
-        actions.addView(close, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        panel.addView(actions, marginTop(8));
-
-        final AlertDialog dialog = new AlertDialog.Builder(this)
-                .setView(panel)
-                .create();
-        clear.setOnClickListener(v -> {
-            OperationLog.clear(this);
-            Toast.makeText(this, "已清除操作記錄", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-        styleDarkDialog(dialog);
-    }
-
-    private void showOperationLogDetail(OperationLog.Entry entry) {
-        LinearLayout panel = column();
-        panel.setPadding(dp(14), dp(12), dp(14), dp(10));
-        panel.setBackground(roundBorder(
-                CARD, Color.rgb(92, 73, 127), 24, 1));
-
-        TextView title = text(entry.action.replace('_', ' '), 20, TEXT, true);
-        panel.addView(title);
-
-        TextView time = text(entry.timeText(), 12, MUTED, false);
-        panel.addView(time, marginTop(4));
-
-        TextView detailLabel = text("內容", 11, GOLD, true);
-        panel.addView(detailLabel, marginTop(11));
-
-        String detailValue = entry.detail == null || entry.detail.isEmpty()
-                ? "這筆事件沒有額外內容"
-                : entry.detail;
-        TextView detail = text(detailValue, 14, TEXT, false);
-        detail.setLineSpacing(dp(2), 1f);
-        detail.setPadding(dp(9), dp(8), dp(9), dp(8));
-        detail.setBackground(roundBorder(
-                CARD_2, Color.rgb(80, 65, 111), 14, 1));
-        panel.addView(detail, marginTop(6));
-
-        Button close = secondaryButton("關閉");
-        panel.addView(close, marginTop(6));
-
-        final AlertDialog dialog = new AlertDialog.Builder(this)
-                .setView(panel)
-                .create();
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-        styleDarkDialog(dialog);
-    }
-
-
      void showVedicTransitDatePicker() {
         LocalDate base;
         try {
@@ -2158,8 +1788,6 @@ public final class MainActivity extends Activity {
                     Toast.LENGTH_SHORT).show();
         }
     }
-
-
 
     private void selectAiStyle(AiStyle style) {
         selectedAiStyle = style == null ? AiStyle.FUNNY : style;
