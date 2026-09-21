@@ -163,7 +163,7 @@ public final class MainActivity extends Activity {
         outState.putInt("state_result_tab", selectedResultTab);
         outState.putLong("state_result_reference_time", resultReferenceTimeMillis);
         outState.putString("state_vedic_transit_date",
-                selectedVedicTransitDate == null ? "" : selectedVedicTransitDate.toString());
+                FortuneResultState.transitDateText(selectedVedicTransitDate));
         if (aiCopy != null) outState.putString("state_ai_copy", serializeAiCopy(aiCopy));
         OperationLog.add(this, "STATE_SAVED",
                 currentResult == null ? "no_result" : "result_saved");
@@ -3789,8 +3789,7 @@ public final class MainActivity extends Activity {
             selectedResultTab = state.getInt("state_result_tab", 0);
             resultReferenceTimeMillis = state.getLong("state_result_reference_time", -1L);
             String savedTransitDate = state.getString("state_vedic_transit_date", "");
-            selectedVedicTransitDate = savedTransitDate.isEmpty()
-                    ? null : LocalDate.parse(savedTransitDate);
+            selectedVedicTransitDate = FortuneResultState.parseTransitDate(savedTransitDate);
 
             selectMode(selectedMode);
             if (!selectedGender.isEmpty()) selectGender(selectedGender);
@@ -3798,9 +3797,8 @@ public final class MainActivity extends Activity {
 
             if (state.getBoolean("state_has_result", false)) {
                 FortuneProfile profile = buildCurrentProfile();
-                Date referenceTime = resultReferenceTimeMillis > 0L
-                        ? new Date(resultReferenceTimeMillis)
-                        : new Date();
+                Date referenceTime = FortuneResultState.referenceDate(
+                        resultReferenceTimeMillis);
                 resultReferenceTimeMillis = referenceTime.getTime();
                 currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
                 currentResult = engine.calculate(selectedMode, profile, referenceTime);
