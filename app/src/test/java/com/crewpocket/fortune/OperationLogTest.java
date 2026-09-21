@@ -22,5 +22,11 @@ public final class OperationLogTest {
                 "PRESET_SAVED", "八字 · 1985-07-06 04:10"));
         assertEquals("[location]", OperationLog.sanitizeDetail(
                 "BIRTH_PLACE_SELECTED", "Taipei 25.0, 121.5"));
+        assertEquals("[location]", OperationLog.sanitizeDetail(
+                "VEDIC_CITY_SEARCH_START", "Bangkok"));
+        assertEquals("[location]", OperationLog.sanitizeDetail(
+                "VEDIC_CITY_SELECTED", "Bangkok 13.7563, 100.5018"));
+        assertEquals("[location]", OperationLog.sanitizeDetail(
+                "VEDIC_TIMEZONE_SELECTED", "Asia/Bangkok"));
     }
 }
