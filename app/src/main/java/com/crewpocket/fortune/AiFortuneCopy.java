@@ -16,6 +16,7 @@ public final class AiFortuneCopy {
     public final String wealth;
     public final String careerWealth;
     public final String relationships;
+    public final String family;
     public final String currentCycle;
     public final String longTerm;
     public final String keyYears;
@@ -35,6 +36,7 @@ public final class AiFortuneCopy {
             String career,
             String wealth,
             String relationships,
+            String family,
             String currentCycle,
             String longTerm,
             String keyYears,
@@ -52,6 +54,7 @@ public final class AiFortuneCopy {
         this.wealth = wealth;
         this.careerWealth = combineSections("工作", career, "財運", wealth);
         this.relationships = relationships;
+        this.family = family;
         this.currentCycle = currentCycle;
         this.longTerm = longTerm;
         this.keyYears = keyYears;
@@ -109,6 +112,11 @@ public final class AiFortuneCopy {
                 optional(object, "relationship"),
                 optional(object, "love"));
 
+        String family = firstNonEmpty(
+                optional(object, "family"),
+                optional(object, "familyChildren"),
+                optional(object, "children"));
+
         String legacyTiming = optional(object, "timing");
         String currentCycle = firstNonEmpty(
                 optional(object, "currentCycle"),
@@ -159,6 +167,7 @@ public final class AiFortuneCopy {
                 career,
                 wealth,
                 relationships,
+                family,
                 currentCycle,
                 longTerm,
                 keyYears,
@@ -178,6 +187,9 @@ public final class AiFortuneCopy {
         requireLength(issues, "career", career, 180);
         requireLength(issues, "wealth", wealth, 180);
         requireLength(issues, "relationships", relationships, 180);
+        if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+            requireLength(issues, "family", family, 180);
+        }
         requireLength(issues, "currentCycle", currentCycle, 180);
         requireLength(issues, "longTerm", longTerm,
                 mode == FortuneMode.BA_ZI ? 320
