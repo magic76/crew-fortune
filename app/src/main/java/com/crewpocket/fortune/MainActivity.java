@@ -151,6 +151,270 @@ public final class MainActivity extends Activity {
                 currentResult == null ? "no_result" : "result_saved");
     }
 
+
+    private void setupBilling() {
+        billingManager = new FortuneBillingManager(
+                this,
+                new FortuneBillingManager.Listener() {
+                    @Override public void onBillingReady(String formattedPrice) {
+                        runOnUiThread(() -> {
+                            billingPrice = formattedPrice == null
+                                    ? ""
+                                    : formattedPrice.trim();
+                            if (currentResult != null
+                                    && selectedResultTab == 4
+                                    && aiCopy == null) {
+                                renderResult(currentResult, false);
+                            }
+                        });
+                    }
+
+                    @Override public void onPurchaseReady(
+                            String purchaseToken,
+                            String readingId) {
+                        runOnUiThread(() -> {
+                            billingPurchaseRequested = false;
+
+                            String resolvedReadingId =
+                                    readingId == null ? "" : readingId.trim();
+                            if (resolvedReadingId.isEmpty()) {
+                                resolvedReadingId =
+                                        FortunePaidReadingStore
+                                                .pendingReadingId(
+                                                        MainActivity.this);
+                            }
+                            if (resolvedReadingId.isEmpty()) {
+                                OperationLog.add(
+                                        MainActivity.this,
+                                        "PURCHASE_ORPHANED",
+                                        "missing_reading_id");
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        "付款已完成，但找不到對應命盤。請保留購買紀錄並稍後重試。",
+                                        Toast.LENGTH_LONG).show();
+                                return;
+                            }
+
+                            FortunePaidReadingStore.beginPurchase(
+                                    MainActivity.this,
+                                    resolvedReadingId);
+                            FortunePaidReadingStore.attachPurchaseToken(
+                                    MainActivity.this,
+                                    purchaseToken);
+                            OperationLog.add(
+                                    MainActivity.this,
+                                    "PURCHASE_READY",
+                                    "reading="
+                                            + resolvedReadingId.substring(
+                                                    0,
+                                                    Math.min(
+                                                            12,
+                                                            resolvedReadingId.length())));
+
+                            AiFortuneCopy saved =
+                                    FortunePaidReadingStore.loadReport(
+                                            MainActivity.this,
+                                            resolvedReadingId);
+                            if (saved != null) {
+                                if (billingManager != null) {
+                                    billingManager.consume(purchaseToken);
+                                }
+                                if (resolvedReadingId.equals(currentReadingId)) {
+                                    aiCopy = saved;
+                                    if (currentResult != null) {
+                                        renderResult(currentResult, false);
+                                    }
+                                }
+                                return;
+                            }
+
+                            if (resolvedReadingId.equals(currentReadingId)
+                                    && currentProfile != null) {
+                                beginPaidGeneration();
+                            } else {
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        "付款完成。回到剛才那份命盤即可產生完整解讀。",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override public void onPurchasePending() {
+                        runOnUiThread(() -> {
+                            boolean requested = billingPurchaseRequested;
+                            billingPurchaseRequested = false;
+                            OperationLog.add(
+                                    MainActivity.this,
+                                    "PURCHASE_PENDING",
+                                    "");
+                            if (requested) {
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        "付款處理中，完成後會自動保留這份完整解讀額度。",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override public void onBillingError(String message) {
+                        runOnUiThread(() -> {
+                            boolean requested = billingPurchaseRequested;
+                            billingPurchaseRequested = false;
+                            OperationLog.add(
+                                    MainActivity.this,
+                                    "BILLING_ERROR",
+                                    safeErrorMessage(
+                                            new IllegalStateException(message)));
+                            if (requested) {
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        message,
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                            if (currentResult != null
+                                    && selectedResultTab == 4
+                                    && aiCopy == null) {
+                                renderResult(currentResult, false);
+                            }
+                        });
+                    }
+
+                    @Override public void onPurchaseConsumed(
+                            String purchaseToken) {
+                        runOnUiThread(() -> {
+                            String pendingToken =
+                                    FortunePaidReadingStore
+                                            .pendingPurchaseToken(
+                                                    MainActivity.this);
+                            if (pendingToken.equals(
+                                    purchaseToken == null
+                                            ? ""
+                                            : purchaseToken)) {
+                                FortunePaidReadingStore.clearPending(
+                                        MainActivity.this);
+                            }
+                            OperationLog.add(
+                                    MainActivity.this,
+                                    "PURCHASE_CONSUMED",
+                                    "");
+                        });
+                    }
+                });
+        billingManager.start();
+    }
+
+    private void requestPaidReading() {
+        if (currentResult == null
+                || currentProfile == null
+                || currentReadingId.isEmpty()) {
+            Toast.makeText(
+                    this,
+                    "請先完成一次排盤",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (FortunePaidReadingStore.hasReport(
+                this,
+                currentReadingId)) {
+            aiCopy = FortunePaidReadingStore.loadReport(
+                    this,
+                    currentReadingId);
+            renderResult(currentResult, false);
+            consumeSavedPendingPurchaseIfNeeded();
+            return;
+        }
+
+        if (FortunePaidReadingStore.isPendingFor(
+                this,
+                currentReadingId)
+                && !FortunePaidReadingStore
+                        .pendingPurchaseToken(this)
+                        .isEmpty()) {
+            beginPaidGeneration();
+            return;
+        }
+
+        if (!FortuneTextModelSession.hasProductionAi(this)) {
+            Toast.makeText(
+                    this,
+                    "Firebase AI Logic 尚未完成正式版設定",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (billingManager == null
+                || !billingManager.canPurchase()) {
+            Toast.makeText(
+                    this,
+                    "Google Play 商品正在準備，請稍後再試",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        billingPurchaseRequested = true;
+        FortunePaidReadingStore.beginPurchase(
+                this,
+                currentReadingId);
+        OperationLog.add(
+                this,
+                "PURCHASE_STARTED",
+                "reading=" + currentReadingId.substring(
+                        0,
+                        Math.min(12, currentReadingId.length())));
+        billingManager.launchPurchase(currentReadingId);
+    }
+
+    private void beginPaidGeneration() {
+        if (currentProfile == null
+                || currentResult == null
+                || currentReadingId.isEmpty()) {
+            return;
+        }
+        if (!FortuneTextModelSession.hasProductionAi(this)) {
+            Toast.makeText(
+                    this,
+                    "Firebase AI Logic 尚未完成正式版設定",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String token =
+                FortunePaidReadingStore.pendingPurchaseToken(this);
+        if (!FortunePaidReadingStore.isPendingFor(
+                this,
+                currentReadingId)
+                || token.isEmpty()) {
+            return;
+        }
+
+        paidGenerationPending = true;
+        selectedResultTab = 4;
+        OperationLog.add(
+                this,
+                "PAID_READING_GENERATION_START",
+                "reading=" + currentReadingId.substring(
+                        0,
+                        Math.min(12, currentReadingId.length())));
+        renderResult(currentResult, true);
+        aiController.start(currentProfile);
+    }
+
+    private void consumeSavedPendingPurchaseIfNeeded() {
+        if (currentReadingId.isEmpty()
+                || aiCopy == null
+                || !FortunePaidReadingStore.isPendingFor(
+                        this,
+                        currentReadingId)) {
+            return;
+        }
+        String token =
+                FortunePaidReadingStore.pendingPurchaseToken(this);
+        if (!token.isEmpty() && billingManager != null) {
+            billingManager.consume(token);
+        }
+    }
+
     private View buildScreen() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -778,6 +1042,106 @@ public final class MainActivity extends Activity {
                 12, GOLD, true);
         hint.setLineSpacing(dp(2), 1f);
         panel.addView(hint, marginTop(11));
+    }
+
+
+    private void addPaidInterpretationPaywall(LinearLayout panel) {
+        TextView title = text(
+                "完整解讀",
+                22,
+                TEXT,
+                true);
+        panel.addView(title);
+
+        TextView intro = text(
+                "排盤本身免費。單次解鎖這一份命盤的完整個人報告；同一份命盤解鎖後可在這台裝置重看，不是訂閱。",
+                14,
+                TEXT,
+                false);
+        intro.setLineSpacing(dp(3), 1f);
+        panel.addView(intro, marginTop(7));
+
+        LinearLayout benefits = column();
+        benefits.setPadding(dp(11), dp(10), dp(11), dp(10));
+        benefits.setBackground(roundBorder(
+                CARD_2,
+                Color.rgb(88, 70, 122),
+                15,
+                1));
+        benefits.addView(text(
+                "包含",
+                12,
+                GOLD,
+                true));
+        TextView items = text(
+                "• 性格、優勢與盲點\n"
+                        + "• 工作與財運／資源\n"
+                        + "• 感情與人際\n"
+                        + (selectedMode == FortuneMode.VEDIC_ASTROLOGY
+                            ? "• 家庭與子女主題\n"
+                            : "")
+                        + "• 目前週期與長期走勢\n"
+                        + "• 關鍵年份／時期與實際建議",
+                13,
+                TEXT,
+                false);
+        items.setLineSpacing(dp(3), 1f);
+        benefits.addView(items, marginTop(5));
+        panel.addView(benefits, marginTop(10));
+
+        boolean pending =
+                FortunePaidReadingStore.isPendingFor(
+                        this,
+                        currentReadingId)
+                && !FortunePaidReadingStore
+                        .pendingPurchaseToken(this)
+                        .isEmpty();
+        boolean firebaseReady =
+                FortuneTextModelSession.hasProductionAi(this);
+        boolean productReady =
+                billingManager != null
+                        && billingManager.canPurchase();
+
+        String buttonLabel;
+        if (pending) {
+            buttonLabel = "重新產生完整解讀";
+        } else if (!firebaseReady) {
+            buttonLabel = "完整解讀 · 服務設定中";
+        } else if (!productReady) {
+            buttonLabel = "完整解讀 · 讀取價格中";
+        } else {
+            String price = billingPrice.isEmpty()
+                    ? "單次購買"
+                    : billingPrice;
+            buttonLabel = price + " 解鎖這份完整解讀";
+        }
+
+        Button unlock = secondaryButton(buttonLabel);
+        unlock.setTextSize(15);
+        unlock.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        unlock.setTextColor(
+                (pending || (firebaseReady && productReady))
+                        ? Color.rgb(30, 22, 46)
+                        : MUTED);
+        unlock.setBackground(round(
+                (pending || (firebaseReady && productReady))
+                        ? GOLD
+                        : CARD_2,
+                18));
+        unlock.setEnabled(
+                pending || (firebaseReady && productReady));
+        unlock.setOnClickListener(v -> requestPaidReading());
+        panel.addView(unlock, fixedHeightTop(52, 12));
+
+        TextView note = text(
+                pending
+                        ? "上一筆付款還沒被消耗，重新產生不會再收費。成功保存報告後才會完成消耗。"
+                        : "免費總覽、本命資料與流年資料仍可直接查看。付款只解鎖 AI 完整文字報告。",
+                11,
+                MUTED,
+                false);
+        note.setLineSpacing(dp(2), 1f);
+        panel.addView(note, marginTop(6));
     }
 
      double numberValue(Object value) {
