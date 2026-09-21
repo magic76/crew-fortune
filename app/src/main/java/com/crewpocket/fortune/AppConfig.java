@@ -12,12 +12,30 @@ public final class AppConfig {
 
     public static String getGeminiApiKey(Context context) {
         if (context == null) return "";
-        return prefs(context).getString(KEY_GEMINI_API_KEY, "").trim();
+        try {
+            String secure = SecureStringStore.get(context, KEY_GEMINI_API_KEY).trim();
+            if (!secure.isEmpty()) return secure;
+        } catch (RuntimeException ignored) {
+            // Keep reading a legacy value below so existing installs can recover.
+        }
+
+        String legacy = prefs(context).getString(KEY_GEMINI_API_KEY, "").trim();
+        if (!legacy.isEmpty()) {
+            try {
+                SecureStringStore.put(context, KEY_GEMINI_API_KEY, legacy);
+                prefs(context).edit().remove(KEY_GEMINI_API_KEY).apply();
+            } catch (RuntimeException ignored) {
+                // Leave the legacy value untouched until Keystore becomes available.
+            }
+        }
+        return legacy;
     }
 
     public static void setGeminiApiKey(Context context, String value) {
         if (context == null) return;
-        prefs(context).edit().putString(KEY_GEMINI_API_KEY, clean(value)).apply();
+        String clean = clean(value);
+        SecureStringStore.put(context, KEY_GEMINI_API_KEY, clean);
+        prefs(context).edit().remove(KEY_GEMINI_API_KEY).apply();
     }
 
     public static boolean hasGeminiApiKey(Context context) {
