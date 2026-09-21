@@ -249,7 +249,7 @@ public final class MainActivity extends Activity {
 
         profileController.addFields(form);
 
-        TextView styleLabel = text("AI 回應風格", 12, MUTED, true);
+        TextView styleLabel = text("AI 解讀口吻（不影響命盤）", 12, MUTED, true);
         form.addView(styleLabel, marginTop(6));
 
         LinearLayout styleRow = new LinearLayout(this);
@@ -269,7 +269,7 @@ public final class MainActivity extends Activity {
         styleRow.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(42), 1f));
         form.addView(styleRow, marginTop(4));
 
-        TextView styleHint = text("嚴謹：專業報告｜普通：白話平衡｜風趣：嘴得準但不傷人\n只改 AI 說話方式，不改命盤計算結果", 11, MUTED, false);
+        TextView styleHint = text("嚴謹＝專業｜普通＝白話｜風趣＝有梗；只改文字口吻。", 11, MUTED, false);
         form.addView(styleHint, marginTop(2));
 
         Button calculate = new Button(this);
@@ -731,7 +731,9 @@ public final class MainActivity extends Activity {
                 aiLoading);
         resultCard.addView(source, marginTop(aiLoading ? 5 : 6));
 
-        if (!aiLoading && aiCopy != null) {
+        if (!aiLoading
+                && aiCopy != null
+                && (selectedResultTab == 0 || selectedResultTab == 4)) {
             List<String> contextualQuestions = buildContextFollowUps();
             if (!contextualQuestions.isEmpty()) {
                 addFollowUpQuestions(contextualQuestions);
@@ -739,7 +741,7 @@ public final class MainActivity extends Activity {
         }
 
         Button teacher = secondaryButton(
-                aiLoading ? "語音講解 · 整理中" : "聽老師講這份結果");
+                aiLoading ? "語音老師 · 整理中" : "語音老師 · 補充／追問");
         teacher.setTextSize(14);
         teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         teacher.setEnabled(!aiLoading);
