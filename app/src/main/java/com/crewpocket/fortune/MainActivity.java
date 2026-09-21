@@ -55,7 +55,7 @@ import java.util.Map;
 public final class MainActivity extends Activity {
     private static final int REQUEST_TEACHER_AUDIO = 4101;
     private static final int BG = Color.rgb(23, 17, 38);
-    private static final int CARD = Color.rgb(39, 30, 60);
+    static final int CARD = Color.rgb(39, 30, 60);
     static final int CARD_2 = Color.rgb(50, 38, 76);
     static final int TEXT = Color.rgb(248, 245, 255);
     static final int MUTED = Color.rgb(190, 181, 207);
@@ -96,11 +96,6 @@ public final class MainActivity extends Activity {
     private FortuneResult currentResult;
     private FortuneFacts currentFacts;
     private AiFortuneCopy aiCopy;
-    private GeminiFortuneLiveSession teacherSession;
-    private AlertDialog teacherDialog;
-    private TextView teacherStatusText;
-    private TextView teacherInputText;
-    private TextView teacherOutputText;
     private boolean pendingTeacherStart;
     private String pendingTeacherQuestion = "";
     private TextView aiLoadingStageText;
@@ -113,6 +108,7 @@ public final class MainActivity extends Activity {
     private final BaZiResultRenderer baZiResultRenderer = new BaZiResultRenderer(this);
     private final TarotResultRenderer tarotResultRenderer = new TarotResultRenderer(this);
     private final FortuneAiController aiController = new FortuneAiController(this);
+    private final FortuneTeacherController teacherController = new FortuneTeacherController(this);
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -133,7 +129,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         OperationLog.add(this, "APP_DESTROY", "changingConfig=" + isChangingConfigurations());
-        closeTeacher();
+        teacherController.close();
         aiController.close();
         super.onDestroy();
     }
@@ -439,7 +435,7 @@ public final class MainActivity extends Activity {
         selectedMode = mode;
         OperationLog.add(this, "MODE_SELECTED", mode.name());
         if (previous != mode && currentResult != null) {
-            closeTeacher();
+            teacherController.close();
             aiController.close();
             currentResult = null;
             currentFacts = null;
@@ -478,7 +474,7 @@ public final class MainActivity extends Activity {
         selectedResultTab = 0;
         selectedVedicTransitDate = null;
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
-        closeTeacher();
+        teacherController.close();
         aiController.close();
         try {
             FortuneProfile profile = buildCurrentProfile();
@@ -1899,7 +1895,7 @@ public final class MainActivity extends Activity {
             return;
         }
         pendingTeacherQuestion = "";
-        openTeacherDialog(question);
+        teacherController.open(question);
     }
 
     @Override
@@ -1916,7 +1912,7 @@ public final class MainActivity extends Activity {
             pendingTeacherStart = false;
             String question = pendingTeacherQuestion;
             pendingTeacherQuestion = "";
-            openTeacherDialog(question);
+            teacherController.open(question);
         } else {
             OperationLog.add(this, "MIC_PERMISSION_DENIED", "");
             pendingTeacherStart = false;
@@ -1925,173 +1921,11 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void openTeacherDialog(String initialQuestion) {
-        closeTeacher();
-        String directQuestion = initialQuestion == null ? "" : initialQuestion.trim();
 
-        LinearLayout body = column();
-        body.setPadding(dp(14), dp(14), dp(14), dp(12));
-        body.setBackground(roundBorder(
-                CARD, Color.rgb(92, 73, 127), 24, 1));
 
-        TextView title = text("命理老師", 22, TEXT, true);
-        body.addView(title);
 
-        TextView hint = text(
-                directQuestion.isEmpty()
-                        ? "老師會先講 60–90 秒重點。想插話時按「我要問」，老師會立刻停下來聽你說。"
-                        : "已經把你點的問題帶給老師，會直接回答，不會重新從頭介紹命盤。",
-                13, MUTED, false);
-        hint.setLineSpacing(dp(3), 1f);
-        body.addView(hint, marginTop(6));
 
-        teacherStatusText = text("正在準備…", 13, ACCENT, true);
-        body.addView(teacherStatusText, marginTop(9));
 
-        TextView youLabel = text("你剛剛說", 11, GOLD, true);
-        body.addView(youLabel, marginTop(6));
-        teacherInputText = text(
-                directQuestion.isEmpty() ? "—" : directQuestion,
-                14, TEXT, false);
-        teacherInputText.setLineSpacing(dp(2), 1f);
-        body.addView(teacherInputText, marginTop(4));
-
-        TextView teacherLabel = text("老師正在講", 11, GOLD, true);
-        body.addView(teacherLabel, marginTop(9));
-        teacherOutputText = text("等待老師上線…", 15, TEXT, false);
-        teacherOutputText.setLineSpacing(dp(2), 1f);
-        body.addView(teacherOutputText, marginTop(4));
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-
-        Button interrupt = secondaryButton("我要問");
-        interrupt.setTextColor(Color.rgb(30, 22, 46));
-        interrupt.setBackground(round(ACCENT, 14));
-        interrupt.setOnClickListener(v -> {
-            OperationLog.add(this, "TEACHER_INTERRUPT", "");
-            GeminiFortuneLiveSession session = teacherSession;
-            if (session != null) session.interrupt();
-        });
-        LinearLayout.LayoutParams interruptLp =
-                new LinearLayout.LayoutParams(0, dp(44), 1f);
-        interruptLp.rightMargin = dp(6);
-        actions.addView(interrupt, interruptLp);
-
-        Button close = secondaryButton("結束");
-        close.setOnClickListener(v -> {
-            AlertDialog dialog = teacherDialog;
-            if (dialog != null) dialog.dismiss();
-        });
-        actions.addView(close, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        body.addView(actions, marginTop(11));
-
-        teacherDialog = new AlertDialog.Builder(this)
-                .setView(body)
-                .create();
-        teacherDialog.setOnDismissListener(dialog -> closeTeacherSessionOnly());
-        teacherDialog.show();
-        styleDarkDialog(teacherDialog);
-
-        String teacherPrompt = FortuneTeacherPrompt.systemPrompt(
-                selectedMode,
-                selectedAiStyle,
-                currentFacts,
-                "");
-        String opening = directQuestion.isEmpty()
-                ? FortuneTeacherPrompt.openingPrompt("")
-                : "使用者剛剛點選追問：「" + directQuestion + "」。"
-                + "不要做一般 60–90 秒開場，直接回答這個問題。"
-                + "先給白話結論，再講 2–4 個 deterministicFacts 裡的具體依據，"
-                + "最後補一句可以繼續追問的方向。";
-
-        OperationLog.add(this, "TEACHER_START",
-                selectedMode.name() + " · media_audio");
-        teacherSession = new GeminiFortuneLiveSession(
-                this,
-                AppConfig.getGeminiApiKey(this),
-                FortuneTeacherPrompt.voiceName(selectedAiStyle),
-                teacherPrompt,
-                opening,
-                new GeminiFortuneLiveSession.Listener() {
-                    @Override public void onStatus(String status) {
-                        runOnUiThread(() -> {
-                            if (teacherStatusText != null) teacherStatusText.setText(status);
-                        });
-                    }
-
-                    @Override public void onReady() {
-                        OperationLog.add(MainActivity.this, "TEACHER_READY", "");
-                        runOnUiThread(() -> {
-                            if (teacherStatusText != null) {
-                                teacherStatusText.setText("老師正在看你的命盤…");
-                            }
-                        });
-                    }
-
-                    @Override public void onInputTranscript(String textValue) {
-                        OperationLog.add(MainActivity.this,
-                                "TEACHER_USER_SPOKE",
-                                "chars=" + (textValue == null ? 0 : textValue.length()));
-                        runOnUiThread(() -> {
-                            if (teacherInputText != null) teacherInputText.setText(textValue);
-                        });
-                    }
-
-                    @Override public void onOutputTranscript(String textValue) {
-                        OperationLog.add(MainActivity.this,
-                                "TEACHER_REPLIED",
-                                "chars=" + (textValue == null ? 0 : textValue.length()));
-                        runOnUiThread(() -> {
-                            if (teacherOutputText != null) teacherOutputText.setText(textValue);
-                        });
-                    }
-
-                    @Override public void onSpeakingChanged(boolean speaking) {
-                        runOnUiThread(() -> {
-                            if (teacherStatusText != null) {
-                                teacherStatusText.setText(
-                                        speaking ? "老師正在講…" : "你可以直接追問");
-                            }
-                        });
-                    }
-
-                    @Override public void onError(String message) {
-                        OperationLog.add(MainActivity.this,
-                                "TEACHER_ERROR",
-                                message == null ? "unknown" : message);
-                        runOnUiThread(() -> {
-                            if (teacherStatusText != null) {
-                                teacherStatusText.setText("語音老師暫時無法使用");
-                            }
-                            if (teacherOutputText != null) teacherOutputText.setText(message);
-                        });
-                    }
-                });
-        teacherSession.start();
-    }
-
-    private void closeTeacher() {
-        AlertDialog dialog = teacherDialog;
-        teacherDialog = null;
-        if (dialog != null && dialog.isShowing()) {
-            dialog.setOnDismissListener(null);
-            dialog.dismiss();
-        }
-        closeTeacherSessionOnly();
-    }
-
-    private void closeTeacherSessionOnly() {
-        GeminiFortuneLiveSession session = teacherSession;
-        if (session != null) OperationLog.add(this, "TEACHER_STOP", "");
-        teacherSession = null;
-        if (session != null) {
-            try { session.close(); } catch (Exception ignored) {}
-        }
-        teacherStatusText = null;
-        teacherInputText = null;
-        teacherOutputText = null;
-    }
 
     private void shareResult() {
         if (currentResult == null || currentFacts == null) return;
@@ -2633,7 +2467,7 @@ public final class MainActivity extends Activity {
 
      void applyVedicTransitDate(LocalDate targetDate) {
         if (selectedMode != FortuneMode.VEDIC_ASTROLOGY) return;
-        closeTeacher();
+        teacherController.close();
         aiController.close();
         try {
             FortuneProfile profile = buildCurrentProfile();
@@ -3037,7 +2871,7 @@ public final class MainActivity extends Activity {
         return lp;
     }
 
-    private void styleDarkDialog(AlertDialog dialog) {
+     void styleDarkDialog(AlertDialog dialog) {
         if (dialog == null || dialog.getWindow() == null) return;
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.getWindow().setDimAmount(0.68f);
