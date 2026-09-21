@@ -14,6 +14,16 @@ final class FortuneResultTabCopy {
         return "本命＝看出生底盤　｜　流年＝看現在與未來節奏　｜　解讀＝完整文字報告";
     }
 
+    static String compactInterpretation(String value, String fallback) {
+        String source = value == null || value.trim().isEmpty() ? fallback : value;
+        String clean = source == null ? "" : source.replace('\n', ' ')
+                .replace('\r', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
+        if (clean.length() <= 170) return clean;
+        return clean.substring(0, 170) + "…\n完整內容請看「解讀」。";
+    }
+
     static String description(FortuneMode mode, int tab) {
         if (mode == FortuneMode.BA_ZI) {
             switch (tab) {
