@@ -758,6 +758,104 @@ public final class MainActivity extends Activity {
         resultCard.addView(share, fixedHeightTop(48, 6));
     }
 
+    void addOverviewTakeaways(LinearLayout panel, FortuneMode mode) {
+        List<String> values = FortuneOverviewSnapshot.keyTakeaways(
+                mode,
+                currentFacts,
+                aiCopy);
+
+        TextView title = text("先看這三件事", 14, GOLD, true);
+        panel.addView(title, marginTop(10));
+
+        TextView hint = text(
+                "先抓結論；原始命盤放在「本命／流年」，完整長文放在「解讀」。",
+                11,
+                MUTED,
+                false);
+        hint.setLineSpacing(dp(2), 1f);
+        panel.addView(hint, marginTop(2));
+
+        for (int index = 0; index < values.size() && index < 3; index++) {
+            final int traitIndex = index;
+            final String value = values.get(index);
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.TOP);
+            row.setPadding(dp(10), dp(9), dp(10), dp(9));
+            row.setBackground(roundBorder(
+                    Color.rgb(43, 33, 65),
+                    Color.rgb(80, 65, 111),
+                    13,
+                    1));
+
+            TextView number = text(
+                    index == 0 ? "①" : index == 1 ? "②" : "③",
+                    18,
+                    ACCENT,
+                    true);
+            LinearLayout.LayoutParams numberLp = new LinearLayout.LayoutParams(
+                    dp(30),
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            numberLp.rightMargin = dp(6);
+            row.addView(number, numberLp);
+
+            LinearLayout copy = column();
+            TextView body = text(value, 13, TEXT, true);
+            body.setLineSpacing(dp(2), 1f);
+            copy.addView(body);
+
+            if (aiCopy != null
+                    && traitIndex < aiCopy.topTraitEvidence.size()) {
+                final String evidence =
+                        aiCopy.topTraitEvidence.get(traitIndex);
+                TextView why = text(
+                        "查看命盤依據 ›",
+                        11,
+                        ACCENT,
+                        true);
+                copy.addView(why, marginTop(4));
+                row.setClickable(true);
+                row.setOnClickListener(v ->
+                        dialogController.showTraitEvidence(value, evidence));
+            }
+
+            row.addView(copy, new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f));
+            panel.addView(row, marginTop(6));
+        }
+    }
+
+    void addOverviewTiming(LinearLayout panel, FortuneMode mode) {
+        String timing = FortuneOverviewSnapshot.currentTiming(
+                mode,
+                currentFacts,
+                aiCopy);
+        if (timing.isEmpty()) return;
+
+        LinearLayout card = column();
+        card.setPadding(dp(10), dp(10), dp(10), dp(10));
+        card.setBackground(roundBorder(
+                Color.rgb(55, 42, 82),
+                Color.rgb(111, 91, 157),
+                14,
+                1));
+
+        String label = mode == FortuneMode.BA_ZI
+                ? "現在走到哪裡 · 大運／流年"
+                : mode == FortuneMode.VEDIC_ASTROLOGY
+                ? "現在走到哪裡 · Dasha／Gochar"
+                : "現在走到哪裡 · 個人流年";
+        card.addView(text(label, 12, GOLD, true));
+
+        TextView body = text(timing, 13, TEXT, false);
+        body.setLineSpacing(dp(2), 1f);
+        card.addView(body, marginTop(4));
+        panel.addView(card, marginTop(10));
+    }
+
      void addTopTraits(LinearLayout panel) {
         TextView title = text("命盤中的 3 個明顯特徵", 13, GOLD, true);
         panel.addView(title, marginTop(10));
