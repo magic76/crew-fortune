@@ -681,7 +681,7 @@ public final class MainActivity extends Activity {
                     .append('\n');
             value.append("這次必須重新輸出一個完整、可解析的 JSON object。")
                     .append("不得輸出 markdown code fence、前言、後記或任何 JSON 外文字。")
-                    .append("不得省略 title, overview, personality, career, wealth, relationships, ")
+                    .append("不得省略 title, overview, personality, career, wealth, relationships, family, ")
                     .append("currentCycle, longTerm, keyYears, topTraits, topTraitEvidence, followUps, translation, punchline, advice, shareText。")
                     .append("不要縮短內容來逃避欄位要求。\n");
         }
@@ -864,19 +864,17 @@ public final class MainActivity extends Activity {
         }
         resultCard.addView(tabScroll, marginTop(6));
 
-        if (result.mode == FortuneMode.VEDIC_ASTROLOGY) {
-            TextView vedicTabGuide = text(
-                    "本命＝看出生底盤　｜　流年＝看現在與未來節奏",
-                    11, MUTED, true);
-            vedicTabGuide.setLineSpacing(dp(2), 1f);
-            resultCard.addView(vedicTabGuide, marginTop(5));
+        TextView tabGuide = text(
+                resultTabOverviewHint(result.mode),
+                11, MUTED, true);
+        tabGuide.setLineSpacing(dp(2), 1f);
+        resultCard.addView(tabGuide, marginTop(5));
 
-            TextView selectedTabGuide = text(
-                    vedicSelectedTabDescription(),
-                    12, ACCENT, false);
-            selectedTabGuide.setLineSpacing(dp(2), 1f);
-            resultCard.addView(selectedTabGuide, marginTop(3));
-        }
+        TextView selectedTabGuide = text(
+                resultTabDescription(result.mode),
+                12, ACCENT, false);
+        selectedTabGuide.setLineSpacing(dp(2), 1f);
+        resultCard.addView(selectedTabGuide, marginTop(3));
 
         resultTabContent = column();
         resultCard.addView(resultTabContent, marginTop(4));
@@ -884,19 +882,59 @@ public final class MainActivity extends Activity {
         addSharedResultActions(aiLoading, result.mode);
     }
 
-    private String vedicSelectedTabDescription() {
+    private String resultTabOverviewHint(FortuneMode mode) {
+        if (mode == FortuneMode.BA_ZI) {
+            return "本命＝看出生底盤　｜　流年＝看大運與逐年節奏　｜　解讀＝完整文字報告";
+        }
+        if (mode == FortuneMode.TAROT_NUMEROLOGY) {
+            return "本命＝看核心數字與出生牌　｜　流年＝看年度／月份循環　｜　解讀＝完整文字報告";
+        }
+        return "本命＝看出生底盤　｜　流年＝看現在與未來節奏　｜　解讀＝完整文字報告";
+    }
+
+    private String resultTabDescription(FortuneMode mode) {
+        if (mode == FortuneMode.BA_ZI) {
+            switch (selectedResultTab) {
+                case 1:
+                    return "這頁先用白話說明性格、工作資源與關係模式，再往下看四柱、五行、十神、旺衰與合沖依據。";
+                case 2:
+                    return "這頁可看：目前大運、逐年流年、值得留意年份，以及每段時間的白話主題。";
+                case 3:
+                    return "這頁可看：財運、工作、感情各自的結論、依據、目前大運與關鍵年份。";
+                case 4:
+                    return "這頁就是完整文字報告；不開語音也能讀完主要解讀。";
+                case 0:
+                default:
+                    return "這頁先抓日主、旺衰、目前大運與今年流年，再看最重要的白話重點。";
+            }
+        }
+        if (mode == FortuneMode.TAROT_NUMEROLOGY) {
+            switch (selectedResultTab) {
+                case 1:
+                    return "這頁先解釋內在／外在人格、生命道路與工作資源傾向，再往下看出生牌、巔峰、挑戰與週期資料。";
+                case 2:
+                    return "這頁可看：未來幾年個人流年、今年 12 個個人月，以及人生階段節奏。";
+                case 3:
+                    return "這頁可看：個性、工作、資源、感情的依據、時間與完整白話解讀。";
+                case 4:
+                    return "這頁就是完整文字報告；語音老師只負責補充與追問。";
+                case 0:
+                default:
+                    return "這頁先看外在人格牌、內在靈魂牌、生命道路與目前流年。";
+            }
+        }
         switch (selectedResultTab) {
             case 1:
-                return "這頁可看：Lagna、Moon、Sun、九曜落點、12 宮、宮主、Nakshatra、逆行與行星互動。";
+                return "這頁先給本命白話重點，再往下看 Lagna、Moon、Sun、九曜、12 宮、宮主、Nakshatra 與行星互動。";
             case 2:
-                return "這頁可看：目前 Mahadasha / Antardasha、指定日期 Gochar、Dasha × Gochar，以及未來 3 年主要行運變化。";
+                return "這頁先給目前週期的文字解讀，再往下看 Mahadasha / Antardasha、Gochar、Dasha × Gochar 與未來 3 年行運。";
             case 3:
-                return "這頁可看：個性、工作、財務、感情、家庭各自用了哪些本命與時間證據。";
+                return "這頁可看：個性、工作、財務、感情、家庭各自的結論、命盤依據與目前時間證據。";
             case 4:
-                return "這頁可看：AI 命理老師把本命、Dasha 與 Gochar 整理成完整白話解讀。";
+                return "這頁就是完整文字報告；語音老師只負責把內容講得更口語、或回答追問。";
             case 0:
             default:
-                return "這頁可看：你的核心命盤身份、目前人生週期，以及最值得先理解的幾個重點。";
+                return "這頁先看核心命盤身份、目前人生週期，以及最值得先理解的幾個重點。";
         }
     }
 
@@ -984,6 +1022,9 @@ public final class MainActivity extends Activity {
             }
             if (!aiCopy.relationships.isEmpty()) {
                 addPanelSection(panel, "感情與人際", aiCopy.relationships);
+            }
+            if (result.mode == FortuneMode.VEDIC_ASTROLOGY && !aiCopy.family.isEmpty()) {
+                addPanelSection(panel, "家庭與子女", aiCopy.family);
             }
             if (!aiCopy.currentCycle.isEmpty()) {
                 addPanelSection(panel, "目前週期", aiCopy.currentCycle);
@@ -1100,17 +1141,27 @@ public final class MainActivity extends Activity {
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
 
+        addPanelSection(panel, "Lagna / Moon / Sun",
+                VedicFactsFormatter.coreSummary(currentFacts));
+
+        String natalPlain = aiCopy != null && !aiCopy.personality.isEmpty()
+                ? aiCopy.personality
+                : VedicFactsFormatter.profileEvidence(currentFacts, "personalityProfile");
+        if (!natalPlain.isEmpty()) {
+            addPanelSection(panel, "本命白話重點", natalPlain);
+        }
+        if (aiCopy != null && !aiCopy.topTraits.isEmpty()) {
+            addTopTraits(panel);
+        }
+
         addVedicPageTeacherGuide(
                 panel,
-                "看不懂這些星和宮位？",
-                "讓老師先從 Lagna、Moon、Sun、最重要的宮主與行星落點，挑 3–5 個真正值得你知道的本命重點，再告訴你它們在個性、工作與關係上怎麼一起作用。",
-                "老師幫我講本命",
+                "想用語音聽白話版？",
+                "上面的本命內容已經可以直接讀。語音老師會再挑 3–5 個最重要的結構，用比較口語的方式把個性、工作方式與關係模式串起來。",
+                "聽老師講本命",
                 "請把我的本命頁講成人話。不要逐條念資料，也不要先講流年。"
                         + "請從 Lagna、Moon、Sun、Lagna lord、最重要的 house lord placements、行星落宮、Nakshatra、dignity、retrograde、Drishti/Conjunctions 中挑 3 到 5 個最關鍵的結構。"
                         + "先說結論，再說每個結論的 deterministic evidence，最後告訴我這些結構在個性、工作方式與關係模式上怎麼彼此連動。");
-
-        addPanelSection(panel, "Lagna / Moon / Sun",
-                VedicFactsFormatter.coreSummary(currentFacts));
 
         TextView chartTitle = text("本命盤 · Whole Sign", 13, GOLD, true);
         panel.addView(chartTitle, marginTop(14));
@@ -1202,18 +1253,12 @@ public final class MainActivity extends Activity {
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
 
-        addVedicPageTeacherGuide(
-                panel,
-                "這頁時間資料很多，該先看哪個？",
-                "讓老師先把目前 Dasha、Antardasha 與 Gochar 疊在一起，只挑現在最有感的 3–5 個時間重點，說明工作、財務、感情或生活節奏目前比較容易被哪裡帶動。",
-                "老師幫我看現在",
-                "請把我的流年頁講成人話。請以目前選擇的 currentTransitDate 為基準，"
-                        + "先說 currentMahadasha/currentAntardasha 代表的人生背景，再疊加 currentTransits、transitAspectsToNatal、transitConjunctionsToNatal。"
-                        + "只挑 3 到 5 個目前最值得注意的時間訊號，分清楚哪些來自 Dasha、哪些來自 Gochar。"
-                        + "如果談未來，只能引用 majorTransitTimeline 與既有 Dasha 日期；不要自行補沒有計算的 transit，也不要把任何訊號說成必然事件。");
-
         addPanelSection(panel, "目前人生週期 · Mahadasha / Antardasha",
                 VedicFactsFormatter.dashaSummary(currentFacts));
+
+        if (aiCopy != null && !aiCopy.currentCycle.isEmpty()) {
+            addPanelSection(panel, "現在的白話解讀", aiCopy.currentCycle);
+        }
 
         addPanelSection(
                 panel,
@@ -1268,6 +1313,20 @@ public final class MainActivity extends Activity {
             timelineHint.setLineSpacing(dp(2), 1f);
             panel.addView(timelineHint, marginTop(5));
         }
+
+        if (aiCopy != null && !aiCopy.keyYears.isEmpty()) {
+            addPanelSection(panel, "接下來值得先看的時期", aiCopy.keyYears);
+        }
+
+        addVedicPageTeacherGuide(
+                panel,
+                "想用語音整理這段時間？",
+                "上面的週期、行運與未來變化都已經寫在頁面裡。語音老師只會把它們濃縮成 3–5 個最有感的時間重點，方便你直接問下去。",
+                "聽老師講目前週期",
+                "請把我的流年頁講成人話。請以目前選擇的 currentTransitDate 為基準，"
+                        + "先說 currentMahadasha/currentAntardasha 代表的人生背景，再疊加 currentTransits、transitAspectsToNatal、transitConjunctionsToNatal。"
+                        + "只挑 3 到 5 個目前最值得注意的時間訊號，分清楚哪些來自 Dasha、哪些來自 Gochar。"
+                        + "如果談未來，只能引用 majorTransitTimeline 與既有 Dasha 日期；不要自行補沒有計算的 transit，也不要把任何訊號說成必然事件。");
 
         TextView visualTitle = text("人生大週期時間軸 · Dasha", 13, GOLD, true);
         panel.addView(visualTitle, marginTop(14));
@@ -1348,7 +1407,7 @@ public final class MainActivity extends Activity {
         LinearLayout panel = resultPanel();
 
         TextView intro = text(
-                "不做吉凶分數。每個主題都拆成「結論範圍 → deterministic evidence → 目前時間 → AI 解讀 → 問老師」。",
+                "不做吉凶分數。每個主題都先給「怎麼看 → 關鍵資料 → 目前時間 → 白話解讀」，語音老師只負責補充與追問。",
                 13, MUTED, false);
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
@@ -1390,7 +1449,7 @@ public final class MainActivity extends Activity {
                 "家庭 / Children",
                 "4宮 × 5宮 × Moon/Jupiter",
                 "familyChildrenProfile",
-                "",
+                aiCopy == null ? "" : aiCopy.family,
                 "請只用 familyChildrenProfile、4宮、5宮及宮主、Moon/Jupiter 說明家庭與子女主題。不要預測懷孕必然結果。");
 
         TextView boundary = text(
@@ -1418,11 +1477,11 @@ public final class MainActivity extends Activity {
                 VedicFactsFormatter.topicTimingEvidence(currentFacts, profileKey);
         addVedicEvidenceCardGrid(card, evidence, timingEvidence);
 
-        addTopicLine(card, "老師解讀",
+        addTopicLine(card, "白話解讀",
                 aiText == null || aiText.trim().isEmpty()
-                        ? "上面的本命與時間資料已經可以直接看；AI 命理老師只負責把它們之間的關係講清楚。"
+                        ? "上面的本命與時間資料已經可以直接看；完整文字解讀會把這些訊號彼此之間的關係講清楚。"
                         : aiText);
-        addAskTeacherAction(card, "問老師怎麼串起來", question);
+        addAskTeacherAction(card, "用語音追問這一題", question);
     }
 
     private void addVedicEvidenceCardGrid(
@@ -1675,7 +1734,7 @@ public final class MainActivity extends Activity {
         LinearLayout panel = resultPanel();
 
         TextView intro = text(
-                "塔羅生命靈數的主題分析會把本命數字、年度循環與 AI 解讀放在一起。先看依據，再看解讀。",
+                "塔羅生命靈數的主題分析會把本命數字、年度循環與完整文字解讀放在一起。先看結論與依據，語音只用來補充。",
                 13, MUTED, false);
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
@@ -1712,7 +1771,7 @@ public final class MainActivity extends Activity {
                         : localReportSection("工作與財務"));
         addAskTeacherAction(
                 career,
-                "問老師工作",
+                "用語音追問工作",
                 "請直接回答我的工作優勢與現在的職涯節奏。請用生命道路、態度數、巔峰與個人流年說明。");
 
         LinearLayout wealth = topicCard(panel, "財運與資源", "生命道路 × 巔峰 × 個人流年");
@@ -1746,7 +1805,7 @@ public final class MainActivity extends Activity {
                         : localReportSection("感情與人際"));
         addAskTeacherAction(
                 relationship,
-                "問老師感情",
+                "用語音追問感情",
                 "請直接回答我的感情與人際模式。請用外在人格牌、內在靈魂牌、挑戰數與目前流年說明。");
 
         TextView boundary = text(
@@ -1793,15 +1852,12 @@ public final class MainActivity extends Activity {
             }
         }
 
-        Button teacher = new Button(this);
-        teacher.setText(aiLoading ? "老師跟我講解 · 整理中" : "老師跟我講解");
-        teacher.setTextSize(15);
-        teacher.setAllCaps(false);
+        Button teacher = secondaryButton(
+                aiLoading ? "語音講解 · 整理中" : "聽老師講這份結果");
+        teacher.setTextSize(14);
         teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         teacher.setEnabled(!aiLoading);
         teacher.setAlpha(aiLoading ? 0.48f : 1f);
-        teacher.setTextColor(aiLoading ? MUTED : Color.rgb(30, 22, 46));
-        teacher.setBackground(round(aiLoading ? CARD_2 : GOLD, 18));
         if (!aiLoading) {
             teacher.setOnClickListener(v -> startTeacherExplanation());
         }
@@ -2411,7 +2467,7 @@ public final class MainActivity extends Activity {
         LinearLayout panel = resultPanel();
 
         TextView intro = text(
-                "這裡不做神祕分數。每個主題都拆成「本命依據 → 現在大運 → 哪些年份訊號明顯 → AI/老師怎麼解讀」。",
+                "這裡不做神祕分數。每個主題都直接給「本命依據 → 現在大運 → 關鍵年份 → 白話解讀」，語音老師只負責補充。",
                 13, MUTED, false);
         intro.setLineSpacing(dp(3), 1f);
         panel.addView(intro);
@@ -2432,14 +2488,14 @@ public final class MainActivity extends Activity {
         addTopicLine(card, "目前大運", summaryLuck(mapObjectValue(p, "currentLuck")));
         addTopicLine(card, "時間",
                 "財星訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
-        addTopicLine(card, "老師解讀",
+        addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.wealth.isEmpty()
                         ? aiCopy.wealth
                         : "AI 完成後會把財星、大運與流年證據翻成白話；沒有 AI 時仍可直接看上面的 deterministic evidence。");
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
                 card,
-                "問老師我的財運",
+                "用語音追問財運",
                 "請直接回答我的財運重點。請從 wealthProfile、目前大運與逐年流年挑最重要的依據，不要重新排盤。");
     }
 
@@ -2454,14 +2510,14 @@ public final class MainActivity extends Activity {
         addTopicLine(card, "目前大運", summaryLuck(mapObjectValue(p, "currentLuck")));
         addTopicLine(card, "時間",
                 "工作訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
-        addTopicLine(card, "老師解讀",
+        addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.career.isEmpty()
                         ? aiCopy.career
                         : "官殺偏責任與規範、印偏資源與學習、食傷偏輸出與表達；要再和大運、流年一起看。");
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
                 card,
-                "問老師工作",
+                "用語音追問工作",
                 "請直接回答我的工作與職涯重點。請從 careerProfile、目前大運與逐年流年挑最重要的依據，不要重新排盤。");
     }
 
@@ -2477,14 +2533,14 @@ public final class MainActivity extends Activity {
         addTopicLine(card, "時間",
                 "配偶宮／財官訊號年份：" + compactRelationshipYears(
                         mapObjectValue(p, "annualSignalYears")));
-        addTopicLine(card, "老師解讀",
+        addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.relationships.isEmpty()
                         ? aiCopy.relationships
                         : "這裡只標出配偶宮與財官訊號被碰到的年份，不直接等同戀愛、結婚或分手。");
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
                 card,
-                "問老師感情",
+                "用語音追問感情",
                 "請直接回答我的感情與人際盲點。請從 relationshipProfile、配偶宮與逐年流年挑最重要的依據，不要重新排盤。");
     }
 
@@ -2798,7 +2854,16 @@ public final class MainActivity extends Activity {
 
         panel.addView(hero);
 
-        TextView divider = text("四柱命盤", 12, GOLD, true);
+        TextView contentFirstHint = text(
+                "先看白話，再看命盤依據。下面三段不需要開語音，也能先理解這張八字跟日常生活最有關的部分。",
+                12, MUTED, false);
+        contentFirstHint.setLineSpacing(dp(2), 1f);
+        panel.addView(contentFirstHint, marginTop(9));
+        addPanelSection(panel, "性格與做事方式", localReportSection("性格與天賦"));
+        addPanelSection(panel, "工作與資源傾向", localReportSection("工作與財務"));
+        addPanelSection(panel, "關係模式", localReportSection("感情與人際"));
+
+        TextView divider = text("四柱命盤 · 以下是依據", 12, GOLD, true);
         panel.addView(divider, marginTop(11));
 
         LinearLayout pillars = new LinearLayout(this);
@@ -3035,7 +3100,17 @@ public final class MainActivity extends Activity {
         core.setLineSpacing(dp(3), 1f);
         panel.addView(core, marginTop(9));
 
-        addPanelSection(panel, "出生牌組", formatBirthCards());
+        TextView contentFirstHint = text(
+                "先看這些數字在生活裡代表什麼，再往下看完整計算資料；不需要先找老師翻譯。",
+                12, MUTED, false);
+        contentFirstHint.setGravity(Gravity.CENTER_HORIZONTAL);
+        contentFirstHint.setLineSpacing(dp(2), 1f);
+        panel.addView(contentFirstHint, marginTop(9));
+        addPanelSection(panel, "內在 vs 外在", localReportSection("內在 vs 外在"));
+        addPanelSection(panel, "性格與天賦", localReportSection("性格與天賦"));
+        addPanelSection(panel, "工作與資源傾向", localReportSection("工作與財務"));
+
+        addPanelSection(panel, "出生牌組 · 以下是依據", formatBirthCards());
         addPanelSection(panel, "四大巔峰", formatPairedLists(
                 currentFacts.detail("pinnacles"), currentFacts.detail("pinnacleTiming")));
         addPanelSection(panel, "四大挑戰", formatList(currentFacts.detail("challenges")));
@@ -3777,6 +3852,7 @@ public final class MainActivity extends Activity {
                     .put("career", copy.career)
                     .put("wealth", copy.wealth)
                     .put("relationships", copy.relationships)
+                    .put("family", copy.family)
                     .put("currentCycle", copy.currentCycle)
                     .put("longTerm", copy.longTerm)
                     .put("keyYears", copy.keyYears)
