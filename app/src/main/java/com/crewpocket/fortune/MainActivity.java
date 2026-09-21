@@ -3597,16 +3597,35 @@ public final class MainActivity extends Activity {
                 .setMessage("Gemini 只負責解讀與文案，底層命盤由本地 deterministic engine 計算。可在主畫面切換嚴謹／普通／風趣三種回應風格。")
                 .setView(keyInput)
                 .setPositiveButton("儲存", (dialog, which) -> {
-                    AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
-                    OperationLog.add(this, "GEMINI_KEY_SAVED", "value_hidden");
-                    refreshAiStatus();
-                    Toast.makeText(this, "Gemini Key 已儲存於本機", Toast.LENGTH_SHORT).show();
+                    try {
+                        AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
+                        OperationLog.add(this, "GEMINI_KEY_SAVED", "encrypted");
+                        refreshAiStatus();
+                        Toast.makeText(
+                                this,
+                                "Gemini Key 已加密儲存於本機",
+                                Toast.LENGTH_SHORT).show();
+                    } catch (RuntimeException error) {
+                        OperationLog.add(this, "GEMINI_KEY_SAVE_FAILED", safeErrorMessage(error));
+                        Toast.makeText(
+                                this,
+                                "無法安全儲存 Gemini Key，請稍後再試",
+                                Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .setNegativeButton("取消", null)
                 .setNeutralButton("清除", (dialog, which) -> {
-                    AppConfig.setGeminiApiKey(this, "");
-                    OperationLog.add(this, "GEMINI_KEY_CLEARED", "");
-                    refreshAiStatus();
+                    try {
+                        AppConfig.setGeminiApiKey(this, "");
+                        OperationLog.add(this, "GEMINI_KEY_CLEARED", "");
+                        refreshAiStatus();
+                    } catch (RuntimeException error) {
+                        OperationLog.add(this, "GEMINI_KEY_CLEAR_FAILED", safeErrorMessage(error));
+                        Toast.makeText(
+                                this,
+                                "無法清除本機金鑰",
+                                Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .show();
     }
