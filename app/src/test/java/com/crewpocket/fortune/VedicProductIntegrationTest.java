@@ -39,6 +39,16 @@ public final class VedicProductIntegrationTest {
         assertTrue(prompt.contains("三年內 Jupiter、Saturn、Rahu、Ketu"));
     }
 
+    @Test public void writtenVedicReportRequiresFamilyContent() {
+        String prompt = new FortuneAgentSpec(
+                AiStyle.NORMAL,
+                false).systemPrompt();
+
+        assertTrue(prompt.contains("familyChildrenProfile"));
+        assertTrue(prompt.contains("family: for VEDIC_ASTROLOGY"));
+        assertTrue(prompt.contains("complete written family/children interpretation"));
+    }
+
     @Test public void vedicShareCardDoesNotExposeBirthPlaceOrCoordinates() {
         FortuneProfile profile = new FortuneProfile(
                 "Private Name",

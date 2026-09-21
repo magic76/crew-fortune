@@ -16,6 +16,7 @@ public final class AiFortuneCopyTest {
                     + "\"career\":\"工作內容\","
                     + "\"wealth\":\"財運內容\","
                     + "\"relationships\":\"感情內容\","
+                    + "\"family\":\"家庭與子女內容\","
                     + "\"currentCycle\":\"目前週期\","
                     + "\"longTerm\":\"長期走勢\","
                     + "\"keyYears\":\"重要年份\","
@@ -33,6 +34,7 @@ public final class AiFortuneCopyTest {
         assertEquals("日主有話要說", copy.title);
         assertEquals("工作內容", copy.career);
         assertEquals("財運內容", copy.wealth);
+        assertEquals("家庭與子女內容", copy.family);
         assertEquals("長期走勢", copy.longTerm);
         assertEquals("重要年份", copy.keyYears);
         assertEquals(3, copy.topTraits.size());
@@ -130,6 +132,13 @@ public final class AiFortuneCopyTest {
         assertFalse(issues.contains("topTraits="));
         assertFalse(issues.contains("topTraitEvidence="));
         assertFalse(issues.contains("followUps="));
+        assertFalse(issues.contains("family="));
+    }
+
+    @Test public void vedicRequiresWrittenFamilyInterpretation() {
+        AiFortuneCopy copy = AiFortuneCopy.parse(FULL_JSON);
+        String issues = copy.qualityIssueSummary(FortuneMode.VEDIC_ASTROLOGY);
+        assertTrue(issues.contains("family="));
     }
 
     @Test public void arrayFieldsAlsoAcceptLineSeparatedFallback() {
