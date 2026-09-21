@@ -17,8 +17,9 @@ public final class AiStyleTest {
         assertTrue(prompt.contains("hook-first rhythm"));
         assertTrue(prompt.contains("被看穿了，但很好笑"));
         assertTrue(prompt.contains("Avoid fortune-cookie filler"));
-        assertTrue(prompt.contains("500-800"));
-        assertTrue(prompt.contains("career, wealth"));
+        assertTrue(prompt.contains("420-650"));
+        assertTrue(prompt.contains("career owns work style"));
+        assertTrue(prompt.contains("wealth owns money/resource patterns"));
         assertTrue(prompt.contains("topTraits"));
         assertTrue(prompt.contains("topTraitEvidence"));
         assertTrue(prompt.contains("followUps"));

@@ -249,7 +249,7 @@ public final class MainActivity extends Activity {
 
         profileController.addFields(form);
 
-        TextView styleLabel = text("AI 回應風格", 12, MUTED, true);
+        TextView styleLabel = text("AI 解讀口吻（不影響命盤）", 12, MUTED, true);
         form.addView(styleLabel, marginTop(6));
 
         LinearLayout styleRow = new LinearLayout(this);
@@ -269,7 +269,7 @@ public final class MainActivity extends Activity {
         styleRow.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(42), 1f));
         form.addView(styleRow, marginTop(4));
 
-        TextView styleHint = text("嚴謹：專業報告｜普通：白話平衡｜風趣：嘴得準但不傷人\n只改 AI 說話方式，不改命盤計算結果", 11, MUTED, false);
+        TextView styleHint = text("嚴謹＝專業｜普通＝白話｜風趣＝有梗；只改文字口吻。", 11, MUTED, false);
         form.addView(styleHint, marginTop(2));
 
         Button calculate = new Button(this);
@@ -645,7 +645,7 @@ public final class MainActivity extends Activity {
         }
 
         if (aiCopy != null) {
-            addPanelSection(panel, "總覽", aiCopy.overview);
+            addPanelSection(panel, "先說結論", aiCopy.overview);
             if (!aiCopy.personality.isEmpty()) {
                 addPanelSection(panel, "性格、優勢與盲點", aiCopy.personality);
             }
@@ -731,7 +731,9 @@ public final class MainActivity extends Activity {
                 aiLoading);
         resultCard.addView(source, marginTop(aiLoading ? 5 : 6));
 
-        if (!aiLoading && aiCopy != null) {
+        if (!aiLoading
+                && aiCopy != null
+                && (selectedResultTab == 0 || selectedResultTab == 4)) {
             List<String> contextualQuestions = buildContextFollowUps();
             if (!contextualQuestions.isEmpty()) {
                 addFollowUpQuestions(contextualQuestions);
@@ -739,7 +741,7 @@ public final class MainActivity extends Activity {
         }
 
         Button teacher = secondaryButton(
-                aiLoading ? "語音講解 · 整理中" : "聽老師講這份結果");
+                aiLoading ? "語音老師 · 整理中" : "語音老師 · 補充／追問");
         teacher.setTextSize(14);
         teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         teacher.setEnabled(!aiLoading);
@@ -756,6 +758,107 @@ public final class MainActivity extends Activity {
             share.setOnClickListener(v -> shareController.share());
         }
         resultCard.addView(share, fixedHeightTop(48, 6));
+    }
+
+    void addOverviewTakeaways(LinearLayout panel, FortuneMode mode) {
+        List<String> values = FortuneOverviewSnapshot.keyTakeaways(
+                mode,
+                currentFacts,
+                aiCopy);
+
+        TextView title = text("先看這三件事", 14, GOLD, true);
+        panel.addView(title, marginTop(10));
+
+        TextView hint = text(
+                "先抓結論；原始命盤放在「本命／流年」，完整長文放在「解讀」。",
+                11,
+                MUTED,
+                false);
+        hint.setLineSpacing(dp(2), 1f);
+        panel.addView(hint, marginTop(2));
+
+        for (int index = 0; index < values.size() && index < 3; index++) {
+            final int traitIndex = index;
+            final String value = values.get(index);
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.TOP);
+            row.setPadding(dp(10), dp(9), dp(10), dp(9));
+            row.setBackground(roundBorder(
+                    Color.rgb(43, 33, 65),
+                    Color.rgb(80, 65, 111),
+                    13,
+                    1));
+
+            TextView number = text(
+                    index == 0 ? "①" : index == 1 ? "②" : "③",
+                    18,
+                    ACCENT,
+                    true);
+            LinearLayout.LayoutParams numberLp = new LinearLayout.LayoutParams(
+                    dp(30),
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            numberLp.rightMargin = dp(6);
+            row.addView(number, numberLp);
+
+            LinearLayout copy = column();
+            TextView body = text(value, 13, TEXT, true);
+            body.setLineSpacing(dp(2), 1f);
+            copy.addView(body);
+
+            if (aiCopy != null
+                    && traitIndex < aiCopy.topTraits.size()
+                    && traitIndex < aiCopy.topTraitEvidence.size()
+                    && value.equals(FortuneOverviewSnapshot.compact(
+                            aiCopy.topTraits.get(traitIndex), 105))) {
+                final String evidence =
+                        aiCopy.topTraitEvidence.get(traitIndex);
+                TextView why = text(
+                        "查看命盤依據 ›",
+                        11,
+                        ACCENT,
+                        true);
+                copy.addView(why, marginTop(4));
+                row.setClickable(true);
+                row.setOnClickListener(v ->
+                        dialogController.showTraitEvidence(value, evidence));
+            }
+
+            row.addView(copy, new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f));
+            panel.addView(row, marginTop(6));
+        }
+    }
+
+    void addOverviewTiming(LinearLayout panel, FortuneMode mode) {
+        String timing = FortuneOverviewSnapshot.currentTiming(
+                mode,
+                currentFacts,
+                aiCopy);
+        if (timing.isEmpty()) return;
+
+        LinearLayout card = column();
+        card.setPadding(dp(10), dp(10), dp(10), dp(10));
+        card.setBackground(roundBorder(
+                Color.rgb(55, 42, 82),
+                Color.rgb(111, 91, 157),
+                14,
+                1));
+
+        String label = mode == FortuneMode.BA_ZI
+                ? "現在走到哪裡 · 大運／流年"
+                : mode == FortuneMode.VEDIC_ASTROLOGY
+                ? "現在走到哪裡 · Dasha／Gochar"
+                : "現在走到哪裡 · 個人流年";
+        card.addView(text(label, 12, GOLD, true));
+
+        TextView body = text(timing, 13, TEXT, false);
+        body.setLineSpacing(dp(2), 1f);
+        card.addView(body, marginTop(4));
+        panel.addView(card, marginTop(10));
     }
 
      void addTopTraits(LinearLayout panel) {
@@ -819,9 +922,10 @@ public final class MainActivity extends Activity {
                 13, GOLD, true);
         resultCard.addView(title, marginTop(12));
 
+        int limit = selectedResultTab == 0 ? 2 : 4;
         int index = 0;
         for (final String question : questions) {
-            if (index >= 4) break;
+            if (index >= limit) break;
 
             Button button = secondaryButton(question + "  ›");
             button.setTextSize(13);
@@ -1848,16 +1952,13 @@ public final class MainActivity extends Activity {
         if (modeLabel != null) {
             if (bazi) {
                 modeLabel.setText(
-                        "四柱、十神、大運、逐年流年 · 需要出生時間與性別\n"
-                                + "以出生地當地民用時間排盤，目前不做真太陽時校正");
+                        "需要：生日＋出生時間＋性別｜會看到：本命、大運、逐年流年");
             } else if (tarot) {
                 modeLabel.setText(
-                        "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n"
-                                + "計算只使用生日，不使用姓名或出生時間");
+                        "只需要生日｜會看到：內外人格、生命道路、人生階段、年度／月份循環");
             } else {
                 modeLabel.setText(
-                        "Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu\n"
-                                + "需要精確出生時間與出生地；時區可直接選，座標放在進階設定");
+                        "需要：生日＋精確出生時間＋出生城市｜會看到：本命、Dasha、Gochar");
             }
         }
     }

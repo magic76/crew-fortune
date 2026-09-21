@@ -182,23 +182,23 @@ public final class AiFortuneCopy {
 
     public String qualityIssueSummary(FortuneMode mode) {
         List<String> issues = new ArrayList<String>();
-        requireLength(issues, "overview", overview, 180);
-        requireLength(issues, "personality", personality, 200);
-        requireLength(issues, "career", career, 180);
-        requireLength(issues, "wealth", wealth, 180);
-        requireLength(issues, "relationships", relationships, 180);
+        requireLength(issues, "overview", overview, 150);
+        requireLength(issues, "personality", personality, 180);
+        requireLength(issues, "career", career, 160);
+        requireLength(issues, "wealth", wealth, 160);
+        requireLength(issues, "relationships", relationships, 160);
         if (mode == FortuneMode.VEDIC_ASTROLOGY) {
-            requireLength(issues, "family", family, 180);
+            requireLength(issues, "family", family, 160);
         }
-        requireLength(issues, "currentCycle", currentCycle, 180);
+        requireLength(issues, "currentCycle", currentCycle, 160);
         requireLength(issues, "longTerm", longTerm,
-                mode == FortuneMode.BA_ZI ? 320
-                        : mode == FortuneMode.VEDIC_ASTROLOGY ? 300 : 260);
-        requireLength(issues, "keyYears", keyYears, 220);
+                mode == FortuneMode.BA_ZI ? 260
+                        : mode == FortuneMode.VEDIC_ASTROLOGY ? 240 : 220);
+        requireLength(issues, "keyYears", keyYears, 180);
         requireListSize(issues, "topTraits", topTraits, 3);
         requireListSize(issues, "topTraitEvidence", topTraitEvidence, 3);
         requireListSize(issues, "followUps", followUps, 4);
-        requireLength(issues, "advice", advice, 100);
+        requireLength(issues, "advice", advice, 80);
         return join(issues, ", ");
     }
 

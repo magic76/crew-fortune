@@ -19,7 +19,6 @@ final class BaZiResultRenderer {
     BaZiResultRenderer(MainActivity host) {
         this.host = host;
     }
-
     void addBaZiOverviewTab(FortuneResult result, boolean aiLoading) {
         LinearLayout panel = host.resultPanel();
 
@@ -50,29 +49,30 @@ final class BaZiResultRenderer {
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         panel.addView(hero);
 
-        host.addPanelSection(panel, "四柱", host.rendererFacts().detailText("fourPillars"));
-        host.addPanelSection(panel, "五行摘要",
-                "可見：" + host.formatMap(host.rendererFacts().detail("visibleFiveElements"))
-                        + "\n加權：" + host.formatMap(host.rendererFacts().detail("weightedFiveElements"))
-                        + "\n平衡參考：" + host.rendererFacts().detailText("balancingElements"));
+        host.addOverviewTakeaways(panel, FortuneMode.BA_ZI);
+        host.addOverviewTiming(panel, FortuneMode.BA_ZI);
 
-        Object luck = host.rendererFacts().detail("currentLuckPillar");
-        host.addPanelSection(panel, "目前大運", host.summaryLuck(luck));
-        host.addPanelSection(panel, "今年流年", host.formatCurrentAnnual());
-
-        if (!aiLoading && host.rendererCopy() != null && !host.rendererCopy().topTraits.isEmpty()) {
-            host.addTopTraits(panel);
-        }
-
-        String aiSummary;
+        String summary;
         if (aiLoading) {
-            aiSummary = host.localReportSection("核心總覽");
-        } else if (host.rendererCopy() != null && !host.rendererCopy().overview.isEmpty()) {
-            aiSummary = host.rendererCopy().overview;
+            summary = host.localReportSection("核心總覽");
+        } else if (host.rendererCopy() != null
+                && !host.rendererCopy().overview.isEmpty()) {
+            summary = host.rendererCopy().overview;
         } else {
-            aiSummary = host.localReportSection("核心總覽");
+            summary = host.localReportSection("核心總覽");
         }
-        if (!aiSummary.isEmpty()) host.addPanelSection(panel, "重點解讀", aiSummary);
+        summary = FortuneResultTabCopy.compactInterpretation(summary, "");
+        if (!summary.isEmpty()) {
+            host.addPanelSection(panel, "一句總結", summary);
+        }
+
+        TextView next = host.text(
+                "想看四柱、五行與十神細節 →「本命」；想看大運與逐年節奏 →「流年」。",
+                11,
+                MainActivity.MUTED,
+                false);
+        next.setLineSpacing(host.dp(2), 1f);
+        panel.addView(next, host.marginTop(9));
     }
     void addBaZiLuckTimelineTab() {
         LinearLayout panel = host.resultPanel();
