@@ -48,7 +48,9 @@ public final class OperationLog {
     static String sanitizeDetail(String action, String detail) {
         String safeAction = action == null ? "" : action.trim();
         if (safeAction.startsWith("BIRTH_PLACE")
-                || safeAction.startsWith("GEOCODE")) {
+                || safeAction.startsWith("GEOCODE")
+                || safeAction.startsWith("VEDIC_CITY_")
+                || safeAction.startsWith("VEDIC_TIMEZONE_")) {
             return "[location]";
         }
         if (safeAction.startsWith("PRESET_")) {
