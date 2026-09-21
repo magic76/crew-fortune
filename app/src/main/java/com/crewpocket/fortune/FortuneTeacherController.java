@@ -44,7 +44,7 @@ final class FortuneTeacherController {
 
         TextView hint = host.text(
                 directQuestion.isEmpty()
-                        ? "老師會先講 60–90 秒重點。想插話時按「我要問」，老師會立刻停下來聽你說。"
+                        ? "老師會用 35–60 秒補充最重要的重點。想插話時按「我要問」，老師會立刻停下來聽你說。"
                         : "已經把你點的問題帶給老師，會直接回答，不會重新從頭介紹命盤。",
                 13,
                 MainActivity.MUTED,
@@ -120,7 +120,7 @@ final class FortuneTeacherController {
         String opening = directQuestion.isEmpty()
                 ? FortuneTeacherPrompt.openingPrompt("")
                 : "使用者剛剛點選追問：「" + directQuestion + "」。"
-                + "不要做一般 60–90 秒開場，直接回答這個問題。"
+                + "不要做一般開場，也不要重複書面報告，直接回答這個問題。"
                 + "先給白話結論，再講 2–4 個 deterministicFacts 裡的具體依據，"
                 + "最後補一句可以繼續追問的方向。";
 
