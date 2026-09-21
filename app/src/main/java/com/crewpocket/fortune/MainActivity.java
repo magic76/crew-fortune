@@ -1433,7 +1433,7 @@ public final class MainActivity extends Activity {
         addVedicEvidenceCardGrid(card, evidence, timingEvidence);
 
         addTopicLine(card, "白話解讀",
-                compactTopicInterpretation(
+                FortuneResultTabCopy.compactInterpretation(
                         aiText,
                         "上面的本命與時間資料已經可以直接看；完整文字解讀會把這些訊號彼此之間的關係講清楚。"));
         addAskTeacherAction(card, "用語音追問這一題", question);
@@ -1704,7 +1704,7 @@ public final class MainActivity extends Activity {
                         + "　·　天賦 " + currentFacts.detailText("talentNumbers"));
         addTopicLine(personality, "解讀",
                 aiCopy != null && !aiCopy.personality.isEmpty()
-                        ? compactTopicInterpretation(aiCopy.personality, "")
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.personality, "")
                         : localReportSection("內在 vs 外在"));
         addAskTeacherAction(
                 personality,
@@ -1722,8 +1722,8 @@ public final class MainActivity extends Activity {
                 currentTarotYearSummary());
         addTopicLine(career, "解讀",
                 aiCopy != null && !aiCopy.career.isEmpty()
-                        ? compactTopicInterpretation(aiCopy.career, "")
-                        : compactTopicInterpretation("", localReportSection("工作與財務")));
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.career, "")
+                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("工作與財務")));
         addAskTeacherAction(
                 career,
                 "用語音追問工作",
@@ -1738,7 +1738,7 @@ public final class MainActivity extends Activity {
         addTopicLine(wealth, "時間", currentTarotYearSummary());
         addTopicLine(wealth, "解讀",
                 aiCopy != null && !aiCopy.wealth.isEmpty()
-                        ? compactTopicInterpretation(aiCopy.wealth, "")
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.wealth, "")
                         : "塔羅生命靈數的財務解讀以資源使用、成果節奏與年度主題為主，不把牌義當成投資預測。");
         addAskTeacherAction(
                 wealth,
@@ -1756,8 +1756,8 @@ public final class MainActivity extends Activity {
                         + "　·　個人月 " + currentFacts.detailText("personalMonth"));
         addTopicLine(relationship, "解讀",
                 aiCopy != null && !aiCopy.relationships.isEmpty()
-                        ? compactTopicInterpretation(aiCopy.relationships, "")
-                        : compactTopicInterpretation("", localReportSection("感情與人際")));
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.relationships, "")
+                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("感情與人際")));
         addAskTeacherAction(
                 relationship,
                 "用語音追問感情",
@@ -2445,8 +2445,8 @@ public final class MainActivity extends Activity {
                 "財星訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.wealth.isEmpty()
-                        ? compactTopicInterpretation(aiCopy.wealth, "")
-                        : compactTopicInterpretation("", localReportSection("工作與財務")));
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.wealth, "")
+                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("工作與財務")));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
                 card,
@@ -2467,7 +2467,7 @@ public final class MainActivity extends Activity {
                 "工作訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.career.isEmpty()
-                        ? compactTopicInterpretation(aiCopy.career, "")
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.career, "")
                         : localReportSection("工作與財務"));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
@@ -2490,7 +2490,7 @@ public final class MainActivity extends Activity {
                         mapObjectValue(p, "annualSignalYears")));
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.relationships.isEmpty()
-                        ? compactTopicInterpretation(aiCopy.relationships, "")
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.relationships, "")
                         : localReportSection("感情與人際"));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
@@ -2521,15 +2521,7 @@ public final class MainActivity extends Activity {
         return card;
     }
 
-    private String compactTopicInterpretation(String value, String fallback) {
-        String source = value == null || value.trim().isEmpty() ? fallback : value;
-        String clean = source == null ? "" : source.replace('\n', ' ')
-                .replace('\r', ' ')
-                .replaceAll("\\s+", " ")
-                .trim();
-        if (clean.length() <= 170) return clean;
-        return clean.substring(0, 170) + "…\n完整內容請看「解讀」。";
-    }
+
 
     private void addTopicLine(LinearLayout card, String label, String value) {
         TextView l = text(label, 11, GOLD, true);
