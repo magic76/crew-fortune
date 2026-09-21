@@ -61,18 +61,18 @@ final class FortuneDialogController {
         } else {
             for (final OperationLog.Entry entry : entries) {
                 TextView item = host.text(
-                        entry.listLabel(),
+                        entry.listLabel() + "  →",
                         13,
-                        MainActivity.TEXT,
+                        MainActivity.ACCENT,
                         true);
                 item.setPadding(
                         host.dp(10), host.dp(8),
                         host.dp(10), host.dp(8));
                 item.setBackground(host.roundBorder(
-                        MainActivity.CARD_2,
-                        Color.rgb(80, 65, 111),
+                        Color.rgb(39, 29, 60),
+                        Color.rgb(168, 137, 230),
                         14,
-                        1));
+                        2));
                 item.setClickable(true);
                 item.setOnClickListener(v -> {
                     OperationLog.add(
@@ -438,7 +438,8 @@ final class FortuneDialogController {
             LinearLayout panel,
             String buttonLabel,
             String question) {
-        Button ask = host.secondaryButton(buttonLabel);
+        Button ask = host.primaryButton(buttonLabel + "  →");
+        ask.setBackground(host.round(MainActivity.GOLD, 14));
         Button close = host.secondaryButton("關閉");
 
         LinearLayout actions = new LinearLayout(host);

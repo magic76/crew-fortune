@@ -48,14 +48,26 @@ final class FortuneProfileController {
     void addFields(LinearLayout form) {
         form.addView(host.label("基本資料"), host.marginTop(8));
 
-        birthInput = host.input("生日，例如 1985-07-22");
+        birthInput = host.input("點選生日  →");
         birthInput.setFocusable(false);
         birthInput.setClickable(true);
+        birthInput.setTextColor(MainActivity.ACCENT);
+        birthInput.setBackground(host.roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(150, 116, 206),
+                14,
+                1));
         birthInput.setOnClickListener(v -> showDatePicker());
 
-        birthTimeInput = host.input("出生地當地時間，例如 14:30");
+        birthTimeInput = host.input("點選出生時間  →");
         birthTimeInput.setFocusable(false);
         birthTimeInput.setClickable(true);
+        birthTimeInput.setTextColor(MainActivity.ACCENT);
+        birthTimeInput.setBackground(host.roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(150, 116, 206),
+                14,
+                1));
         birthTimeInput.setOnClickListener(v -> showTimePicker());
 
         form.addView(birthInput, host.marginTop(8));
@@ -459,9 +471,9 @@ final class FortuneProfileController {
         presetRow.setOrientation(LinearLayout.HORIZONTAL);
 
         Button choosePreset =
-                host.secondaryButton("常用資料");
+                host.secondaryButton("常用資料  →");
         Button savePreset =
-                host.secondaryButton("儲存 preset");
+                host.secondaryButton("儲存常用資料");
 
         choosePreset.setOnClickListener(
                 v -> showPresetPicker());
@@ -505,35 +517,49 @@ final class FortuneProfileController {
         OperationLog.add(host, "GENDER_SELECTED", selectedGender);
         boolean male = "male".equals(selectedGender);
 
-        maleButton.setBackground(host.round(
+        maleButton.setBackground(host.roundBorder(
                 male
                         ? MainActivity.ACCENT
-                        : MainActivity.CARD_2,
-                14));
-        femaleButton.setBackground(host.round(
+                        : Color.rgb(31, 24, 49),
+                male
+                        ? MainActivity.ACCENT
+                        : Color.rgb(150, 116, 206),
+                14,
+                male ? 2 : 1));
+        femaleButton.setBackground(host.roundBorder(
                 !male
                         ? MainActivity.ACCENT
-                        : MainActivity.CARD_2,
-                14));
+                        : Color.rgb(31, 24, 49),
+                !male
+                        ? MainActivity.ACCENT
+                        : Color.rgb(150, 116, 206),
+                14,
+                !male ? 2 : 1));
         maleButton.setTextColor(
                 male
                         ? Color.rgb(30, 22, 46)
-                        : MainActivity.TEXT);
+                        : MainActivity.ACCENT);
         femaleButton.setTextColor(
                 !male
                         ? Color.rgb(30, 22, 46)
-                        : MainActivity.TEXT);
+                        : MainActivity.ACCENT);
     }
 
     private void clearGender() {
         selectedGender = "";
         if (maleButton == null || femaleButton == null) return;
-        maleButton.setBackground(
-                host.round(MainActivity.CARD_2, 14));
-        femaleButton.setBackground(
-                host.round(MainActivity.CARD_2, 14));
-        maleButton.setTextColor(MainActivity.TEXT);
-        femaleButton.setTextColor(MainActivity.TEXT);
+        maleButton.setBackground(host.roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(150, 116, 206),
+                14,
+                1));
+        femaleButton.setBackground(host.roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(150, 116, 206),
+                14,
+                1));
+        maleButton.setTextColor(MainActivity.ACCENT);
+        femaleButton.setTextColor(MainActivity.ACCENT);
     }
 
     private void showDatePicker() {
