@@ -56,7 +56,7 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_TEACHER_AUDIO = 4101;
     private static final int BG = Color.rgb(23, 17, 38);
     private static final int CARD = Color.rgb(39, 30, 60);
-    private static final int CARD_2 = Color.rgb(50, 38, 76);
+    static final int CARD_2 = Color.rgb(50, 38, 76);
     static final int TEXT = Color.rgb(248, 245, 255);
     static final int MUTED = Color.rgb(190, 181, 207);
     static final int ACCENT = Color.rgb(183, 156, 255);
@@ -112,6 +112,8 @@ public final class MainActivity extends Activity {
     private long resultReferenceTimeMillis = -1L;
     private LinearLayout resultTabContent;
     private final VedicResultRenderer vedicResultRenderer = new VedicResultRenderer(this);
+    private final BaZiResultRenderer baZiResultRenderer = new BaZiResultRenderer(this);
+    private final TarotResultRenderer tarotResultRenderer = new TarotResultRenderer(this);
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -900,6 +902,10 @@ public final class MainActivity extends Activity {
 
     LocalDate rendererTransitDate() { return selectedVedicTransitDate; }
 
+    LinearLayout resultHostLayout() {
+        return resultTabContent == null ? resultCard : resultTabContent;
+    }
+
     private void renderUnifiedTab(FortuneResult result, boolean aiLoading) {
         if (resultTabContent == null) return;
         resultTabContent.removeAllViews();
@@ -911,17 +917,17 @@ public final class MainActivity extends Activity {
         if (result.mode == FortuneMode.BA_ZI) {
             switch (selectedResultTab) {
                 case 1:
-                    addBaZiResultPanel();
+                    baZiResultRenderer.addBaZiResultPanel();
                     break;
                 case 2:
-                    addBaZiLuckTimelineTab();
+                    baZiResultRenderer.addBaZiLuckTimelineTab();
                     break;
                 case 3:
-                    addBaZiTopicAnalysisTab();
+                    baZiResultRenderer.addBaZiTopicAnalysisTab();
                     break;
                 case 0:
                 default:
-                    addBaZiOverviewTab(result, aiLoading);
+                    baZiResultRenderer.addBaZiOverviewTab(result, aiLoading);
                     break;
             }
             return;
@@ -948,17 +954,17 @@ public final class MainActivity extends Activity {
 
         switch (selectedResultTab) {
             case 1:
-                addTarotResultPanel();
+                tarotResultRenderer.addTarotResultPanel();
                 break;
             case 2:
-                addTarotTimelineTab();
+                tarotResultRenderer.addTarotTimelineTab();
                 break;
             case 3:
-                addTarotTopicAnalysisTab();
+                tarotResultRenderer.addTarotTopicAnalysisTab();
                 break;
             case 0:
             default:
-                addTarotOverviewTab(result, aiLoading);
+                tarotResultRenderer.addTarotOverviewTab(result, aiLoading);
                 break;
         }
     }
@@ -1052,224 +1058,9 @@ public final class MainActivity extends Activity {
         catch (Exception ignored) { return 0.0; }
     }
 
-    private void addTarotOverviewTab(FortuneResult result, boolean aiLoading) {
-        LinearLayout panel = resultPanel();
 
-        LinearLayout identities = new LinearLayout(this);
-        identities.setOrientation(LinearLayout.HORIZONTAL);
-        identities.setGravity(Gravity.CENTER);
-        addNumerologyIdentityCard(
-                identities,
-                "外在人格牌",
-                currentFacts.detailText("personalityCardNumber"),
-                currentFacts.detailText("personalityCardName"));
-        addNumerologyIdentityCard(
-                identities,
-                "內在靈魂牌",
-                currentFacts.detailText("soulCardNumber"),
-                currentFacts.detailText("soulCardName"));
-        panel.addView(identities);
 
-        addPanelSection(panel, "核心數字",
-                "生命道路 " + currentFacts.detailText("lifePathDisplay")
-                        + "　·　天賦 " + currentFacts.detailText("talentNumbers")
-                        + "\n生日數 " + currentFacts.detailText("birthdayNumber")
-                        + "　·　態度數 " + currentFacts.detailText("attitudeNumber"));
 
-        addPanelSection(panel, "目前流年",
-                currentFacts.detailText("personalYearCalendarYear")
-                        + " 年｜個人流年 " + currentFacts.detailText("personalYear")
-                        + "「" + currentFacts.detailText("personalYearCardName") + "」"
-                        + "\n個人月 " + currentFacts.detailText("personalMonth")
-                        + "｜" + currentTarotYearSummary());
-
-        if (!aiLoading && aiCopy != null && !aiCopy.topTraits.isEmpty()) {
-            addTopTraits(panel);
-        }
-
-        String summary;
-        if (aiLoading) {
-            summary = localReportSection("核心總覽");
-        } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
-            summary = aiCopy.overview;
-        } else {
-            summary = localReportSection("核心總覽");
-        }
-        if (!summary.isEmpty()) addPanelSection(panel, "重點解讀", summary);
-    }
-
-    private void addTarotTimelineTab() {
-        LinearLayout panel = resultPanel();
-
-        TextView intro = text(
-                "個人流年看每一年的主題循環；個人月則把今年拆成 12 個月。數字每 9 年循環一次，所以重點是當年的課題與節奏，不是吉凶分數。",
-                13, MUTED, false);
-        intro.setLineSpacing(dp(3), 1f);
-        panel.addView(intro);
-
-        addPanelSection(panel, "今年",
-                currentFacts.detailText("personalYearCalendarYear")
-                        + "｜流年 " + currentFacts.detailText("personalYear")
-                        + "「" + currentFacts.detailText("personalYearCardName") + "」"
-                        + "\n" + currentTarotYearSummary());
-        addYearHighlights(panel);
-
-        TextView yearsTitle = text(
-                "年度時間軸 · " + currentFacts.detailText("personalYearTimelineStartYear")
-                        + "–" + currentFacts.detailText("personalYearTimelineEndYear"),
-                13, GOLD, true);
-        panel.addView(yearsTitle, marginTop(20));
-
-        Object yearsRaw = currentFacts.detail("personalYearTimeline");
-        if (yearsRaw instanceof List) {
-            for (Object raw : (List<?>) yearsRaw) {
-                if (!(raw instanceof Map)) continue;
-                final Map<?, ?> year = (Map<?, ?>) raw;
-                String title = mapValue(year, "year")
-                        + "　流年 " + mapValue(year, "personalYear")
-                        + "「" + mapValue(year, "cardName") + "」";
-                String summary = mapValue(year, "plainSummary")
-                        + "\n關鍵字：" + mapValue(year, "keywords");
-                addClickableFactCard(
-                        panel,
-                        title,
-                        summary,
-                        () -> showFactDetailDialog(
-                                mapValue(year, "year") + " 個人流年", year),
-                        "請直接回答 " + mapValue(year, "year")
-                                + " 年的個人流年對我代表什麼？請用 deterministic facts 說明。");
-            }
-        }
-
-        TextView monthTitle = text("今年 12 個個人月", 13, GOLD, true);
-        panel.addView(monthTitle, marginTop(22));
-
-        Object monthsRaw = currentFacts.detail("personalMonthTimeline");
-        if (monthsRaw instanceof List) {
-            for (Object raw : (List<?>) monthsRaw) {
-                if (!(raw instanceof Map)) continue;
-                final Map<?, ?> month = (Map<?, ?>) raw;
-                String title = mapValue(month, "month") + " 月　"
-                        + mapValue(month, "personalMonth")
-                        + "「" + mapValue(month, "cardName") + "」";
-                String summary = mapValue(month, "plainSummary")
-                        + "　·　" + mapValue(month, "keywords");
-                addClickableFactCard(
-                        panel,
-                        title,
-                        summary,
-                        () -> showFactDetailDialog(
-                                mapValue(month, "month") + " 月個人月", month),
-                        "請直接回答今年 " + mapValue(month, "month")
-                                + " 月的個人月主題對我代表什麼？請用 deterministic facts 說明。");
-            }
-        }
-
-        addPanelSection(panel, "人生階段",
-                "四大巔峰：" + compactValue(currentFacts.detail("pinnacles"))
-                        + "\n時程：" + compactValue(currentFacts.detail("pinnacleTiming"))
-                        + "\n四大挑戰：" + compactValue(currentFacts.detail("challenges"))
-                        + "\n三大週期：" + compactValue(currentFacts.detail("periodCycles")));
-    }
-
-    private void addTarotTopicAnalysisTab() {
-        LinearLayout panel = resultPanel();
-
-        TextView intro = text(
-                "塔羅生命靈數的主題分析會把本命數字、年度循環與完整文字解讀放在一起。先看結論與依據，語音只用來補充。",
-                13, MUTED, false);
-        intro.setLineSpacing(dp(3), 1f);
-        panel.addView(intro);
-
-        LinearLayout personality = topicCard(panel, "個性與內外", "人格牌 × 靈魂牌 × 生命道路");
-        addTopicLine(personality, "本命",
-                "外在 " + currentFacts.detailText("personalityCardNumber")
-                        + "「" + currentFacts.detailText("personalityCardName") + "」"
-                        + "　·　內在 " + currentFacts.detailText("soulCardNumber")
-                        + "「" + currentFacts.detailText("soulCardName") + "」"
-                        + "\n生命道路 " + currentFacts.detailText("lifePathDisplay")
-                        + "　·　天賦 " + currentFacts.detailText("talentNumbers"));
-        addTopicLine(personality, "解讀",
-                aiCopy != null && !aiCopy.personality.isEmpty()
-                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.personality, "")
-                        : localReportSection("內在 vs 外在"));
-        addAskTeacherAction(
-                personality,
-                "問老師個性",
-                "請直接回答我的外在人格牌、內在靈魂牌與生命道路之間最明顯的性格落差與優勢。");
-
-        LinearLayout career = topicCard(panel, "工作與資源", "生命道路 × 態度數 × 巔峰 × 當前流年");
-        addTopicLine(career, "依據",
-                "生命道路 " + currentFacts.detailText("lifePathDisplay")
-                        + "　·　態度數 " + currentFacts.detailText("attitudeNumber")
-                        + "\n四大巔峰 " + compactValue(currentFacts.detail("pinnacles"))
-                        + "\n目前流年 " + currentFacts.detailText("personalYear")
-                        + "「" + currentFacts.detailText("personalYearCardName") + "」");
-        addTopicLine(career, "時間",
-                currentTarotYearSummary());
-        addTopicLine(career, "解讀",
-                aiCopy != null && !aiCopy.career.isEmpty()
-                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.career, "")
-                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("工作與財務")));
-        addAskTeacherAction(
-                career,
-                "用語音追問工作",
-                "請直接回答我的工作優勢與現在的職涯節奏。請用生命道路、態度數、巔峰與個人流年說明。");
-
-        LinearLayout wealth = topicCard(panel, "財運與資源", "生命道路 × 巔峰 × 個人流年");
-        addTopicLine(wealth, "依據",
-                "生命道路 " + currentFacts.detailText("lifePathDisplay")
-                        + "　·　四大巔峰 " + compactValue(currentFacts.detail("pinnacles"))
-                        + "\n目前流年 " + currentFacts.detailText("personalYear")
-                        + "「" + currentFacts.detailText("personalYearCardName") + "」");
-        addTopicLine(wealth, "時間", currentTarotYearSummary());
-        addTopicLine(wealth, "解讀",
-                aiCopy != null && !aiCopy.wealth.isEmpty()
-                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.wealth, "")
-                        : "塔羅生命靈數的財務解讀以資源使用、成果節奏與年度主題為主，不把牌義當成投資預測。");
-        addAskTeacherAction(
-                wealth,
-                "問老師資源",
-                "請直接回答我目前的資源與成果節奏。請用生命道路、巔峰與個人流年說明，不做投資預測。");
-
-        LinearLayout relationship = topicCard(panel, "感情與人際", "內外牌 × 挑戰數 × 年度節奏");
-        addTopicLine(relationship, "依據",
-                "外在人格牌 " + currentFacts.detailText("personalityCardNumber")
-                        + "　·　內在靈魂牌 " + currentFacts.detailText("soulCardNumber")
-                        + "\n四大挑戰 " + compactValue(currentFacts.detail("challenges")));
-        addTopicLine(relationship, "時間",
-                "目前流年 " + currentFacts.detailText("personalYear")
-                        + "「" + currentFacts.detailText("personalYearCardName") + "」"
-                        + "　·　個人月 " + currentFacts.detailText("personalMonth"));
-        addTopicLine(relationship, "解讀",
-                aiCopy != null && !aiCopy.relationships.isEmpty()
-                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.relationships, "")
-                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("感情與人際")));
-        addAskTeacherAction(
-                relationship,
-                "用語音追問感情",
-                "請直接回答我的感情與人際模式。請用外在人格牌、內在靈魂牌、挑戰數與目前流年說明。");
-
-        TextView boundary = text(
-                "塔羅生命靈數用於娛樂與自我反思；流年表示主題循環，不代表特定事件一定發生。",
-                11, MUTED, false);
-        boundary.setLineSpacing(dp(2), 1f);
-        panel.addView(boundary, marginTop(9));
-    }
-
-    private String currentTarotYearSummary() {
-        Object years = currentFacts == null ? null : currentFacts.detail("personalYearTimeline");
-        String current = currentFacts == null ? "" : currentFacts.detailText("personalYearCalendarYear");
-        if (years instanceof List) {
-            for (Object raw : (List<?>) years) {
-                if (!(raw instanceof Map)) continue;
-                if (current.equals(mapValue(raw, "year"))) {
-                    return mapValue(raw, "plainSummary");
-                }
-            }
-        }
-        return "";
-    }
 
     private void addSharedResultActions(boolean aiLoading, FortuneMode mode) {
         if (aiLoading) {
@@ -1769,222 +1560,11 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void addBaZiOverviewTab(FortuneResult result, boolean aiLoading) {
-        LinearLayout panel = resultPanel();
 
-        LinearLayout hero = new LinearLayout(this);
-        hero.setOrientation(LinearLayout.HORIZONTAL);
-        hero.setGravity(Gravity.CENTER_VERTICAL);
 
-        LinearLayout master = column();
-        master.addView(text("日主", 11, GOLD, true));
-        master.addView(text(
-                currentFacts.detailText("dayMaster")
-                        + currentFacts.detailText("dayMasterElement"),
-                30, TEXT, true), marginTop(3));
-        hero.addView(master, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-        LinearLayout strength = column();
-        TextView strengthLabel = text("旺衰", 11, MUTED, true);
-        strengthLabel.setGravity(Gravity.END);
-        strength.addView(strengthLabel);
-        TextView strengthValue = text(
-                currentFacts.detailText("dayMasterStrength")
-                        + " · " + currentFacts.detailText("strengthIndex"),
-                20, ACCENT, true);
-        strengthValue.setGravity(Gravity.END);
-        strength.addView(strengthValue, marginTop(3));
-        hero.addView(strength, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        panel.addView(hero);
 
-        addPanelSection(panel, "四柱", currentFacts.detailText("fourPillars"));
-        addPanelSection(panel, "五行摘要",
-                "可見：" + formatMap(currentFacts.detail("visibleFiveElements"))
-                        + "\n加權：" + formatMap(currentFacts.detail("weightedFiveElements"))
-                        + "\n平衡參考：" + currentFacts.detailText("balancingElements"));
 
-        Object luck = currentFacts.detail("currentLuckPillar");
-        addPanelSection(panel, "目前大運", summaryLuck(luck));
-        addPanelSection(panel, "今年流年", formatCurrentAnnual());
-
-        if (!aiLoading && aiCopy != null && !aiCopy.topTraits.isEmpty()) {
-            addTopTraits(panel);
-        }
-
-        String aiSummary;
-        if (aiLoading) {
-            aiSummary = localReportSection("核心總覽");
-        } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
-            aiSummary = aiCopy.overview;
-        } else {
-            aiSummary = localReportSection("核心總覽");
-        }
-        if (!aiSummary.isEmpty()) addPanelSection(panel, "重點解讀", aiSummary);
-    }
-
-    private void addBaZiLuckTimelineTab() {
-        LinearLayout panel = resultPanel();
-
-        TextView intro = text(
-                "大運看十年級別的背景，流年看每一年如何落在這個背景上。點任一項可看完整十神、五行、合沖與主題依據。",
-                13, MUTED, false);
-        intro.setLineSpacing(dp(3), 1f);
-        panel.addView(intro);
-
-        addPanelSection(panel, "怎麼看",
-                "大運＝約十年的背景；流年＝某一年的放大鏡。\n"
-                        + "先看「白話」知道主題，再看十神與合沖了解依據。"
-                        + " 有財星不等於一定賺錢、有沖也不等於一定出事。");
-
-        addPanelSection(panel, "目前大運", summaryLuck(currentFacts.detail("currentLuckPillar")));
-        addYearHighlights(panel);
-
-        TextView luckTitle = text("大運時間軸", 13, GOLD, true);
-        panel.addView(luckTitle, marginTop(11));
-
-        Object luckRaw = currentFacts.detail("luckPillars");
-        String currentGanZhi = mapValue(currentFacts.detail("currentLuckPillar"), "ganZhi");
-        if (luckRaw instanceof List) {
-            for (Object raw : (List<?>) luckRaw) {
-                if (!(raw instanceof Map)) continue;
-                final Map<?, ?> item = (Map<?, ?>) raw;
-                String gz = mapValue(item, "ganZhi");
-                String title = (gz.equals(currentGanZhi) ? "● " : "○ ")
-                        + gz + "　" + mapValue(item, "startYear")
-                        + "–" + mapValue(item, "endYear");
-                String summary = mapValue(item, "plainSummary")
-                        + "\n十神 " + mapValue(item, "stemTenGod")
-                        + "（" + mapValue(item, "stemTenGodMeaning") + "）"
-                        + "　·　五行 " + mapValue(item, "element")
-                        + "\n主題 " + compactValue(item.get("themes"));
-                addClickableFactCard(
-                        panel,
-                        title,
-                        summary,
-                        () -> showFactDetailDialog("大運 " + gz, item),
-                        "請直接解釋 " + gz
-                                + " 大運對我代表什麼？請用這柱大運與本命 deterministic facts 說明。");
-            }
-        }
-
-        TextView yearTitle = text(
-                "逐年流年 · " + currentFacts.detailText("annualTimelineStartYear")
-                        + "–" + currentFacts.detailText("annualTimelineEndYear"),
-                13, GOLD, true);
-        panel.addView(yearTitle, marginTop(22));
-
-        Object yearsRaw = currentFacts.detail("annualTimeline");
-        if (yearsRaw instanceof List) {
-            for (Object raw : (List<?>) yearsRaw) {
-                if (!(raw instanceof Map)) continue;
-                final Map<?, ?> year = (Map<?, ?>) raw;
-                String title = mapValue(year, "year") + "　"
-                        + mapValue(year, "ganZhi")
-                        + "　" + mapValue(year, "stemTenGod");
-                String summary = mapValue(year, "plainSummary")
-                        + "\n大運 " + mapValue(year, "luckPillar")
-                        + "　·　十神 " + mapValue(year, "stemTenGod")
-                        + "（" + mapValue(year, "stemTenGodMeaning") + "）"
-                        + "\n" + firstMeaningfulInteraction(year.get("natalInteractions"));
-                addClickableFactCard(
-                        panel,
-                        title,
-                        summary,
-                        () -> showFactDetailDialog(
-                                mapValue(year, "year") + " 流年", year),
-                        "請直接回答 " + mapValue(year, "year")
-                                + " 年對我代表什麼？請用這一年的 deterministic facts 與所屬大運說明。");
-            }
-        }
-
-        TextView convention = text(
-                currentFacts.detailText("annualTimelineConvention"),
-                11, MUTED, false);
-        panel.addView(convention, marginTop(9));
-    }
-
-    private void addBaZiTopicAnalysisTab() {
-        LinearLayout panel = resultPanel();
-
-        TextView intro = text(
-                "這裡不做神祕分數。每個主題都直接給「本命依據 → 現在大運 → 關鍵年份 → 白話解讀」，語音老師只負責補充。",
-                13, MUTED, false);
-        intro.setLineSpacing(dp(3), 1f);
-        panel.addView(intro);
-
-        addWealthTopic(panel);
-        addCareerTopic(panel);
-        addRelationshipTopic(panel);
-    }
-
-    private void addWealthTopic(LinearLayout panel) {
-        Object p = currentFacts.detail("wealthProfile");
-        LinearLayout card = topicCard(panel, "財運", "看財星、財星位置、大運與逐年啟動");
-        addTopicLine(card, "本命",
-                "財星五行 " + mapValue(p, "wealthElement")
-                        + "　·　正財 " + mapValue(p, "directWealthCount")
-                        + "　·　偏財 " + mapValue(p, "indirectWealthCount"));
-        addTopicLine(card, "依據", compactValue(mapObjectValue(p, "natalEvidence")));
-        addTopicLine(card, "目前大運", summaryLuck(mapObjectValue(p, "currentLuck")));
-        addTopicLine(card, "時間",
-                "財星訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
-        addTopicLine(card, "白話解讀",
-                aiCopy != null && !aiCopy.wealth.isEmpty()
-                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.wealth, "")
-                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("工作與財務")));
-        addTopicBoundary(card, mapValue(p, "evidenceRule"));
-        addAskTeacherAction(
-                card,
-                "用語音追問財運",
-                "請直接回答我的財運重點。請從 wealthProfile、目前大運與逐年流年挑最重要的依據，不要重新排盤。");
-    }
-
-    private void addCareerTopic(LinearLayout panel) {
-        Object p = currentFacts.detail("careerProfile");
-        LinearLayout card = topicCard(panel, "工作", "看官殺、印、食傷與大運流年");
-        addTopicLine(card, "本命",
-                "官殺 " + mapValue(p, "officerCount")
-                        + "　·　印 " + mapValue(p, "resourceCount")
-                        + "　·　食傷 " + mapValue(p, "outputCount"));
-        addTopicLine(card, "依據", compactValue(mapObjectValue(p, "natalEvidence")));
-        addTopicLine(card, "目前大運", summaryLuck(mapObjectValue(p, "currentLuck")));
-        addTopicLine(card, "時間",
-                "工作訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
-        addTopicLine(card, "白話解讀",
-                aiCopy != null && !aiCopy.career.isEmpty()
-                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.career, "")
-                        : localReportSection("工作與財務"));
-        addTopicBoundary(card, mapValue(p, "evidenceRule"));
-        addAskTeacherAction(
-                card,
-                "用語音追問工作",
-                "請直接回答我的工作與職涯重點。請從 careerProfile、目前大運與逐年流年挑最重要的依據，不要重新排盤。");
-    }
-
-    private void addRelationshipTopic(LinearLayout panel) {
-        Object p = currentFacts.detail("relationshipProfile");
-        LinearLayout card = topicCard(panel, "感情", "看日支配偶宮、財官約定與合沖");
-        addTopicLine(card, "本命",
-                "配偶宮 " + mapValue(p, "spousePalace")
-                        + "　·　藏干十神 " + compactValue(mapObjectValue(p, "spousePalaceTenGods")));
-        addTopicLine(card, "依據",
-                "常見財官約定 " + compactValue(mapObjectValue(p, "partnerGodConvention"))
-                        + "　·　本命數量 " + mapValue(p, "partnerGodCount"));
-        addTopicLine(card, "時間",
-                "配偶宮／財官訊號年份：" + compactRelationshipYears(
-                        mapObjectValue(p, "annualSignalYears")));
-        addTopicLine(card, "白話解讀",
-                aiCopy != null && !aiCopy.relationships.isEmpty()
-                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.relationships, "")
-                        : localReportSection("感情與人際"));
-        addTopicBoundary(card, mapValue(p, "evidenceRule"));
-        addAskTeacherAction(
-                card,
-                "用語音追問感情",
-                "請直接回答我的感情與人際盲點。請從 relationshipProfile、配偶宮與逐年流年挑最重要的依據，不要重新排盤。");
-    }
 
      LinearLayout resultPanel() {
         LinearLayout panel = column();
@@ -2018,7 +1598,7 @@ public final class MainActivity extends Activity {
         card.addView(v, marginTop(2));
     }
 
-    private void addTopicBoundary(LinearLayout card, String value) {
+     void addTopicBoundary(LinearLayout card, String value) {
         if (value == null || value.isEmpty()) return;
         TextView v = text(value, 11, MUTED, false);
         v.setLineSpacing(dp(2), 1f);
@@ -2113,7 +1693,7 @@ public final class MainActivity extends Activity {
         styleDarkDialog(dialog);
     }
 
-    private String summaryLuck(Object value) {
+     String summaryLuck(Object value) {
         if (!(value instanceof Map)) return "目前沒有對應的大運資料";
         return mapValue(value, "ganZhi")
                 + "　" + mapValue(value, "startYear") + "–" + mapValue(value, "endYear")
@@ -2125,7 +1705,7 @@ public final class MainActivity extends Activity {
                 + "\n" + firstMeaningfulInteraction(mapObjectValue(value, "interactionsWithNatal"));
     }
 
-    private Object mapObjectValue(Object source, String key) {
+     Object mapObjectValue(Object source, String key) {
         if (!(source instanceof Map)) return null;
         return ((Map<?, ?>) source).get(key);
     }
@@ -2143,7 +1723,7 @@ public final class MainActivity extends Activity {
         return String.valueOf(value);
     }
 
-    private String compactRelationshipYears(Object value) {
+     String compactRelationshipYears(Object value) {
         if (!(value instanceof List)) return compactValue(value);
         StringBuilder out = new StringBuilder();
         for (Object raw : (List<?>) value) {
@@ -2156,7 +1736,7 @@ public final class MainActivity extends Activity {
         return out.length() == 0 ? "—" : out.toString();
     }
 
-    private String firstMeaningfulInteraction(Object value) {
+     String firstMeaningfulInteraction(Object value) {
         if (!(value instanceof List)) return compactValue(value);
         for (Object item : (List<?>) value) {
             String text = String.valueOf(item);
@@ -2262,143 +1842,8 @@ public final class MainActivity extends Activity {
         return result.score + " / 100";
     }
 
-    private void addBaZiResultPanel() {
-        if (currentFacts == null) return;
 
-        LinearLayout panel = column();
-        panel.setPadding(dp(10), dp(11), dp(10), dp(11));
-        panel.setBackground(round(CARD_2, 16));
-        LinearLayout host = resultTabContent == null ? resultCard : resultTabContent;
-        host.addView(panel, marginTop(6));
-
-        LinearLayout hero = new LinearLayout(this);
-        hero.setOrientation(LinearLayout.HORIZONTAL);
-        hero.setGravity(Gravity.CENTER_VERTICAL);
-
-        LinearLayout master = column();
-        TextView masterLabel = text("日主", 12, GOLD, true);
-        TextView masterValue = text(
-                currentFacts.detailText("dayMaster") + currentFacts.detailText("dayMasterElement"),
-                28, TEXT, true);
-        master.addView(masterLabel);
-        master.addView(masterValue, marginTop(2));
-        hero.addView(master, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-        LinearLayout balance = column();
-        TextView balanceLabel = text("日主強弱", 12, MUTED, true);
-        balanceLabel.setGravity(Gravity.END);
-        TextView balanceValue = text(currentFacts.detailText("dayMasterStrength")
-                + " · " + currentFacts.detailText("strengthIndex"), 20, ACCENT, true);
-        balanceValue.setGravity(Gravity.END);
-        balance.addView(balanceLabel);
-        balance.addView(balanceValue, marginTop(2));
-        hero.addView(balance, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-        panel.addView(hero);
-
-        TextView contentFirstHint = text(
-                "先看白話，再看命盤依據。下面三段不需要開語音，也能先理解這張八字跟日常生活最有關的部分。",
-                12, MUTED, false);
-        contentFirstHint.setLineSpacing(dp(2), 1f);
-        panel.addView(contentFirstHint, marginTop(9));
-        addPanelSection(panel, "性格與做事方式", localReportSection("性格與天賦"));
-        addPanelSection(panel, "工作與資源傾向", localReportSection("工作與財務"));
-        addPanelSection(panel, "關係模式", localReportSection("感情與人際"));
-
-        TextView divider = text("四柱命盤 · 以下是依據", 12, GOLD, true);
-        panel.addView(divider, marginTop(11));
-
-        LinearLayout pillars = new LinearLayout(this);
-        pillars.setOrientation(LinearLayout.HORIZONTAL);
-        pillars.setGravity(Gravity.CENTER);
-        addPillarCard(pillars, "年柱", currentFacts.detailText("yearPillar"),
-                mapValue(currentFacts.detail("hiddenStems"), "year"),
-                mapValue(currentFacts.detail("tenGods"), "yearStem"));
-        addPillarCard(pillars, "月柱", currentFacts.detailText("monthPillar"),
-                mapValue(currentFacts.detail("hiddenStems"), "month"),
-                mapValue(currentFacts.detail("tenGods"), "monthStem"));
-        addPillarCard(pillars, "日柱", currentFacts.detailText("dayPillar"),
-                mapValue(currentFacts.detail("hiddenStems"), "day"),
-                "日主");
-        addPillarCard(pillars, "時柱", currentFacts.detailText("timePillar"),
-                mapValue(currentFacts.detail("hiddenStems"), "time"),
-                mapValue(currentFacts.detail("tenGods"), "timeStem"));
-        panel.addView(pillars, marginTop(8));
-
-        TextView elementsTitle = text("可見五行", 12, GOLD, true);
-        panel.addView(elementsTitle, marginTop(11));
-
-        Object visible = currentFacts.detail("visibleFiveElements");
-        addElementBar(panel, "木", intMapValue(visible, "木"));
-        addElementBar(panel, "火", intMapValue(visible, "火"));
-        addElementBar(panel, "土", intMapValue(visible, "土"));
-        addElementBar(panel, "金", intMapValue(visible, "金"));
-        addElementBar(panel, "水", intMapValue(visible, "水"));
-
-        TextView trend = text(
-                "較多：" + currentFacts.detailText("strongestVisibleElement")
-                        + "　較少：" + currentFacts.detailText("weakestVisibleElement"),
-                13, MUTED, false);
-        panel.addView(trend, marginTop(8));
-
-        TextView tenGodsTitle = text("十神摘要", 12, GOLD, true);
-        panel.addView(tenGodsTitle, marginTop(11));
-        TextView tenGods = text(formatTenGods(), 14, TEXT, false);
-        tenGods.setLineSpacing(dp(3), 1f);
-        panel.addView(tenGods, marginTop(6));
-
-        TextView tenDistTitle = text("十神分布", 12, GOLD, true);
-        panel.addView(tenDistTitle, marginTop(11));
-        TextView tenDist = text(formatMap(currentFacts.detail("tenGodDistribution")), 13, TEXT, false);
-        tenDist.setLineSpacing(dp(2), 1f);
-        panel.addView(tenDist, marginTop(6));
-
-        TextView strengthTitle = text("旺衰與平衡", 12, GOLD, true);
-        panel.addView(strengthTitle, marginTop(11));
-        TextView strength = text(
-                currentFacts.detailText("dayMasterStrength")
-                        + "｜扶身比 " + currentFacts.detailText("strengthIndex") + "/100"
-                        + "\n平衡參考元素：" + currentFacts.detailText("balancingElements")
-                        + "\n" + currentFacts.detailText("strengthMethod"),
-                13, TEXT, false);
-        strength.setLineSpacing(dp(3), 1f);
-        panel.addView(strength, marginTop(6));
-
-        TextView interactionTitle = text("命局合沖刑害", 12, GOLD, true);
-        panel.addView(interactionTitle, marginTop(11));
-        TextView interactions = text(formatList(currentFacts.detail("natalInteractions")), 13, TEXT, false);
-        interactions.setLineSpacing(dp(3), 1f);
-        panel.addView(interactions, marginTop(6));
-
-        TextView luckTitle = text("大運", 12, GOLD, true);
-        panel.addView(luckTitle, marginTop(11));
-        TextView luck = text(formatLuckPillars(), 13, TEXT, false);
-        luck.setLineSpacing(dp(3), 1f);
-        panel.addView(luck, marginTop(6));
-
-        TextView annualTitle = text("今年流年", 12, GOLD, true);
-        panel.addView(annualTitle, marginTop(11));
-        TextView annual = text(formatCurrentAnnual(), 13, TEXT, false);
-        annual.setLineSpacing(dp(3), 1f);
-        panel.addView(annual, marginTop(6));
-
-        addPanelSection(panel, "加權五行", formatMap(currentFacts.detail("weightedFiveElements")));
-        addPanelSection(panel, "納音", formatList(currentFacts.detail("naYin")));
-        addPanelSection(panel, "十二長生", formatList(currentFacts.detail("lifeStages")));
-        addPanelSection(panel, "命宮／身宮",
-                "命宮 " + currentFacts.detailText("mingGong")
-                        + "　·　身宮 " + currentFacts.detailText("shenGong"));
-
-        TextView convention = text(
-                "排盤規則｜" + currentFacts.detailText("timeConvention"),
-                11, MUTED, false);
-        convention.setLineSpacing(dp(2), 1f);
-        panel.addView(convention, marginTop(6));
-    }
-
-    private void addPillarCard(LinearLayout row,
+     void addPillarCard(LinearLayout row,
                                String label,
                                String pillar,
                                String hidden,
@@ -2432,7 +1877,7 @@ public final class MainActivity extends Activity {
         row.addView(card, lp);
     }
 
-    private void addElementBar(LinearLayout parent, String element, int count) {
+     void addElementBar(LinearLayout parent, String element, int count) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -2473,101 +1918,8 @@ public final class MainActivity extends Activity {
         parent.addView(row, rowLp);
     }
 
-    private void addTarotResultPanel() {
-        if (currentFacts == null) return;
 
-        LinearLayout panel = column();
-        panel.setGravity(Gravity.CENTER_HORIZONTAL);
-        panel.setPadding(dp(12), dp(14), dp(12), dp(14));
-        GradientDrawable background = round(CARD_2, 18);
-        background.setStroke(dp(1), Color.rgb(87, 69, 121));
-        panel.setBackground(background);
-        LinearLayout host = resultTabContent == null ? resultCard : resultTabContent;
-        host.addView(panel, marginTop(6));
-
-        TextView coreTitle = text("生日核心數", 12, GOLD, true);
-        coreTitle.setGravity(Gravity.CENTER);
-        panel.addView(coreTitle);
-
-        TextView coreNumbers = text(
-                "生命道路 " + currentFacts.detailText("lifePathDisplay")
-                        + "　·　生日數 " + currentFacts.detailText("birthdayNumber")
-                        + "\n態度數 " + currentFacts.detailText("attitudeNumber"),
-                15, TEXT, true);
-        coreNumbers.setGravity(Gravity.CENTER);
-        coreNumbers.setLineSpacing(dp(3), 1f);
-        panel.addView(coreNumbers, marginTop(5));
-
-        LinearLayout innerOuter = new LinearLayout(this);
-        innerOuter.setOrientation(LinearLayout.HORIZONTAL);
-        innerOuter.setGravity(Gravity.CENTER);
-
-        addNumerologyIdentityCard(
-                innerOuter,
-                "內在靈魂牌",
-                currentFacts.detailText("soulCardNumber"),
-                currentFacts.detailText("soulCardName"));
-        addNumerologyIdentityCard(
-                innerOuter,
-                "外在人格牌",
-                currentFacts.detailText("personalityCardNumber"),
-                currentFacts.detailText("personalityCardName"));
-        panel.addView(innerOuter, marginTop(6));
-
-        TextView contrast = text(
-                "外在 " + currentFacts.detailText("personalityCardNumber")
-                        + " " + currentFacts.detailText("personalityCardName")
-                        + "　↔　內在 " + currentFacts.detailText("soulCardNumber")
-                        + " " + currentFacts.detailText("soulCardName"),
-                13, ACCENT, true);
-        contrast.setGravity(Gravity.CENTER);
-        panel.addView(contrast, marginTop(6));
-
-        TextView card = text(currentFacts.detailText("birthCardDisplay"), 27, TEXT, true);
-        card.setGravity(Gravity.CENTER);
-        panel.addView(card);
-
-        TextView lifePath = text("生命靈數 " + currentFacts.detailText("lifePathDisplay"),
-                23, ACCENT, true);
-        lifePath.setGravity(Gravity.CENTER);
-        panel.addView(lifePath, marginTop(9));
-
-        TextView core = text(
-                "天賦數 " + currentFacts.detailText("talentNumbers")
-                        + "　·　態度數 " + currentFacts.detailText("attitudeNumber")
-                        + "\n" + currentFacts.detailText("personalYearCalendarYear")
-                        + " 流年 " + currentFacts.detailText("personalYear")
-                        + " " + currentFacts.detailText("personalYearCardName")
-                        + "　·　個人月 " + currentFacts.detailText("personalMonth"),
-                14, MUTED, false);
-        core.setGravity(Gravity.CENTER);
-        core.setLineSpacing(dp(3), 1f);
-        panel.addView(core, marginTop(9));
-
-        TextView contentFirstHint = text(
-                "先看這些數字在生活裡代表什麼，再往下看完整計算資料；不需要先找老師翻譯。",
-                12, MUTED, false);
-        contentFirstHint.setGravity(Gravity.CENTER_HORIZONTAL);
-        contentFirstHint.setLineSpacing(dp(2), 1f);
-        panel.addView(contentFirstHint, marginTop(9));
-        addPanelSection(panel, "內在 vs 外在", localReportSection("內在 vs 外在"));
-        addPanelSection(panel, "性格與天賦", localReportSection("性格與天賦"));
-        addPanelSection(panel, "工作與資源傾向", localReportSection("工作與財務"));
-
-        addPanelSection(panel, "出生牌組 · 以下是依據", formatBirthCards());
-        addPanelSection(panel, "四大巔峰", formatPairedLists(
-                currentFacts.detail("pinnacles"), currentFacts.detail("pinnacleTiming")));
-        addPanelSection(panel, "四大挑戰", formatList(currentFacts.detail("challenges")));
-        addPanelSection(panel, "人生三大週期", formatList(currentFacts.detail("periodCycles")));
-        addPanelSection(panel, "計算規則", formatList(currentFacts.detail("calculationNotes")));
-
-        TextView note = text(currentFacts.detailText("note"), 11, MUTED, false);
-        note.setGravity(Gravity.CENTER);
-        note.setLineSpacing(dp(2), 1f);
-        panel.addView(note, marginTop(6));
-    }
-
-    private void addNumerologyIdentityCard(LinearLayout row,
+     void addNumerologyIdentityCard(LinearLayout row,
                                                 String heading,
                                                 String number,
                                                 String subtitle) {
@@ -2605,7 +1957,7 @@ public final class MainActivity extends Activity {
         panel.addView(b, marginTop(3));
     }
 
-    private String formatTenGods() {
+     String formatTenGods() {
         Object source = currentFacts == null ? null : currentFacts.detail("tenGods");
         return "年｜" + mapValue(source, "yearStem") + " · " + mapValue(source, "yearBranch")
                 + "\n月｜" + mapValue(source, "monthStem") + " · " + mapValue(source, "monthBranch")
@@ -2613,7 +1965,7 @@ public final class MainActivity extends Activity {
                 + "\n時｜" + mapValue(source, "timeStem") + " · " + mapValue(source, "timeBranch");
     }
 
-    private String formatLuckPillars() {
+     String formatLuckPillars() {
         Object value = currentFacts == null ? null : currentFacts.detail("luckPillars");
         if (!(value instanceof java.util.List)) return "";
         StringBuilder out = new StringBuilder();
@@ -2636,7 +1988,7 @@ public final class MainActivity extends Activity {
                 + "\n" + out;
     }
 
-    private String formatCurrentAnnual() {
+     String formatCurrentAnnual() {
         Object annual = currentFacts == null ? null : currentFacts.detail("currentAnnual");
         if (!(annual instanceof Map)) return "";
         return mapValue(annual, "year") + " " + mapValue(annual, "ganZhi")
@@ -2645,7 +1997,7 @@ public final class MainActivity extends Activity {
                 + "\n" + formatList(((Map<?, ?>) annual).get("interactions"));
     }
 
-    private String formatBirthCards() {
+     String formatBirthCards() {
         Object value = currentFacts == null ? null : currentFacts.detail("birthCards");
         if (!(value instanceof java.util.List)) return "";
         StringBuilder out = new StringBuilder();
@@ -2658,7 +2010,7 @@ public final class MainActivity extends Activity {
         return out.toString();
     }
 
-    private String formatPairedLists(Object first, Object second) {
+     String formatPairedLists(Object first, Object second) {
         if (!(first instanceof java.util.List) || !(second instanceof java.util.List)) {
             return formatList(first);
         }
@@ -2674,7 +2026,7 @@ public final class MainActivity extends Activity {
         return out.toString();
     }
 
-    private String formatList(Object value) {
+     String formatList(Object value) {
         if (!(value instanceof java.util.List)) return value == null ? "" : String.valueOf(value);
         StringBuilder out = new StringBuilder();
         for (Object item : (java.util.List<?>) value) {
@@ -2684,7 +2036,7 @@ public final class MainActivity extends Activity {
         return out.toString();
     }
 
-    private String formatMap(Object value) {
+     String formatMap(Object value) {
         if (!(value instanceof Map)) return value == null ? "" : String.valueOf(value);
         StringBuilder out = new StringBuilder();
         for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
@@ -2702,7 +2054,7 @@ public final class MainActivity extends Activity {
         return value == null ? "" : String.valueOf(value);
     }
 
-    private int intMapValue(Object source, String key) {
+     int intMapValue(Object source, String key) {
         String value = mapValue(source, key);
         try {
             return Integer.parseInt(value);
@@ -3914,7 +3266,7 @@ public final class MainActivity extends Activity {
         return drawable;
     }
 
-    private GradientDrawable round(int color, int radiusDp) {
+     GradientDrawable round(int color, int radiusDp) {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setColor(color);
         drawable.setCornerRadius(dp(radiusDp));
