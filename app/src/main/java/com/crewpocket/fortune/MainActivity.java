@@ -63,30 +63,12 @@ public final class MainActivity extends Activity {
     static final int GOLD = Color.rgb(255, 214, 128);
 
     private final FortuneEngine engine = new FortuneEngine();
-    private final BirthPlaceSearchClient birthPlaceSearchClient = new BirthPlaceSearchClient();
 
     private FortuneMode selectedMode = FortuneMode.BA_ZI;
-    private EditText nameInput;
-    private EditText birthInput;
-    private EditText birthTimeInput;
-    private LinearLayout genderRow;
-    private Button maleButton;
-    private Button femaleButton;
-    private String selectedGender = "";
     private TextView modeLabel;
     private Button baZiModeButton;
     private Button tarotModeButton;
     private Button vedicModeButton;
-    private LinearLayout vedicLocationSection;
-    private EditText birthPlaceNameInput;
-    private EditText latitudeInput;
-    private EditText longitudeInput;
-    private Button timeZoneButton;
-    private Button geocodeButton;
-    private TextView geocodeStatus;
-    private LinearLayout vedicCoordinateFields;
-    private String selectedTimeZoneId = "+08:00";
-    private boolean geocodingBirthPlace;
     private TextView aiStatus;
     private Button strictStyleButton;
     private Button normalStyleButton;
@@ -110,6 +92,7 @@ public final class MainActivity extends Activity {
     private final FortuneAiController aiController = new FortuneAiController(this);
     private final FortuneTeacherController teacherController = new FortuneTeacherController(this);
     private final FortuneShareController shareController = new FortuneShareController(this);
+    private final FortuneProfileController profileController = new FortuneProfileController(this);
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -123,7 +106,7 @@ public final class MainActivity extends Activity {
         if (state != null) {
             restoreInstanceState(state);
         } else {
-            restoreLastProfile();
+            profileController.restoreLastProfile();
         }
         OperationLog.add(this, "APP_OPEN", "mode=" + selectedMode.name());
     }
@@ -146,16 +129,7 @@ public final class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString("state_birth_date", birthInput == null ? "" : birthInput.getText().toString());
-        outState.putString("state_birth_time", birthTimeInput == null ? "" : birthTimeInput.getText().toString());
-        outState.putString("state_gender", selectedGender);
-        outState.putString("state_birth_place_name",
-                birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString());
-        outState.putString("state_latitude",
-                latitudeInput == null ? "" : latitudeInput.getText().toString());
-        outState.putString("state_longitude",
-                longitudeInput == null ? "" : longitudeInput.getText().toString());
-        outState.putString("state_timezone", selectedTimeZoneId);
+        profileController.saveState(outState);
         outState.putString("state_mode", selectedMode.name());
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
@@ -272,114 +246,7 @@ public final class MainActivity extends Activity {
         modeLabel.setLineSpacing(dp(2), 1f);
         form.addView(modeLabel, marginTop(5));
 
-        form.addView(label("基本資料"), marginTop(8));
-        // Kept as a hidden compatibility field for old presets/state only.
-        // Fortune calculations and prompts no longer use a person's name.
-        nameInput = input("");
-        birthInput = input("生日，例如 1985-07-22");
-        birthInput.setFocusable(false);
-        birthInput.setClickable(true);
-        birthInput.setOnClickListener(v -> showDatePicker());
-
-        birthTimeInput = input("出生地當地時間，例如 14:30");
-        birthTimeInput.setFocusable(false);
-        birthTimeInput.setClickable(true);
-        birthTimeInput.setOnClickListener(v -> showTimePicker());
-        form.addView(birthInput, marginTop(8));
-        form.addView(birthTimeInput, marginTop(6));
-
-        genderRow = new LinearLayout(this);
-        genderRow.setOrientation(LinearLayout.HORIZONTAL);
-        maleButton = genderButton("男");
-        femaleButton = genderButton("女");
-        maleButton.setOnClickListener(v -> selectGender("male"));
-        femaleButton.setOnClickListener(v -> selectGender("female"));
-        LinearLayout.LayoutParams genderLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        genderLp.rightMargin = dp(6);
-        genderRow.addView(maleButton, genderLp);
-        genderRow.addView(femaleButton, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        form.addView(genderRow, marginTop(6));
-
-        vedicLocationSection = column();
-        TextView vedicRule = text(
-                "印度星盤 · Sidereal · Lahiri · Whole Sign\n"
-                        + "先填出生城市與時區；精確座標放在進階設定，不會交給 AI 猜。",
-                11, GOLD, true);
-        vedicRule.setLineSpacing(dp(2), 1f);
-        vedicLocationSection.addView(vedicRule);
-
-        birthPlaceNameInput = input("搜尋出生城市，例如 新北市、Bangkok、Tokyo");
-
-        geocodeButton = secondaryButton("搜尋出生城市");
-        geocodeButton.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        geocodeButton.setPadding(dp(12), 0, dp(12), 0);
-        geocodeButton.setOnClickListener(v -> geocodeBirthPlace(false));
-
-        geocodeStatus = text(
-                "搜尋後選擇城市，會自動填入 Latitude / Longitude / Timezone。",
-                10, MUTED, false);
-        geocodeStatus.setLineSpacing(dp(2), 1f);
-
-        timeZoneButton = secondaryButton("時區：UTC+08:00");
-        timeZoneButton.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        timeZoneButton.setPadding(dp(12), 0, dp(12), 0);
-        timeZoneButton.setOnClickListener(v -> showTimeZonePicker());
-
-        Button advancedCoordinates = secondaryButton("進階設定：Latitude / Longitude");
-        advancedCoordinates.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        advancedCoordinates.setPadding(dp(12), 0, dp(12), 0);
-
-        latitudeInput = input("Latitude，例如 25.0120");
-        longitudeInput = input("Longitude，例如 121.4657");
-        latitudeInput.setInputType(
-                InputType.TYPE_CLASS_NUMBER
-                        | InputType.TYPE_NUMBER_FLAG_DECIMAL
-                        | InputType.TYPE_NUMBER_FLAG_SIGNED);
-        longitudeInput.setInputType(
-                InputType.TYPE_CLASS_NUMBER
-                        | InputType.TYPE_NUMBER_FLAG_DECIMAL
-                        | InputType.TYPE_NUMBER_FLAG_SIGNED);
-
-        vedicCoordinateFields = column();
-        vedicCoordinateFields.addView(latitudeInput);
-        vedicCoordinateFields.addView(longitudeInput, marginTop(6));
-        vedicCoordinateFields.setVisibility(View.GONE);
-        advancedCoordinates.setOnClickListener(v -> {
-            boolean opening = vedicCoordinateFields.getVisibility() != View.VISIBLE;
-            vedicCoordinateFields.setVisibility(opening ? View.VISIBLE : View.GONE);
-            advancedCoordinates.setText(
-                    opening
-                            ? "收起進階設定：Latitude / Longitude"
-                            : "進階設定：Latitude / Longitude");
-        });
-
-        vedicLocationSection.addView(birthPlaceNameInput, marginTop(6));
-        vedicLocationSection.addView(geocodeButton, marginTop(6));
-        vedicLocationSection.addView(geocodeStatus, marginTop(4));
-        vedicLocationSection.addView(timeZoneButton, marginTop(6));
-        vedicLocationSection.addView(advancedCoordinates, marginTop(6));
-        vedicLocationSection.addView(vedicCoordinateFields, marginTop(4));
-
-        TextView locationHint = text(
-                "城市搜尋只負責取得 WGS84 座標與 IANA timezone；實際排盤仍只使用"
-                        + " Latitude / Longitude / Timezone 這三個 deterministic 欄位。",
-                10, MUTED, false);
-        locationHint.setLineSpacing(dp(2), 1f);
-        vedicLocationSection.addView(locationHint, marginTop(4));
-        vedicLocationSection.setVisibility(View.GONE);
-        form.addView(vedicLocationSection, marginTop(6));
-
-        LinearLayout presetRow = new LinearLayout(this);
-        presetRow.setOrientation(LinearLayout.HORIZONTAL);
-        Button choosePreset = secondaryButton("常用資料");
-        Button savePreset = secondaryButton("儲存 preset");
-        choosePreset.setOnClickListener(v -> showPresetPicker());
-        savePreset.setOnClickListener(v -> saveCurrentPreset());
-        LinearLayout.LayoutParams presetLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        presetLp.rightMargin = dp(6);
-        presetRow.addView(choosePreset, presetLp);
-        presetRow.addView(savePreset, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        form.addView(presetRow, marginTop(6));
+        profileController.addFields(form);
 
         TextView styleLabel = text("AI 回應風格", 12, MUTED, true);
         form.addView(styleLabel, marginTop(6));
@@ -446,30 +313,23 @@ public final class MainActivity extends Activity {
             selectedResultTab = 0;
             if (resultCard != null) resultCard.setVisibility(View.GONE);
         }
-        boolean isBaZi = mode == FortuneMode.BA_ZI;
-        boolean isVedic = mode == FortuneMode.VEDIC_ASTROLOGY;
-        birthTimeInput.setVisibility((isBaZi || isVedic) ? View.VISIBLE : View.GONE);
-        genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
-        if (vedicLocationSection != null) {
-            vedicLocationSection.setVisibility(isVedic ? View.VISIBLE : View.GONE);
-        }
+        profileController.onModeSelected(mode);
         updateModeSelectionUi();
     }
 
-    private void selectGender(String gender) {
-        selectedGender = gender;
-        OperationLog.add(this, "GENDER_SELECTED", gender);
-        boolean male = "male".equals(gender);
-        maleButton.setBackground(round(male ? ACCENT : CARD_2, 14));
-        femaleButton.setBackground(round(!male ? ACCENT : CARD_2, 14));
-        maleButton.setTextColor(male ? Color.rgb(30, 22, 46) : TEXT);
-        femaleButton.setTextColor(!male ? Color.rgb(30, 22, 46) : TEXT);
+
+    void selectModeFromProfileController(FortuneMode mode) {
+        selectMode(mode);
+    }
+
+    void calculateFromProfileController() {
+        calculate();
     }
 
     private void calculate() {
         if (selectedMode == FortuneMode.VEDIC_ASTROLOGY
-                && needsBirthPlaceGeocoding()) {
-            geocodeBirthPlace(true);
+                && profileController.needsBirthPlaceGeocoding()) {
+            profileController.geocodeBirthPlace(true);
             return;
         }
         selectedResultTab = 0;
@@ -478,12 +338,14 @@ public final class MainActivity extends Activity {
         teacherController.close();
         aiController.close();
         try {
-            FortuneProfile profile = buildCurrentProfile();
+            FortuneProfile profile = profileController.buildProfile(selectedMode);
             Date referenceTime = new Date();
             resultReferenceTimeMillis = referenceTime.getTime();
             currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
             currentResult = engine.calculate(selectedMode, profile, referenceTime);
-            FortunePresetStore.saveLast(this, currentPreset());
+            FortunePresetStore.saveLast(
+                    this,
+                    profileController.currentPreset(selectedMode));
             OperationLog.add(this, "CALCULATE_SUCCESS",
                     selectedMode.name() + " · " + currentFacts.basis);
             aiCopy = null;
@@ -2029,184 +1891,75 @@ public final class MainActivity extends Activity {
         aiStatus.setText(AppConfig.hasGeminiApiKey(this) ? "AI：ON ⚙" : "AI：OFF ⚙");
     }
 
-
-    private FortuneProfile buildCurrentProfile() {
-        BirthPlace birthPlace = null;
-        if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
-            String latitudeText = latitudeInput == null ? "" : latitudeInput.getText().toString().trim();
-            String longitudeText = longitudeInput == null ? "" : longitudeInput.getText().toString().trim();
-            String zoneText = selectedTimeZoneId == null ? "" : selectedTimeZoneId.trim();
-            if (latitudeText.isEmpty() || longitudeText.isEmpty() || zoneText.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "印度星盤需要出生地 latitude、longitude 與 timezone");
-            }
-            final double latitude;
-            final double longitude;
-            try {
-                latitude = Double.parseDouble(latitudeText);
-                longitude = Double.parseDouble(longitudeText);
-            } catch (NumberFormatException error) {
-                throw new IllegalArgumentException("出生地座標格式不正確", error);
-            }
-            birthPlace = new BirthPlace(
-                    birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString(),
-                    latitude,
-                    longitude,
-                    zoneText);
-        }
-        return new FortuneProfile(
-                "",
-                birthInput.getText().toString(),
-                birthTimeInput.getText().toString(),
-                selectedGender,
-                birthPlace);
-    }
-
-    private FortunePreset currentPreset() {
-        return new FortunePreset(
-                "",
-                birthInput.getText().toString(),
-                birthTimeInput.getText().toString(),
-                selectedGender,
-                selectedMode,
-                birthPlaceNameInput == null ? "" : birthPlaceNameInput.getText().toString(),
-                latitudeInput == null ? "" : latitudeInput.getText().toString(),
-                longitudeInput == null ? "" : longitudeInput.getText().toString(),
-                selectedTimeZoneId);
-    }
-
-    private void restoreLastProfile() {
-        FortunePreset preset = FortunePresetStore.loadLast(this);
-        if (preset != null) applyPreset(preset);
-    }
-
-    private void saveCurrentPreset() {
-        FortunePreset preset = currentPreset();
-        if (preset.birthDate.isEmpty()) {
-            Toast.makeText(this, "先選生日再儲存 preset", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if ((preset.mode == FortuneMode.BA_ZI
-                || preset.mode == FortuneMode.VEDIC_ASTROLOGY)
-                && preset.birthTime.isEmpty()) {
-            Toast.makeText(this,
-                    preset.mode == FortuneMode.BA_ZI
-                            ? "八字 preset 需要出生時間"
-                            : "印度星盤 preset 需要出生時間",
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (preset.mode == FortuneMode.VEDIC_ASTROLOGY
-                && preset.birthPlaceOrNull() == null) {
-            Toast.makeText(this,
-                    "印度星盤 preset 需要有效的出生地座標與時區",
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (preset.mode == FortuneMode.BA_ZI && preset.gender.isEmpty()) {
-            Toast.makeText(this, "八字 preset 需要選擇性別", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        FortunePresetStore.savePreset(this, preset);
-        OperationLog.add(this, "PRESET_SAVED", preset.label());
-        Toast.makeText(this, "已儲存：" + preset.label(), Toast.LENGTH_SHORT).show();
-    }
-
-    private void showPresetPicker() {
-        final List<FortunePreset> presets = FortunePresetStore.loadPresets(this);
-        if (presets.isEmpty()) {
-            Toast.makeText(this, "目前還沒有 preset", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String[] labels = new String[presets.size()];
-        for (int i = 0; i < presets.size(); i++) labels[i] = presets.get(i).label();
-
-        new AlertDialog.Builder(this)
-                .setTitle("選擇常用資料")
-                .setItems(labels, (dialog, which) -> {
-                    OperationLog.add(this, "PRESET_LOADED", presets.get(which).label());
-                    applyPreset(presets.get(which));
-                })
-                .setNeutralButton("清除全部", (dialog, which) -> {
-                    FortunePresetStore.clearPresets(this);
-                    OperationLog.add(this, "PRESETS_CLEARED", "");
-                    Toast.makeText(this, "已清除 presets", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
-
-    private void applyPreset(FortunePreset preset) {
-        if (preset == null) return;
-        nameInput.setText("");
-        birthInput.setText(preset.birthDate);
-        birthTimeInput.setText(preset.birthTime);
-        if (birthPlaceNameInput != null) birthPlaceNameInput.setText(preset.birthPlaceName);
-        if (latitudeInput != null) latitudeInput.setText(preset.latitude);
-        if (longitudeInput != null) longitudeInput.setText(preset.longitude);
-        setTimeZoneSelection(preset.timeZoneId);
-        selectMode(preset.mode);
-        if (!preset.gender.isEmpty()) selectGender(preset.gender);
-        else {
-            selectedGender = "";
-            maleButton.setBackground(round(CARD_2, 14));
-            femaleButton.setBackground(round(CARD_2, 14));
-            maleButton.setTextColor(TEXT);
-            femaleButton.setTextColor(TEXT);
-        }
-    }
-
     private void restoreInstanceState(Bundle state) {
         try {
-            nameInput.setText("");
-            birthInput.setText(state.getString("state_birth_date", ""));
-            birthTimeInput.setText(state.getString("state_birth_time", ""));
-            if (birthPlaceNameInput != null) {
-                birthPlaceNameInput.setText(state.getString("state_birth_place_name", ""));
-            }
-            if (latitudeInput != null) {
-                latitudeInput.setText(state.getString("state_latitude", ""));
-            }
-            if (longitudeInput != null) {
-                longitudeInput.setText(state.getString("state_longitude", ""));
-            }
-            setTimeZoneSelection(state.getString("state_timezone", "+08:00"));
-            selectedGender = state.getString("state_gender", "");
+            profileController.restoreState(state);
             selectedMode = FortuneMode.valueOf(
-                    state.getString("state_mode", FortuneMode.BA_ZI.name()));
+                    state.getString(
+                            "state_mode",
+                            FortuneMode.BA_ZI.name()));
             selectedAiStyle = AiStyle.valueOf(
-                    state.getString("state_ai_style", AiStyle.FUNNY.name()));
-            selectedResultTab = state.getInt("state_result_tab", 0);
-            resultReferenceTimeMillis = state.getLong("state_result_reference_time", -1L);
-            String savedTransitDate = state.getString("state_vedic_transit_date", "");
-            selectedVedicTransitDate = FortuneResultState.parseTransitDate(savedTransitDate);
+                    state.getString(
+                            "state_ai_style",
+                            AiStyle.FUNNY.name()));
+            selectedResultTab =
+                    state.getInt("state_result_tab", 0);
+            resultReferenceTimeMillis =
+                    state.getLong(
+                            "state_result_reference_time",
+                            -1L);
+            String savedTransitDate =
+                    state.getString(
+                            "state_vedic_transit_date",
+                            "");
+            selectedVedicTransitDate =
+                    FortuneResultState.parseTransitDate(
+                            savedTransitDate);
 
             selectMode(selectedMode);
-            if (!selectedGender.isEmpty()) selectGender(selectedGender);
             updateAiStyleButtons();
 
             if (state.getBoolean("state_has_result", false)) {
-                FortuneProfile profile = buildCurrentProfile();
-                Date referenceTime = FortuneResultState.referenceDate(
-                        resultReferenceTimeMillis);
-                resultReferenceTimeMillis = referenceTime.getTime();
-                currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
-                currentResult = engine.calculate(selectedMode, profile, referenceTime);
+                FortuneProfile profile =
+                        profileController.buildProfile(selectedMode);
+                Date referenceTime =
+                        FortuneResultState.referenceDate(
+                                resultReferenceTimeMillis);
+                resultReferenceTimeMillis =
+                        referenceTime.getTime();
+                currentFacts = engine.calculateFacts(
+                        selectedMode,
+                        profile,
+                        referenceTime);
+                currentResult = engine.calculate(
+                        selectedMode,
+                        profile,
+                        referenceTime);
 
-                String aiRaw = state.getString("state_ai_copy", "");
+                String aiRaw =
+                        state.getString("state_ai_copy", "");
                 if (!aiRaw.isEmpty()) {
-                    try { aiCopy = AiFortuneCopy.parse(aiRaw); }
-                    catch (Exception ignored) { aiCopy = null; }
+                    try {
+                        aiCopy = AiFortuneCopy.parse(aiRaw);
+                    } catch (Exception ignored) {
+                        aiCopy = null;
+                    }
                 }
                 renderResult(currentResult, false);
             }
-            OperationLog.add(this, "STATE_RESTORED",
+
+            OperationLog.add(
+                    this,
+                    "STATE_RESTORED",
                     state.getBoolean("state_has_result", false)
-                            ? "result_restored" : "input_restored");
+                            ? "result_restored"
+                            : "input_restored");
         } catch (Exception error) {
-            restoreLastProfile();
-            OperationLog.add(this, "STATE_RESTORE_FAILED",
-                    error.getMessage() == null ? "unknown" : error.getMessage());
+            profileController.restoreLastProfile();
+            OperationLog.add(
+                    this,
+                    "STATE_RESTORE_FAILED",
+                    safeErrorMessage(error));
         }
     }
 
@@ -2338,30 +2091,6 @@ public final class MainActivity extends Activity {
         styleDarkDialog(dialog);
     }
 
-    private void showDatePicker() {
-        Calendar calendar = Calendar.getInstance();
-        String raw = birthInput.getText().toString().trim();
-        if (raw.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            try {
-                String[] p = raw.split("-");
-                calendar.set(Integer.parseInt(p[0]), Integer.parseInt(p[1]) - 1, Integer.parseInt(p[2]));
-            } catch (Exception ignored) {}
-        }
-
-        DatePickerDialog dialog = new DatePickerDialog(
-                this,
-                (view, year, month, day) -> {
-                    String value = String.format(
-                            java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, day);
-                    birthInput.setText(value);
-                    OperationLog.add(this, "BIRTH_DATE_SELECTED", value);
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH));
-        dialog.getDatePicker().setMaxDate(System.currentTimeMillis());
-        dialog.show();
-    }
 
      void showVedicTransitDatePicker() {
         LocalDate base;
@@ -2428,234 +2157,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void showTimePicker() {
-        Calendar calendar = Calendar.getInstance();
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-        String raw = birthTimeInput.getText().toString().trim();
-        if (raw.matches("\\d{2}:\\d{2}")) {
-            try {
-                String[] p = raw.split(":");
-                hour = Integer.parseInt(p[0]);
-                minute = Integer.parseInt(p[1]);
-            } catch (Exception ignored) {}
-        }
-        new TimePickerDialog(
-                this,
-                (view, selectedHour, selectedMinute) -> {
-                    String value = String.format(
-                            java.util.Locale.US, "%02d:%02d", selectedHour, selectedMinute);
-                    birthTimeInput.setText(value);
-                    OperationLog.add(this, "BIRTH_TIME_SELECTED", value);
-                },
-                hour,
-                minute,
-                true).show();
-    }
 
-    private boolean needsBirthPlaceGeocoding() {
-        if (birthPlaceNameInput == null
-                || birthPlaceNameInput.getText().toString().trim().isEmpty()) {
-            return false;
-        }
-        String latitude = latitudeInput == null ? "" : latitudeInput.getText().toString().trim();
-        String longitude = longitudeInput == null ? "" : longitudeInput.getText().toString().trim();
-        return latitude.isEmpty() || longitude.isEmpty();
-    }
-
-    private void geocodeBirthPlace(boolean calculateAfterSuccess) {
-        if (geocodingBirthPlace) return;
-
-        String query = birthPlaceNameInput == null
-                ? ""
-                : birthPlaceNameInput.getText().toString().trim();
-        if (query.length() < 2) {
-            Toast.makeText(this, "請輸入至少 2 個字的出生城市", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        geocodingBirthPlace = true;
-        if (geocodeButton != null) {
-            geocodeButton.setEnabled(false);
-            geocodeButton.setText("搜尋中…");
-        }
-        if (geocodeStatus != null) {
-            geocodeStatus.setText("正在搜尋「" + query + "」…");
-            geocodeStatus.setTextColor(MUTED);
-        }
-        OperationLog.add(this, "VEDIC_CITY_SEARCH_START", query);
-
-        new Thread(() -> {
-            try {
-                final List<BirthPlaceSearchClient.Result> results =
-                        birthPlaceSearchClient.search(query);
-                runOnUiThread(() -> {
-                    finishBirthPlaceSearchUi();
-                    if (results.isEmpty()) {
-                        if (geocodeStatus != null) {
-                            geocodeStatus.setText("找不到符合的城市，請換較完整的名稱再試一次");
-                            geocodeStatus.setTextColor(Color.rgb(255, 150, 150));
-                        }
-                        OperationLog.add(this, "VEDIC_CITY_SEARCH_EMPTY", query);
-                        return;
-                    }
-                    showBirthPlaceSearchResults(results, calculateAfterSuccess);
-                });
-            } catch (Exception error) {
-                runOnUiThread(() -> {
-                    finishBirthPlaceSearchUi();
-                    if (geocodeStatus != null) {
-                        geocodeStatus.setText("城市搜尋失敗，可稍後重試或用進階設定手動輸入");
-                        geocodeStatus.setTextColor(Color.rgb(255, 150, 150));
-                    }
-                    OperationLog.add(
-                            MainActivity.this,
-                            "VEDIC_CITY_SEARCH_FAILED",
-                            error.getMessage() == null ? "unknown" : error.getMessage());
-                    Toast.makeText(
-                            MainActivity.this,
-                            "城市搜尋暫時無法使用，仍可手動輸入座標與時區",
-                            Toast.LENGTH_LONG).show();
-                });
-            }
-        }, "crew-fortune-city-search").start();
-    }
-
-    private void finishBirthPlaceSearchUi() {
-        geocodingBirthPlace = false;
-        if (geocodeButton != null) {
-            geocodeButton.setEnabled(true);
-            geocodeButton.setText("搜尋出生城市");
-        }
-    }
-
-    private void showBirthPlaceSearchResults(
-            List<BirthPlaceSearchClient.Result> results,
-            boolean calculateAfterSuccess) {
-        String[] labels = new String[results.size()];
-        for (int i = 0; i < results.size(); i++) {
-            BirthPlaceSearchClient.Result item = results.get(i);
-            labels[i] = item.displayName() + "\n" + item.detail();
-        }
-
-        new AlertDialog.Builder(this)
-                .setTitle("選擇出生城市")
-                .setItems(labels, (dialog, which) -> {
-                    BirthPlaceSearchClient.Result selected = results.get(which);
-                    applyBirthPlaceSearchResult(selected);
-                    if (calculateAfterSuccess) calculate();
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
-
-    private void applyBirthPlaceSearchResult(BirthPlaceSearchClient.Result result) {
-        if (result == null) return;
-        if (birthPlaceNameInput != null) {
-            birthPlaceNameInput.setText(result.displayName());
-        }
-        if (latitudeInput != null) {
-            latitudeInput.setText(formatCoordinate(result.latitude));
-        }
-        if (longitudeInput != null) {
-            longitudeInput.setText(formatCoordinate(result.longitude));
-        }
-        setTimeZoneSelection(result.timezone);
-        if (geocodeStatus != null) {
-            geocodeStatus.setText(
-                    "已選：" + result.displayName()
-                            + " · " + result.timezone
-                            + "\n" + formatCoordinate(result.latitude)
-                            + ", " + formatCoordinate(result.longitude));
-            geocodeStatus.setTextColor(GOLD);
-        }
-        OperationLog.add(
-                this,
-                "VEDIC_CITY_SELECTED",
-                result.displayName() + " · "
-                        + formatCoordinate(result.latitude) + ","
-                        + formatCoordinate(result.longitude) + " · "
-                        + result.timezone);
-    }
-
-    private static String formatCoordinate(double value) {
-        return String.format(java.util.Locale.US, "%.6f", value);
-    }
-
-    private void showTimeZonePicker() {
-        final String[] labels = new String[] {
-                "UTC+08:00（預設）",
-                "Asia/Taipei（台灣）",
-                "UTC+09:00",
-                "Asia/Tokyo（日本）",
-                "UTC+07:00",
-                "Asia/Bangkok（泰國）",
-                "UTC+05:30",
-                "Asia/Kolkata（印度）",
-                "UTC+00:00",
-                "Europe/London（英國）",
-                "UTC+01:00",
-                "Europe/Paris（中歐）",
-                "UTC-05:00",
-                "America/New_York（美東）",
-                "UTC-08:00",
-                "America/Los_Angeles（美西）"
-        };
-        final String[] values = new String[] {
-                "+08:00",
-                "Asia/Taipei",
-                "+09:00",
-                "Asia/Tokyo",
-                "+07:00",
-                "Asia/Bangkok",
-                "+05:30",
-                "Asia/Kolkata",
-                "UTC",
-                "Europe/London",
-                "+01:00",
-                "Europe/Paris",
-                "-05:00",
-                "America/New_York",
-                "-08:00",
-                "America/Los_Angeles"
-        };
-
-        int selected = 0;
-        for (int i = 0; i < values.length; i++) {
-            if (values[i].equals(selectedTimeZoneId)) {
-                selected = i;
-                break;
-            }
-        }
-
-        new AlertDialog.Builder(this)
-                .setTitle("選擇出生地時區")
-                .setSingleChoiceItems(labels, selected, (dialog, which) -> {
-                    setTimeZoneSelection(values[which]);
-                    OperationLog.add(this, "VEDIC_TIMEZONE_SELECTED", values[which]);
-                    dialog.dismiss();
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
-
-    private void setTimeZoneSelection(String value) {
-        String normalized = value == null ? "" : value.trim();
-        if (normalized.isEmpty()) normalized = "+08:00";
-        selectedTimeZoneId = normalized;
-        if (timeZoneButton != null) {
-            String label = normalized;
-            if ("+08:00".equals(normalized)) label = "UTC+08:00";
-            else if ("+09:00".equals(normalized)) label = "UTC+09:00";
-            else if ("+07:00".equals(normalized)) label = "UTC+07:00";
-            else if ("+05:30".equals(normalized)) label = "UTC+05:30";
-            else if ("+01:00".equals(normalized)) label = "UTC+01:00";
-            else if ("-05:00".equals(normalized)) label = "UTC-05:00";
-            else if ("-08:00".equals(normalized)) label = "UTC-08:00";
-            else if ("UTC".equals(normalized)) label = "UTC+00:00";
-            timeZoneButton.setText("時區：" + label);
-        }
-    }
 
     private void selectAiStyle(AiStyle style) {
         selectedAiStyle = style == null ? AiStyle.FUNNY : style;
@@ -2753,7 +2255,7 @@ public final class MainActivity extends Activity {
         return button;
     }
 
-    private Button genderButton(String value) {
+     Button genderButton(String value) {
         Button button = new Button(this);
         button.setText(value);
         button.setTextSize(14);
@@ -2763,7 +2265,7 @@ public final class MainActivity extends Activity {
         return button;
     }
 
-    private EditText input(String hint) {
+     EditText input(String hint) {
         EditText input = new EditText(this);
         input.setHint(hint);
         input.setHintTextColor(Color.rgb(142, 131, 163));
