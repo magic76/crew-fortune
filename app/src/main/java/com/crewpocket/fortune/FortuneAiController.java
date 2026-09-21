@@ -46,9 +46,10 @@ final class FortuneAiController {
 
         try {
             final AiStyle style = host.aiStyleForController();
-            final GeminiTextModelSession session = new GeminiTextModelSession(
-                    AppConfig.getGeminiApiKey(host),
-                    style.temperature());
+            final FortuneTextModelSession session =
+                    new FortuneTextModelSession(
+                            host,
+                            style.temperature());
 
             activeHarness = FortuneAgentRuntime.createInterpretation(
                     session,
@@ -106,7 +107,7 @@ final class FortuneAiController {
     private void handleCompleted(
             FortuneProfile profile,
             int attempt,
-            GeminiTextModelSession session,
+            FortuneTextModelSession session,
             AiStyle style) {
         final String completed;
         synchronized (buffer) {

@@ -1,0 +1,79 @@
+package com.crewpocket.fortune;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
+public final class FortuneCommercialFlowTest {
+    @Test public void readingIdIsStableAndDoesNotExposeBirthData() {
+        FortunePreset preset = new FortunePreset(
+                "",
+                "1985-07-06",
+                "04:10",
+                "male",
+                FortuneMode.BA_ZI);
+
+        String first = FortuneReadingId.from(preset);
+        String second = FortuneReadingId.from(preset);
+
+        assertEquals(first, second);
+        assertEquals(64, first.length());
+        assertFalse(first.contains("1985"));
+        assertFalse(first.contains("07-06"));
+        assertFalse(first.contains("04:10"));
+    }
+
+    @Test public void differentProfileOrModeGetsDifferentReadingId() {
+        FortunePreset bazi = new FortunePreset(
+                "",
+                "1985-07-06",
+                "04:10",
+                "male",
+                FortuneMode.BA_ZI);
+        FortunePreset tarot = new FortunePreset(
+                "",
+                "1985-07-06",
+                "",
+                "",
+                FortuneMode.TAROT_NUMEROLOGY);
+
+        assertFalse(
+                FortuneReadingId.from(bazi)
+                        .equals(FortuneReadingId.from(tarot)));
+    }
+
+    @Test public void aiCopyRoundTripsForPaidLocalRestore() {
+        AiFortuneCopy copy = AiFortuneCopy.parse(
+                "{"
+                        + "\"title\":\"完整報告\","
+                        + "\"overview\":\"核心總覽\","
+                        + "\"personality\":\"性格\","
+                        + "\"career\":\"工作\","
+                        + "\"wealth\":\"財運\","
+                        + "\"relationships\":\"關係\","
+                        + "\"family\":\"家庭\","
+                        + "\"currentCycle\":\"現在\","
+                        + "\"longTerm\":\"長期\","
+                        + "\"keyYears\":\"年份\","
+                        + "\"topTraits\":[\"A\",\"B\",\"C\"],"
+                        + "\"topTraitEvidence\":[\"EA\",\"EB\",\"EC\"],"
+                        + "\"followUps\":[\"Q1\",\"Q2\",\"Q3\",\"Q4\"],"
+                        + "\"translation\":\"白話\","
+                        + "\"punchline\":\"一句\","
+                        + "\"advice\":\"建議\","
+                        + "\"shareText\":\"分享\""
+                        + "}");
+
+        AiFortuneCopy restored =
+                AiFortuneCopy.parse(copy.toJson());
+
+        assertEquals(copy.title, restored.title);
+        assertEquals(copy.career, restored.career);
+        assertEquals(copy.wealth, restored.wealth);
+        assertEquals(copy.topTraits, restored.topTraits);
+        assertEquals(copy.followUps, restored.followUps);
+        assertTrue(restored.toJson().contains("\"完整報告\""));
+    }
+}

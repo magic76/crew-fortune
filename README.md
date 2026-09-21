@@ -470,3 +470,70 @@ Unit coverage includes:
 - explicit omission boundaries for unimplemented Vedic layers
 
 Existing BaZi and Tarot deterministic calculation rules are unchanged.
+
+
+## One-time paid readings
+
+Crew Fortune uses a one-time purchase model rather than subscriptions.
+
+Commercial flow:
+
+```text
+free deterministic chart
+    ↓
+overview / natal facts / timing remain readable
+    ↓
+Google Play one-time consumable
+fortune_full_reading_credit
+    ↓
+Firebase AI Logic
+    ↓
+full written interpretation
+    ↓
+persist report locally
+    ↓
+consume Play purchase
+```
+
+Important implementation rules:
+
+- The Gemini credential is **not** embedded in the APK for production.
+- Production text interpretation uses Firebase AI Logic.
+- Firebase App Check uses the debug provider in debug builds and Play Integrity in release builds.
+- The old local Gemini key remains only as a developer fallback when Firebase is not configured.
+- A purchase is linked to a SHA-256 reading ID via Play Billing's obfuscated account id. Birth date, time and coordinates are never placed into the billing identifier.
+- A consumable is not consumed until the AI report has been generated and persisted successfully.
+- If generation fails, the purchase remains owned and the same reading can retry without another charge.
+- Generated paid reports are currently restored from local app storage. Cross-device / reinstall restore still requires a future server-side entitlement layer.
+
+### Firebase setup
+
+The repository intentionally does **not** commit `google-services.json`.
+
+For a production build:
+
+1. Create/connect the Firebase project for Android package `com.crewpocket.fortune`.
+2. In Firebase AI Logic, enable the Gemini Developer API provider.
+3. Add the Android app's `google-services.json` to `app/google-services.json`.
+4. Register the release app with Firebase App Check using Play Integrity.
+5. Configure billing/quota for the Gemini provider before public release.
+
+The Gradle build applies the Google Services plugin only when `app/google-services.json` exists, so CI and BYOK development builds remain usable without Firebase credentials.
+
+### Google Play product setup
+
+Create a consumable one-time product in Play Console:
+
+```text
+Product ID: fortune_full_reading_credit
+Type: one-time product / consumable
+Suggested Taiwan launch price: NT$59
+```
+
+The app displays the localized Play price returned by Billing Library rather than hard-coding `NT$59`.
+
+Play Billing dependency: `com.android.billingclient:billing:9.1.0`.
+
+### Current limitation
+
+This first commercial version deliberately has no custom backend. Google Play purchase verification is therefore client-side only. Before scaling beyond initial validation, add server-side purchase verification and cross-device entitlement storage.

@@ -180,6 +180,32 @@ public final class AiFortuneCopy {
                 shareText);
     }
 
+    public String toJson() {
+        JSONObject object = new JSONObject();
+        try {
+            object.put("title", title);
+            object.put("overview", overview);
+            object.put("personality", personality);
+            object.put("career", career);
+            object.put("wealth", wealth);
+            object.put("relationships", relationships);
+            object.put("family", family);
+            object.put("currentCycle", currentCycle);
+            object.put("longTerm", longTerm);
+            object.put("keyYears", keyYears);
+            object.put("topTraits", new JSONArray(topTraits));
+            object.put("topTraitEvidence", new JSONArray(topTraitEvidence));
+            object.put("followUps", new JSONArray(followUps));
+            object.put("translation", translation);
+            object.put("punchline", punchline);
+            object.put("advice", advice);
+            object.put("shareText", shareText);
+        } catch (JSONException error) {
+            throw new IllegalStateException("Unable to serialize AI fortune copy", error);
+        }
+        return object.toString();
+    }
+
     public String qualityIssueSummary(FortuneMode mode) {
         List<String> issues = new ArrayList<String>();
         requireLength(issues, "overview", overview, 150);
