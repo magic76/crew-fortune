@@ -109,6 +109,7 @@ public final class MainActivity extends Activity {
     private int aiLoadingStage = 0;
     private int selectedResultTab = 0;
     private LocalDate selectedVedicTransitDate;
+    private long resultReferenceTimeMillis = -1L;
     private LinearLayout resultTabContent;
 
     @Override protected void onCreate(Bundle state) {
@@ -146,7 +147,6 @@ public final class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString("state_name", nameInput == null ? "" : nameInput.getText().toString());
         outState.putString("state_birth_date", birthInput == null ? "" : birthInput.getText().toString());
         outState.putString("state_birth_time", birthTimeInput == null ? "" : birthTimeInput.getText().toString());
         outState.putString("state_gender", selectedGender);
@@ -161,6 +161,9 @@ public final class MainActivity extends Activity {
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
         outState.putInt("state_result_tab", selectedResultTab);
+        outState.putLong("state_result_reference_time", resultReferenceTimeMillis);
+        outState.putString("state_vedic_transit_date",
+                FortuneResultState.transitDateText(selectedVedicTransitDate));
         if (aiCopy != null) outState.putString("state_ai_copy", serializeAiCopy(aiCopy));
         OperationLog.add(this, "STATE_SAVED",
                 currentResult == null ? "no_result" : "result_saved");
@@ -271,7 +274,9 @@ public final class MainActivity extends Activity {
         form.addView(modeLabel, marginTop(5));
 
         form.addView(label("基本資料"), marginTop(8));
-        nameInput = input("你的名字");
+        // Kept as a hidden compatibility field for old presets/state only.
+        // Fortune calculations and prompts no longer use a person's name.
+        nameInput = input("");
         birthInput = input("生日，例如 1985-07-22");
         birthInput.setFocusable(false);
         birthInput.setClickable(true);
@@ -281,8 +286,7 @@ public final class MainActivity extends Activity {
         birthTimeInput.setFocusable(false);
         birthTimeInput.setClickable(true);
         birthTimeInput.setOnClickListener(v -> showTimePicker());
-        form.addView(nameInput, marginTop(8));
-        form.addView(birthInput, marginTop(6));
+        form.addView(birthInput, marginTop(8));
         form.addView(birthTimeInput, marginTop(6));
 
         genderRow = new LinearLayout(this);
@@ -439,6 +443,7 @@ public final class MainActivity extends Activity {
             currentFacts = null;
             aiCopy = null;
             selectedVedicTransitDate = null;
+            resultReferenceTimeMillis = -1L;
             selectedResultTab = 0;
             if (resultCard != null) resultCard.setVisibility(View.GONE);
         }
@@ -475,8 +480,10 @@ public final class MainActivity extends Activity {
         closeAgent();
         try {
             FortuneProfile profile = buildCurrentProfile();
-            currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
-            currentResult = engine.calculate(selectedMode, profile, new Date());
+            Date referenceTime = new Date();
+            resultReferenceTimeMillis = referenceTime.getTime();
+            currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
+            currentResult = engine.calculate(selectedMode, profile, referenceTime);
             FortunePresetStore.saveLast(this, currentPreset());
             OperationLog.add(this, "CALCULATE_SUCCESS",
                     selectedMode.name() + " · " + currentFacts.basis);
@@ -865,13 +872,13 @@ public final class MainActivity extends Activity {
         resultCard.addView(tabScroll, marginTop(6));
 
         TextView tabGuide = text(
-                resultTabOverviewHint(result.mode),
+                FortuneResultTabCopy.overviewHint(result.mode),
                 11, MUTED, true);
         tabGuide.setLineSpacing(dp(2), 1f);
         resultCard.addView(tabGuide, marginTop(5));
 
         TextView selectedTabGuide = text(
-                resultTabDescription(result.mode),
+                FortuneResultTabCopy.description(result.mode, selectedResultTab),
                 12, ACCENT, false);
         selectedTabGuide.setLineSpacing(dp(2), 1f);
         resultCard.addView(selectedTabGuide, marginTop(3));
@@ -882,61 +889,9 @@ public final class MainActivity extends Activity {
         addSharedResultActions(aiLoading, result.mode);
     }
 
-    private String resultTabOverviewHint(FortuneMode mode) {
-        if (mode == FortuneMode.BA_ZI) {
-            return "本命＝看出生底盤　｜　流年＝看大運與逐年節奏　｜　解讀＝完整文字報告";
-        }
-        if (mode == FortuneMode.TAROT_NUMEROLOGY) {
-            return "本命＝看核心數字與出生牌　｜　流年＝看年度／月份循環　｜　解讀＝完整文字報告";
-        }
-        return "本命＝看出生底盤　｜　流年＝看現在與未來節奏　｜　解讀＝完整文字報告";
-    }
 
-    private String resultTabDescription(FortuneMode mode) {
-        if (mode == FortuneMode.BA_ZI) {
-            switch (selectedResultTab) {
-                case 1:
-                    return "這頁先用白話說明性格、工作資源與關係模式，再往下看四柱、五行、十神、旺衰與合沖依據。";
-                case 2:
-                    return "這頁可看：目前大運、逐年流年、值得留意年份，以及每段時間的白話主題。";
-                case 3:
-                    return "這頁可看：財運、工作、感情各自的結論、依據、目前大運與關鍵年份。";
-                case 4:
-                    return "這頁就是完整文字報告；不開語音也能讀完主要解讀。";
-                case 0:
-                default:
-                    return "這頁先抓日主、旺衰、目前大運與今年流年，再看最重要的白話重點。";
-            }
-        }
-        if (mode == FortuneMode.TAROT_NUMEROLOGY) {
-            switch (selectedResultTab) {
-                case 1:
-                    return "這頁先解釋內在／外在人格、生命道路與工作資源傾向，再往下看出生牌、巔峰、挑戰與週期資料。";
-                case 2:
-                    return "這頁可看：未來幾年個人流年、今年 12 個個人月，以及人生階段節奏。";
-                case 3:
-                    return "這頁可看：個性、工作、資源、感情的依據、時間與完整白話解讀。";
-                case 4:
-                    return "這頁就是完整文字報告；語音老師只負責補充與追問。";
-                case 0:
-                default:
-                    return "這頁先看外在人格牌、內在靈魂牌、生命道路與目前流年。";
-            }
-        }
-        switch (selectedResultTab) {
-            case 1:
-                return "這頁先給本命白話重點，再往下看 Lagna、Moon、Sun、九曜、12 宮、宮主、Nakshatra 與行星互動。";
-            case 2:
-                return "這頁先給目前週期的文字解讀，再往下看 Mahadasha / Antardasha、Gochar、Dasha × Gochar 與未來 3 年行運。";
-            case 3:
-                return "這頁可看：個性、工作、財務、感情、家庭各自的結論、命盤依據與目前時間證據。";
-            case 4:
-                return "這頁就是完整文字報告；語音老師只負責把內容講得更口語、或回答追問。";
-            case 0:
-            default:
-                return "這頁先看核心命盤身份、目前人生週期，以及最值得先理解的幾個重點。";
-        }
-    }
+
+
 
     private void renderUnifiedTab(FortuneResult result, boolean aiLoading) {
         if (resultTabContent == null) return;
@@ -1478,9 +1433,9 @@ public final class MainActivity extends Activity {
         addVedicEvidenceCardGrid(card, evidence, timingEvidence);
 
         addTopicLine(card, "白話解讀",
-                aiText == null || aiText.trim().isEmpty()
-                        ? "上面的本命與時間資料已經可以直接看；完整文字解讀會把這些訊號彼此之間的關係講清楚。"
-                        : aiText);
+                FortuneResultTabCopy.compactInterpretation(
+                        aiText,
+                        "上面的本命與時間資料已經可以直接看；完整文字解讀會把這些訊號彼此之間的關係講清楚。"));
         addAskTeacherAction(card, "用語音追問這一題", question);
     }
 
@@ -1749,7 +1704,7 @@ public final class MainActivity extends Activity {
                         + "　·　天賦 " + currentFacts.detailText("talentNumbers"));
         addTopicLine(personality, "解讀",
                 aiCopy != null && !aiCopy.personality.isEmpty()
-                        ? aiCopy.personality
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.personality, "")
                         : localReportSection("內在 vs 外在"));
         addAskTeacherAction(
                 personality,
@@ -1767,8 +1722,8 @@ public final class MainActivity extends Activity {
                 currentTarotYearSummary());
         addTopicLine(career, "解讀",
                 aiCopy != null && !aiCopy.career.isEmpty()
-                        ? aiCopy.career
-                        : localReportSection("工作與財務"));
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.career, "")
+                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("工作與財務")));
         addAskTeacherAction(
                 career,
                 "用語音追問工作",
@@ -1783,7 +1738,7 @@ public final class MainActivity extends Activity {
         addTopicLine(wealth, "時間", currentTarotYearSummary());
         addTopicLine(wealth, "解讀",
                 aiCopy != null && !aiCopy.wealth.isEmpty()
-                        ? aiCopy.wealth
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.wealth, "")
                         : "塔羅生命靈數的財務解讀以資源使用、成果節奏與年度主題為主，不把牌義當成投資預測。");
         addAskTeacherAction(
                 wealth,
@@ -1801,8 +1756,8 @@ public final class MainActivity extends Activity {
                         + "　·　個人月 " + currentFacts.detailText("personalMonth"));
         addTopicLine(relationship, "解讀",
                 aiCopy != null && !aiCopy.relationships.isEmpty()
-                        ? aiCopy.relationships
-                        : localReportSection("感情與人際"));
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.relationships, "")
+                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("感情與人際")));
         addAskTeacherAction(
                 relationship,
                 "用語音追問感情",
@@ -2490,8 +2445,8 @@ public final class MainActivity extends Activity {
                 "財星訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.wealth.isEmpty()
-                        ? aiCopy.wealth
-                        : localReportSection("工作與財務"));
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.wealth, "")
+                        : FortuneResultTabCopy.compactInterpretation("", localReportSection("工作與財務")));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
                 card,
@@ -2512,7 +2467,7 @@ public final class MainActivity extends Activity {
                 "工作訊號年份：" + compactValue(mapObjectValue(p, "annualSignalYears")));
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.career.isEmpty()
-                        ? aiCopy.career
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.career, "")
                         : localReportSection("工作與財務"));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
@@ -2535,7 +2490,7 @@ public final class MainActivity extends Activity {
                         mapObjectValue(p, "annualSignalYears")));
         addTopicLine(card, "白話解讀",
                 aiCopy != null && !aiCopy.relationships.isEmpty()
-                        ? aiCopy.relationships
+                        ? FortuneResultTabCopy.compactInterpretation(aiCopy.relationships, "")
                         : localReportSection("感情與人際"));
         addTopicBoundary(card, mapValue(p, "evidenceRule"));
         addAskTeacherAction(
@@ -2565,6 +2520,8 @@ public final class MainActivity extends Activity {
         parent.addView(card, marginTop(6));
         return card;
     }
+
+
 
     private void addTopicLine(LinearLayout card, String label, String value) {
         TextView l = text(label, 11, GOLD, true);
@@ -3407,9 +3364,9 @@ public final class MainActivity extends Activity {
                 selectedMode,
                 selectedAiStyle,
                 currentFacts,
-                nameInput.getText().toString());
+                "");
         String opening = directQuestion.isEmpty()
-                ? FortuneTeacherPrompt.openingPrompt(nameInput.getText().toString())
+                ? FortuneTeacherPrompt.openingPrompt("")
                 : "使用者剛剛點選追問：「" + directQuestion + "」。"
                 + "不要做一般 60–90 秒開場，直接回答這個問題。"
                 + "先給白話結論，再講 2–4 個 deterministicFacts 裡的具體依據，"
@@ -3514,8 +3471,7 @@ public final class MainActivity extends Activity {
         final FortuneFacts facts = currentFacts;
         final FortuneResult result = currentResult;
         final AiFortuneCopy copy = aiCopy;
-        final String displayName = nameInput == null
-                ? "" : nameInput.getText().toString().trim();
+        final String displayName = "";
 
         OperationLog.add(this, "SHARE_IMAGE_START", mode.name());
         Toast.makeText(this, "正在產生分享卡…", Toast.LENGTH_SHORT).show();
@@ -3591,16 +3547,35 @@ public final class MainActivity extends Activity {
                 .setMessage("Gemini 只負責解讀與文案，底層命盤由本地 deterministic engine 計算。可在主畫面切換嚴謹／普通／風趣三種回應風格。")
                 .setView(keyInput)
                 .setPositiveButton("儲存", (dialog, which) -> {
-                    AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
-                    OperationLog.add(this, "GEMINI_KEY_SAVED", "value_hidden");
-                    refreshAiStatus();
-                    Toast.makeText(this, "Gemini Key 已儲存於本機", Toast.LENGTH_SHORT).show();
+                    try {
+                        AppConfig.setGeminiApiKey(this, keyInput.getText().toString());
+                        OperationLog.add(this, "GEMINI_KEY_SAVED", "encrypted");
+                        refreshAiStatus();
+                        Toast.makeText(
+                                this,
+                                "Gemini Key 已加密儲存於本機",
+                                Toast.LENGTH_SHORT).show();
+                    } catch (RuntimeException error) {
+                        OperationLog.add(this, "GEMINI_KEY_SAVE_FAILED", safeErrorMessage(error));
+                        Toast.makeText(
+                                this,
+                                "無法安全儲存 Gemini Key，請稍後再試",
+                                Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .setNegativeButton("取消", null)
                 .setNeutralButton("清除", (dialog, which) -> {
-                    AppConfig.setGeminiApiKey(this, "");
-                    OperationLog.add(this, "GEMINI_KEY_CLEARED", "");
-                    refreshAiStatus();
+                    try {
+                        AppConfig.setGeminiApiKey(this, "");
+                        OperationLog.add(this, "GEMINI_KEY_CLEARED", "");
+                        refreshAiStatus();
+                    } catch (RuntimeException error) {
+                        OperationLog.add(this, "GEMINI_KEY_CLEAR_FAILED", safeErrorMessage(error));
+                        Toast.makeText(
+                                this,
+                                "無法清除本機金鑰",
+                                Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .show();
     }
@@ -3690,7 +3665,7 @@ public final class MainActivity extends Activity {
                     zoneText);
         }
         return new FortuneProfile(
-                nameInput.getText().toString(),
+                "",
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
                 selectedGender,
@@ -3699,7 +3674,7 @@ public final class MainActivity extends Activity {
 
     private FortunePreset currentPreset() {
         return new FortunePreset(
-                nameInput.getText().toString(),
+                "",
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
                 selectedGender,
@@ -3717,10 +3692,6 @@ public final class MainActivity extends Activity {
 
     private void saveCurrentPreset() {
         FortunePreset preset = currentPreset();
-        if (preset.name.isEmpty()) {
-            Toast.makeText(this, "先輸入名字再儲存 preset", Toast.LENGTH_SHORT).show();
-            return;
-        }
         if (preset.birthDate.isEmpty()) {
             Toast.makeText(this, "先選生日再儲存 preset", Toast.LENGTH_SHORT).show();
             return;
@@ -3777,7 +3748,7 @@ public final class MainActivity extends Activity {
 
     private void applyPreset(FortunePreset preset) {
         if (preset == null) return;
-        nameInput.setText(preset.name);
+        nameInput.setText("");
         birthInput.setText(preset.birthDate);
         birthTimeInput.setText(preset.birthTime);
         if (birthPlaceNameInput != null) birthPlaceNameInput.setText(preset.birthPlaceName);
@@ -3797,7 +3768,7 @@ public final class MainActivity extends Activity {
 
     private void restoreInstanceState(Bundle state) {
         try {
-            nameInput.setText(state.getString("state_name", ""));
+            nameInput.setText("");
             birthInput.setText(state.getString("state_birth_date", ""));
             birthTimeInput.setText(state.getString("state_birth_time", ""));
             if (birthPlaceNameInput != null) {
@@ -3816,6 +3787,9 @@ public final class MainActivity extends Activity {
             selectedAiStyle = AiStyle.valueOf(
                     state.getString("state_ai_style", AiStyle.FUNNY.name()));
             selectedResultTab = state.getInt("state_result_tab", 0);
+            resultReferenceTimeMillis = state.getLong("state_result_reference_time", -1L);
+            String savedTransitDate = state.getString("state_vedic_transit_date", "");
+            selectedVedicTransitDate = FortuneResultState.parseTransitDate(savedTransitDate);
 
             selectMode(selectedMode);
             if (!selectedGender.isEmpty()) selectGender(selectedGender);
@@ -3823,8 +3797,11 @@ public final class MainActivity extends Activity {
 
             if (state.getBoolean("state_has_result", false)) {
                 FortuneProfile profile = buildCurrentProfile();
-                currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
-                currentResult = engine.calculate(selectedMode, profile, new Date());
+                Date referenceTime = FortuneResultState.referenceDate(
+                        resultReferenceTimeMillis);
+                resultReferenceTimeMillis = referenceTime.getTime();
+                currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
+                currentResult = engine.calculate(selectedMode, profile, referenceTime);
 
                 String aiRaw = state.getString("state_ai_copy", "");
                 if (!aiRaw.isEmpty()) {
@@ -4043,6 +4020,7 @@ public final class MainActivity extends Activity {
                 target = Date.from(targetDate.atTime(12, 0).atZone(zone).toInstant());
                 selectedVedicTransitDate = targetDate;
             }
+            resultReferenceTimeMillis = target.getTime();
             currentFacts = engine.calculateFacts(FortuneMode.VEDIC_ASTROLOGY, profile, target);
             currentResult = engine.calculate(FortuneMode.VEDIC_ASTROLOGY, profile, target);
             aiCopy = null;
@@ -4353,7 +4331,7 @@ public final class MainActivity extends Activity {
             } else if (tarot) {
                 modeLabel.setText(
                         "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n"
-                                + "名字只用來稱呼你；計算只使用生日，不使用姓名或出生時間");
+                                + "計算只使用生日，不使用姓名或出生時間");
             } else {
                 modeLabel.setText(
                         "Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu\n"

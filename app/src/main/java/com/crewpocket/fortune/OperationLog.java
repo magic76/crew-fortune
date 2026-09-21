@@ -28,16 +28,41 @@ public final class OperationLog {
             JSONObject item = new JSONObject();
             item.put("time", System.currentTimeMillis());
             item.put("action", action.trim());
-            item.put("detail", detail == null ? "" : detail.trim());
+            item.put("detail", sanitizeDetail(action, detail));
             next.put(item);
 
             for (int i = 0; i < current.length() && next.length() < MAX_ITEMS; i++) {
                 JSONObject old = current.optJSONObject(i);
-                if (old != null) next.put(old);
+                if (old != null) {
+                    old.put("detail", sanitizeDetail(
+                            old.optString("action", ""),
+                            old.optString("detail", "")));
+                    next.put(old);
+                }
             }
 
             prefs(context).edit().putString(KEY_ITEMS, next.toString()).apply();
         } catch (Exception ignored) {}
+    }
+
+    static String sanitizeDetail(String action, String detail) {
+        String safeAction = action == null ? "" : action.trim();
+        if (safeAction.startsWith("BIRTH_PLACE")
+                || safeAction.startsWith("GEOCODE")) {
+            return "[location]";
+        }
+        if (safeAction.startsWith("PRESET_")) {
+            return "[preset]";
+        }
+
+        String clean = detail == null ? "" : detail.trim();
+        return clean
+                .replaceAll("\\d{4}-\\d{2}-\\d{2}", "[date]")
+                .replaceAll("(?<!\\d)\\d{1,2}:\\d{2}(?!\\d)", "[time]")
+                .replaceAll("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[email]")
+                .replaceAll("(?<![\\d.])-?\\d{1,3}\\.\\d{3,}(?![\\d.])", "[decimal]")
+                .replaceAll("(?<!\\d)\\d{8,15}(?!\\d)", "[number]")
+                .replaceAll("[A-Za-z0-9_\\-]{24,}", "[token]");
     }
 
     public static synchronized List<Entry> list(Context context) {

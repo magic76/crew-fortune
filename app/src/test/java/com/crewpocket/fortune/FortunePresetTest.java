@@ -9,7 +9,8 @@ public final class FortunePresetTest {
         FortunePreset source = new FortunePreset(
                 "小明", "1990-02-14", "08:30", "male", FortuneMode.BA_ZI);
         FortunePreset restored = FortunePreset.fromJson(source.toJson());
-        assertEquals(source.name, restored.name);
+        assertEquals("", source.name);
+        assertEquals("", restored.name);
         assertEquals(source.birthDate, restored.birthDate);
         assertEquals(source.birthTime, restored.birthTime);
         assertEquals(source.gender, restored.gender);
