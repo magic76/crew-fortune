@@ -183,7 +183,7 @@ public final class MainActivity extends Activity {
         TextView history = text("記錄", 13, GOLD, true);
         history.setGravity(Gravity.END);
         history.setPadding(dp(8), dp(6), 0, dp(6));
-        history.setOnClickListener(v -> showOperationLog());
+        history.setOnClickListener(v -> dialogController.showOperationLog());
         top.addView(history);
 
         aiStatus = text("", 13, ACCENT, true);
@@ -201,7 +201,7 @@ public final class MainActivity extends Activity {
         logo.setPadding(0, 0, 0, 0);
         logo.setBackground(round(CARD_2, 12));
         logo.setContentDescription("Crew Fortune");
-        logo.setOnClickListener(v -> showAboutDialog());
+        logo.setOnClickListener(v -> dialogController.showAbout());
         LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(34), dp(34));
         logoLp.leftMargin = dp(8);
         top.addView(logo, logoLp);
@@ -318,7 +318,6 @@ public final class MainActivity extends Activity {
         updateModeSelectionUi();
     }
 
-
     void selectModeFromProfileController(FortuneMode mode) {
         selectMode(mode);
     }
@@ -359,7 +358,6 @@ public final class MainActivity extends Activity {
             Toast.makeText(this, error.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-
 
      String safeErrorMessage(Throwable error) {
         if (error == null) return "unknown";
@@ -476,7 +474,6 @@ public final class MainActivity extends Activity {
         resultCard.setVisibility(View.VISIBLE);
     }
 
-
     private void addUnifiedTabbedResult(FortuneResult result, boolean aiLoading) {
         TextView basis = text("計算依據｜" + result.basis, 12, MUTED, false);
         resultCard.addView(basis, marginTop(6));
@@ -528,10 +525,6 @@ public final class MainActivity extends Activity {
         renderUnifiedTab(result, aiLoading);
         addSharedResultActions(aiLoading, result.mode);
     }
-
-
-
-
 
     void showFactDetailDialog(String titleValue, Object value) {
         dialogController.showFactDetail(titleValue, value);
@@ -716,25 +709,11 @@ public final class MainActivity extends Activity {
         panel.addView(hint, marginTop(11));
     }
 
-
-
-
-
-
-
-
-
-
-
      double numberValue(Object value) {
         if (value instanceof Number) return ((Number) value).doubleValue();
         try { return Double.parseDouble(String.valueOf(value)); }
         catch (Exception ignored) { return 0.0; }
     }
-
-
-
-
 
     private void addSharedResultActions(boolean aiLoading, FortuneMode mode) {
         if (aiLoading) {
@@ -1033,7 +1012,6 @@ public final class MainActivity extends Activity {
         card.addView(ask, askLp);
     }
 
-
      void updateAiLoadingStage(int stage) {
         aiLoadingStage = Math.max(0, Math.min(2, stage));
         if (aiLoadingStageText != null && currentResult != null) {
@@ -1150,12 +1128,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-
-
-
-
-
-
      LinearLayout resultPanel() {
         LinearLayout panel = column();
         panel.setPadding(dp(11), dp(12), dp(11), dp(16));
@@ -1177,8 +1149,6 @@ public final class MainActivity extends Activity {
         parent.addView(card, marginTop(6));
         return card;
     }
-
-
 
      void addTopicLine(LinearLayout card, String label, String value) {
         TextView l = text(label, 11, GOLD, true);
@@ -1254,7 +1224,6 @@ public final class MainActivity extends Activity {
         parent.addView(card, marginTop(8));
     }
 
-
      String summaryLuck(Object value) {
         if (!(value instanceof Map)) return "目前沒有對應的大運資料";
         return mapValue(value, "ganZhi")
@@ -1306,7 +1275,6 @@ public final class MainActivity extends Activity {
         }
         return "與本命主要地支互動較少";
     }
-
 
     private String displayFactKey(String key) {
         if ("ganZhi".equals(key)) return "干支";
@@ -1363,7 +1331,6 @@ public final class MainActivity extends Activity {
         }
         return result.score + " / 100";
     }
-
 
      void addPillarCard(LinearLayout row,
                                String label,
@@ -1439,7 +1406,6 @@ public final class MainActivity extends Activity {
         rowLp.topMargin = dp(1);
         parent.addView(row, rowLp);
     }
-
 
      void addNumerologyIdentityCard(LinearLayout row,
                                                 String heading,
@@ -1653,7 +1619,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-
     private void refreshAiStatus() {
         if (aiStatus == null) return;
         aiStatus.setText(AppConfig.hasGeminiApiKey(this) ? "AI：ON ⚙" : "AI：OFF ⚙");
@@ -1757,8 +1722,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-
-
      void showVedicTransitDatePicker() {
         LocalDate base;
         try {
@@ -1825,8 +1788,6 @@ public final class MainActivity extends Activity {
                     Toast.LENGTH_SHORT).show();
         }
     }
-
-
 
     private void selectAiStyle(AiStyle style) {
         selectedAiStyle = style == null ? AiStyle.FUNNY : style;
