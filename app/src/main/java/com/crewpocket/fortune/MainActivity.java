@@ -808,7 +808,10 @@ public final class MainActivity extends Activity {
             copy.addView(body);
 
             if (aiCopy != null
-                    && traitIndex < aiCopy.topTraitEvidence.size()) {
+                    && traitIndex < aiCopy.topTraits.size()
+                    && traitIndex < aiCopy.topTraitEvidence.size()
+                    && value.equals(FortuneOverviewSnapshot.compact(
+                            aiCopy.topTraits.get(traitIndex), 105))) {
                 final String evidence =
                         aiCopy.topTraitEvidence.get(traitIndex);
                 TextView why = text(
