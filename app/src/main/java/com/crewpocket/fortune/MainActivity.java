@@ -64,7 +64,6 @@ public final class MainActivity extends Activity {
 
     private final FortuneEngine engine = new FortuneEngine();
     private final BirthPlaceSearchClient birthPlaceSearchClient = new BirthPlaceSearchClient();
-    private final StringBuilder aiBuffer = new StringBuilder();
 
     private FortuneMode selectedMode = FortuneMode.BA_ZI;
     private EditText nameInput;
@@ -97,7 +96,6 @@ public final class MainActivity extends Activity {
     private FortuneResult currentResult;
     private FortuneFacts currentFacts;
     private AiFortuneCopy aiCopy;
-    private AgentHarness activeHarness;
     private GeminiFortuneLiveSession teacherSession;
     private AlertDialog teacherDialog;
     private TextView teacherStatusText;
@@ -114,6 +112,7 @@ public final class MainActivity extends Activity {
     private final VedicResultRenderer vedicResultRenderer = new VedicResultRenderer(this);
     private final BaZiResultRenderer baZiResultRenderer = new BaZiResultRenderer(this);
     private final TarotResultRenderer tarotResultRenderer = new TarotResultRenderer(this);
+    private final FortuneAiController aiController = new FortuneAiController(this);
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -135,7 +134,7 @@ public final class MainActivity extends Activity {
     @Override protected void onDestroy() {
         OperationLog.add(this, "APP_DESTROY", "changingConfig=" + isChangingConfigurations());
         closeTeacher();
-        closeAgent();
+        aiController.close();
         super.onDestroy();
     }
 
@@ -441,7 +440,7 @@ public final class MainActivity extends Activity {
         OperationLog.add(this, "MODE_SELECTED", mode.name());
         if (previous != mode && currentResult != null) {
             closeTeacher();
-            closeAgent();
+            aiController.close();
             currentResult = null;
             currentFacts = null;
             aiCopy = null;
@@ -480,7 +479,7 @@ public final class MainActivity extends Activity {
         selectedVedicTransitDate = null;
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         closeTeacher();
-        closeAgent();
+        aiController.close();
         try {
             FortuneProfile profile = buildCurrentProfile();
             Date referenceTime = new Date();
@@ -491,12 +490,9 @@ public final class MainActivity extends Activity {
             OperationLog.add(this, "CALCULATE_SUCCESS",
                     selectedMode.name() + " · " + currentFacts.basis);
             aiCopy = null;
-            synchronized (aiBuffer) {
-                aiBuffer.setLength(0);
-            }
             boolean useAi = AppConfig.hasGeminiApiKey(this);
             renderResult(currentResult, useAi);
-            if (useAi) startAiCopy(profile);
+            if (useAi) aiController.start(profile);
         } catch (IllegalArgumentException error) {
             OperationLog.add(this, "CALCULATE_FAILED",
                     error.getMessage() == null ? "unknown" : error.getMessage());
@@ -504,227 +500,8 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void startAiCopy(FortuneProfile profile) {
-        updateAiLoadingStage(0);
-        OperationLog.add(this, "AI_INTERPRETATION_START",
-                selectedMode.name() + " · " + selectedAiStyle.name());
-        startAiCopyAttempt(profile, 0, "");
-    }
 
-    private void startAiCopyAttempt(
-            FortuneProfile profile,
-            int attempt,
-            String retryReason) {
-        synchronized (aiBuffer) {
-            aiBuffer.setLength(0);
-        }
-
-        try {
-            final GeminiTextModelSession session = new GeminiTextModelSession(
-                    AppConfig.getGeminiApiKey(this),
-                    selectedAiStyle.temperature());
-
-            activeHarness = FortuneAgentRuntime.createInterpretation(session, new AgentHarness.Listener() {
-                @Override public void onAgentEvent(AgentEvent event) {
-                    if (event == null) return;
-                    switch (event.type()) {
-                        case MODEL_TEXT:
-                            if (aiLoadingStage < 1) {
-                                runOnUiThread(() -> updateAiLoadingStage(1));
-                            }
-                            synchronized (aiBuffer) {
-                                aiBuffer.append(event.text());
-                            }
-                            break;
-
-                        case TURN_COMPLETED:
-                            final String completed;
-                            synchronized (aiBuffer) {
-                                completed = aiBuffer.toString().trim();
-                            }
-
-                            final AiFortuneCopy parsed;
-                            try {
-                                parsed = AiFortuneCopy.parse(completed);
-                            } catch (IllegalArgumentException parseError) {
-                                String retryCause = "parse_error: "
-                                        + safeErrorMessage(parseError)
-                                        + " · finishReason=" + session.lastFinishReason();
-                                String detail = retryCause
-                                        + " · attempt=" + (attempt + 1)
-                                        + " · " + safeAiResponseSummary(
-                                                completed, profile.name);
-
-                                OperationLog.add(
-                                        MainActivity.this,
-                                        "AI_INTERPRETATION_PARSE_ERROR",
-                                        detail);
-
-                                if (attempt == 0) {
-                                    OperationLog.add(
-                                            MainActivity.this,
-                                            "AI_INTERPRETATION_RETRY",
-                                            detail);
-                                    runOnUiThread(() -> updateAiLoadingStage(2));
-                                    closeAgent();
-                                    runOnUiThread(() ->
-                                            startAiCopyAttempt(profile, 1, retryCause));
-                                    return;
-                                }
-
-                                OperationLog.add(
-                                        MainActivity.this,
-                                        "AI_INTERPRETATION_FAILED",
-                                        detail);
-                                showAiFallback(
-                                        "AI 命理老師回覆格式仍不完整，已保留本地完整結果。");
-                                closeAgent();
-                                return;
-                            }
-
-                            String qualityIssues = parsed.qualityIssueSummary(selectedMode);
-                            if (!qualityIssues.isEmpty() && attempt == 0) {
-                                String retryCause = "quality_short: " + qualityIssues;
-                                String detail = retryCause
-                                        + " · finishReason=" + session.lastFinishReason()
-                                        + " · " + safeAiResponseSummary(
-                                                completed, profile.name);
-                                OperationLog.add(
-                                        MainActivity.this,
-                                        "AI_INTERPRETATION_RETRY",
-                                        detail);
-                                runOnUiThread(() -> updateAiLoadingStage(2));
-                                closeAgent();
-                                runOnUiThread(() ->
-                                        startAiCopyAttempt(profile, 1, retryCause));
-                                return;
-                            }
-
-                            if (!qualityIssues.isEmpty()) {
-                                OperationLog.add(
-                                        MainActivity.this,
-                                        "AI_INTERPRETATION_QUALITY_WARNING",
-                                        qualityIssues);
-                            }
-
-                            runOnUiThread(() -> {
-                                aiCopy = parsed;
-                                OperationLog.add(
-                                        MainActivity.this,
-                                        "AI_INTERPRETATION_SUCCESS",
-                                        selectedAiStyle.name()
-                                                + " · attempt=" + (attempt + 1)
-                                                + " · chars=" + completed.length());
-                                if (currentResult != null) {
-                                    renderResult(currentResult, false);
-                                }
-                            });
-                            closeAgent();
-                            break;
-
-                        case ERROR:
-                            OperationLog.add(
-                                    MainActivity.this,
-                                    "AI_INTERPRETATION_FAILED",
-                                    "model_error · attempt=" + (attempt + 1)
-                                            + " · model=" + session.lastModel()
-                                            + " · models=" + session.lastModelAttempts()
-                                            + " · finishReason="
-                                            + session.lastFinishReason()
-                                            + " · error="
-                                            + safeErrorMessage(event.error()));
-                            showAiFallback(
-                                    "AI 命理老師暫時無法完成解讀，已保留本地完整結果。");
-                            closeAgent();
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-            }, selectedAiStyle);
-
-            activeHarness.start();
-            activeHarness.submitText(
-                    buildAiRequest(profile, attempt, retryReason));
-        } catch (Exception error) {
-            OperationLog.add(
-                    this,
-                    "AI_INTERPRETATION_FAILED",
-                    "startup_error: " + safeErrorMessage(error)
-                            + " · attempt=" + (attempt + 1));
-            showAiFallback("AI 模式啟動失敗，已使用本地結果。");
-            closeAgent();
-        }
-    }
-
-    private void showAiFallback(String message) {
-        runOnUiThread(() -> {
-            aiCopy = null;
-            if (currentResult != null) renderResult(currentResult, false);
-            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-        });
-    }
-
-    private String buildAiRequest(
-            FortuneProfile profile,
-            int attempt,
-            String retryReason) {
-        if (currentFacts == null) {
-            throw new IllegalStateException("deterministic facts are missing");
-        }
-
-        String factsJson = new JSONObject(currentFacts.details).toString();
-        StringBuilder value = new StringBuilder();
-        value.append("請只解讀以下已由本機完成的 deterministic facts。")
-                .append("不要重新計算，不要呼叫工具，不要修正輸入格式，也絕對不要使用預設值。\n");
-        value.append("mode=").append(selectedMode.name()).append('\n');
-        value.append("displayName=").append(profile.name).append('\n');
-        value.append("basis=").append(currentFacts.basis).append('\n');
-        value.append("aiStyle=").append(selectedAiStyle.name()).append('\n');
-        value.append("deterministicFacts=").append(factsJson).append('\n');
-
-        if (attempt > 0) {
-            value.append("RETRY_MODE=JSON_REPAIR_AND_EXPANSION\n");
-            value.append("上一次回覆不符合格式或內容過短。原因摘要：")
-                    .append(retryReason == null ? "" : retryReason)
-                    .append('\n');
-            value.append("這次必須重新輸出一個完整、可解析的 JSON object。")
-                    .append("不得輸出 markdown code fence、前言、後記或任何 JSON 外文字。")
-                    .append("不得省略 title, overview, personality, career, wealth, relationships, family, ")
-                    .append("currentCycle, longTerm, keyYears, topTraits, topTraitEvidence, followUps, translation, punchline, advice, shareText。")
-                    .append("不要縮短內容來逃避欄位要求。\n");
-        }
-
-        value.append("creativeVariant=").append(System.nanoTime()).append('\n');
-        value.append("creativeVariant 只允許改變措辭與笑點。")
-                .append("所有數字、干支、十神、大運、流年、塔羅牌、天賦數、行星、宮位、Nakshatra、Dasha")
-                .append("都必須逐字遵守 deterministicFacts。");
-        return value.toString();
-    }
-
-    private String safeAiResponseSummary(String raw, String displayName) {
-        String source = raw == null ? "" : raw;
-        String clean = source
-                .replace('\n', ' ')
-                .replace('\r', ' ')
-                .replaceAll("\\d{4}-\\d{2}-\\d{2}", "[date]")
-                .replaceAll("(?<!\\d)\\d{1,2}:\\d{2}(?!\\d)", "[time]")
-                .replaceAll("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[email]")
-                .replaceAll("(?<!\\d)\\d{8,15}(?!\\d)", "[number]")
-                .replaceAll("[A-Za-z0-9_\\-]{24,}", "[token]")
-                .replaceAll("\\s+", " ")
-                .trim();
-        if (displayName != null && !displayName.trim().isEmpty()) {
-            clean = clean.replace(displayName.trim(), "[name]");
-        }
-        String preview = clean.length() <= 300
-                ? clean
-                : clean.substring(0, 300) + "…";
-        return "len=" + source.length() + " · preview=" + preview;
-    }
-
-    private String safeErrorMessage(Throwable error) {
+     String safeErrorMessage(Throwable error) {
         if (error == null) return "unknown";
         String value = error.getMessage();
         if (value == null || value.trim().isEmpty()) {
@@ -865,7 +642,7 @@ public final class MainActivity extends Activity {
             tab.setOnClickListener(v -> {
                 selectedResultTab = index;
                 OperationLog.add(this, "RESULT_TAB_SELECTED", labels[index]);
-                renderResult(currentResult, activeHarness != null && aiCopy == null);
+                renderResult(currentResult, aiController.isRunning() && aiCopy == null);
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT, dp(40));
@@ -895,6 +672,23 @@ public final class MainActivity extends Activity {
 
 
 
+
+    FortuneMode aiModeForController() { return selectedMode; }
+
+    AiStyle aiStyleForController() { return selectedAiStyle; }
+
+    int aiLoadingStageForController() { return aiLoadingStage; }
+
+    void onAiCopyReady(AiFortuneCopy copy) {
+        aiCopy = copy;
+        if (currentResult != null) renderResult(currentResult, false);
+    }
+
+    void onAiFallback(String message) {
+        aiCopy = null;
+        if (currentResult != null) renderResult(currentResult, false);
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
 
     FortuneFacts rendererFacts() { return currentFacts; }
 
@@ -1444,7 +1238,7 @@ public final class MainActivity extends Activity {
         styleDarkDialog(dialog);
     }
 
-    private void updateAiLoadingStage(int stage) {
+     void updateAiLoadingStage(int stage) {
         aiLoadingStage = Math.max(0, Math.min(2, stage));
         if (aiLoadingStageText != null && currentResult != null) {
             aiLoadingStageText.setText(aiLoadingStageLabel(currentResult.mode));
@@ -2301,7 +2095,7 @@ public final class MainActivity extends Activity {
 
     private void shareResult() {
         if (currentResult == null || currentFacts == null) return;
-        if (activeHarness != null && aiCopy == null) {
+        if (aiController.isRunning() && aiCopy == null) {
             Toast.makeText(this, "AI 還在整理，完成後再產生分享圖片", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -2471,13 +2265,6 @@ public final class MainActivity extends Activity {
         aiStatus.setText(AppConfig.hasGeminiApiKey(this) ? "AI：ON ⚙" : "AI：OFF ⚙");
     }
 
-    private void closeAgent() {
-        AgentHarness harness = activeHarness;
-        activeHarness = null;
-        if (harness != null) {
-            try { harness.close(); } catch (Exception ignored) {}
-        }
-    }
 
     private FortuneProfile buildCurrentProfile() {
         BirthPlace birthPlace = null;
@@ -2847,7 +2634,7 @@ public final class MainActivity extends Activity {
      void applyVedicTransitDate(LocalDate targetDate) {
         if (selectedMode != FortuneMode.VEDIC_ASTROLOGY) return;
         closeTeacher();
-        closeAgent();
+        aiController.close();
         try {
             FortuneProfile profile = buildCurrentProfile();
             Date target;
