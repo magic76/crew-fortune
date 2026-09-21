@@ -763,9 +763,9 @@ public final class MainActivity extends Activity {
         }
 
         if (result.mode == FortuneMode.BA_ZI) {
-            addBaZiResultPanel();
+            baZiResultRenderer.addBaZiResultPanel();
         } else if (result.mode == FortuneMode.TAROT_NUMEROLOGY) {
-            addTarotResultPanel();
+            tarotResultRenderer.addTarotResultPanel();
         } else {
             TextView score = text(primaryMetric(result), 30, ACCENT, true);
             resultCard.addView(score, marginTop(8));
