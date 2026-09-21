@@ -244,8 +244,8 @@ final class TarotResultRenderer {
         GradientDrawable background = host.round(MainActivity.CARD_2, 18);
         background.setStroke(host.dp(1), Color.rgb(87, 69, 121));
         panel.setBackground(background);
-        LinearLayout host = host.resultHostLayout();
-        host.addView(panel, host.marginTop(6));
+        LinearLayout container = host.resultHostLayout();
+        container.addView(panel, host.marginTop(6));
 
         TextView coreTitle = host.text("生日核心數", 12, MainActivity.GOLD, true);
         coreTitle.setGravity(Gravity.CENTER);

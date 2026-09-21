@@ -237,8 +237,8 @@ final class BaZiResultRenderer {
         LinearLayout panel = host.column();
         panel.setPadding(host.dp(10), host.dp(11), host.dp(10), host.dp(11));
         panel.setBackground(host.round(MainActivity.CARD_2, 16));
-        LinearLayout host = host.resultHostLayout();
-        host.addView(panel, host.marginTop(6));
+        LinearLayout container = host.resultHostLayout();
+        container.addView(panel, host.marginTop(6));
 
         LinearLayout hero = new LinearLayout(host);
         hero.setOrientation(LinearLayout.HORIZONTAL);
