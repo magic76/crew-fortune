@@ -7,7 +7,8 @@ import java.util.Map;
 public final class FortuneEngine {
     public FortuneFacts calculateFacts(FortuneMode mode, FortuneProfile profile, Date now) {
         if (mode == null) throw new IllegalArgumentException("mode is required");
-        if (profile == null || profile.name.isEmpty()) throw new IllegalArgumentException("請輸入名字");
+        if (profile == null) throw new IllegalArgumentException("profile is required");
+        if (profile.birthDate.isEmpty()) throw new IllegalArgumentException("請選擇生日");
 
         Map<String, Object> details = new LinkedHashMap<String, Object>();
         String basis;
