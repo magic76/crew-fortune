@@ -152,6 +152,174 @@ public final class MainActivity extends Activity {
     }
 
 
+    private boolean isDebuggableApp() {
+        try {
+            return (getApplicationInfo().flags
+                    & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private void showDebugCommerceTools() {
+        if (!isDebuggableApp()) return;
+
+        LinearLayout panel = column();
+        panel.setPadding(dp(14), dp(14), dp(14), dp(12));
+        panel.setBackground(roundBorder(
+                CARD,
+                Color.rgb(92, 73, 127),
+                20,
+                1));
+
+        panel.addView(text("DEV · 付款測試", 20, TEXT, true));
+        TextView hint = text(
+                "只存在於 debuggable build。這些操作不會啟動 Google Play 付款。",
+                12,
+                MUTED,
+                false);
+        hint.setLineSpacing(dp(2), 1f);
+        panel.addView(hint, marginTop(5));
+
+        Button unlock = secondaryButton("免費模擬解鎖這份完整報告");
+        unlock.setOnClickListener(v -> {
+            if (currentResult == null || currentReadingId.isEmpty()) {
+                Toast.makeText(
+                        this,
+                        "請先完成一次排盤",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            AiFortuneCopy fake = buildDebugPaidCopy();
+            FortunePaidReadingStore.saveReport(
+                    this,
+                    currentReadingId,
+                    fake);
+            FortunePaidReadingStore.clearPending(this);
+            aiCopy = fake;
+            paidGenerationPending = false;
+            OperationLog.add(
+                    this,
+                    "DEBUG_PAID_READING_UNLOCKED",
+                    "reading=" + currentReadingId.substring(
+                            0,
+                            Math.min(12, currentReadingId.length())));
+            renderResult(currentResult, false);
+            Toast.makeText(
+                    this,
+                    "已模擬解鎖，不會扣款，也不會呼叫 Gemini",
+                    Toast.LENGTH_SHORT).show();
+        });
+        panel.addView(unlock, fixedHeightTop(46, 10));
+
+        Button pending = secondaryButton("模擬付款 Pending");
+        pending.setOnClickListener(v -> {
+            if (currentReadingId.isEmpty()) {
+                Toast.makeText(
+                        this,
+                        "請先完成一次排盤",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            FortunePaidReadingStore.beginPurchase(
+                    this,
+                    currentReadingId);
+            FortunePaidReadingStore.attachPurchaseToken(
+                    this,
+                    "debug_pending_token");
+            OperationLog.add(
+                    this,
+                    "DEBUG_PURCHASE_PENDING",
+                    "reading=" + currentReadingId.substring(
+                            0,
+                            Math.min(12, currentReadingId.length())));
+            if (currentResult != null) {
+                selectedResultTab = 4;
+                renderResult(currentResult, false);
+            }
+            Toast.makeText(
+                    this,
+                    "已模擬 Pending；再次點解鎖會走「重新產生」狀態",
+                    Toast.LENGTH_SHORT).show();
+        });
+        panel.addView(pending, fixedHeightTop(46, 6));
+
+        Button failed = secondaryButton("模擬付款失敗");
+        failed.setOnClickListener(v -> {
+            OperationLog.add(
+                    this,
+                    "DEBUG_PURCHASE_FAILED",
+                    "");
+            Toast.makeText(
+                    this,
+                    "模擬：付款失敗／取消，沒有解鎖，也沒有任何扣款",
+                    Toast.LENGTH_SHORT).show();
+        });
+        panel.addView(failed, fixedHeightTop(46, 6));
+
+        Button clear = secondaryButton("清除這份已購報告／Pending");
+        clear.setOnClickListener(v -> {
+            if (!currentReadingId.isEmpty()) {
+                FortunePaidReadingStore.clearReport(
+                        this,
+                        currentReadingId);
+            }
+            FortunePaidReadingStore.clearPending(this);
+            aiCopy = null;
+            paidGenerationPending = false;
+            OperationLog.add(
+                    this,
+                    "DEBUG_PAID_READING_CLEARED",
+                    "");
+            if (currentResult != null) {
+                selectedResultTab = 4;
+                renderResult(currentResult, false);
+            }
+            Toast.makeText(
+                    this,
+                    "已清除這份 debug 付費狀態",
+                    Toast.LENGTH_SHORT).show();
+        });
+        panel.addView(clear, fixedHeightTop(46, 6));
+
+        Button close = secondaryButton("關閉");
+        panel.addView(close, fixedHeightTop(42, 10));
+
+        final AlertDialog dialog =
+                new AlertDialog.Builder(this)
+                        .setView(panel)
+                        .create();
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        styleDarkDialog(dialog);
+    }
+
+    private AiFortuneCopy buildDebugPaidCopy() {
+        String mode = selectedMode == null
+                ? "命盤"
+                : selectedMode.title();
+        String json = "{"
+                + "\"title\":\"DEV 完整解讀已解鎖\","
+                + "\"overview\":\"這是 debug 模擬報告，用來驗證付費後的完整閱讀體驗，不代表正式 Gemini 解讀。\","
+                + "\"personality\":\"性格段落測試：確認長文排版、段距與閱讀節奏。\","
+                + "\"career\":\"工作段落測試：確認完整報告解鎖後可以正常閱讀。\","
+                + "\"wealth\":\"財運與資源段落測試：這裡不會呼叫 Gemini，也不會產生 API 成本。\","
+                + "\"relationships\":\"感情與人際段落測試：驗證付費內容的資訊層級。\","
+                + "\"family\":\"" + (selectedMode == FortuneMode.VEDIC_ASTROLOGY ? "家庭與子女段落測試。" : "") + "\","
+                + "\"currentCycle\":\"目前週期段落測試。\","
+                + "\"longTerm\":\"長期走勢段落測試。\","
+                + "\"keyYears\":\"關鍵年份／時期段落測試。\","
+                + "\"topTraits\":[\"DEV 特徵一\",\"DEV 特徵二\",\"DEV 特徵三\"],"
+                + "\"topTraitEvidence\":[\"測試依據一\",\"測試依據二\",\"測試依據三\"],"
+                + "\"followUps\":[\"測試問題一？\",\"測試問題二？\",\"測試問題三？\",\"測試問題四？\"],"
+                + "\"translation\":\"" + mode + " debug 白話摘要。\","
+                + "\"punchline\":\"這是測試，不是宇宙偷偷幫你免單。\","
+                + "\"advice\":\"正式上線前請再用 License Tester 跑一次真正的 Google Play 購買流程。\","
+                + "\"shareText\":\"Crew Fortune debug paid reading\""
+                + "}";
+        return AiFortuneCopy.parse(json);
+    }
+
     private void setupBilling() {
         billingManager = new FortuneBillingManager(
                 this,
@@ -332,6 +500,15 @@ public final class MainActivity extends Activity {
                 && !FortunePaidReadingStore
                         .pendingPurchaseToken(this)
                         .isEmpty()) {
+            String pendingToken =
+                    FortunePaidReadingStore.pendingPurchaseToken(this);
+            if (pendingToken.startsWith("debug_")) {
+                Toast.makeText(
+                        this,
+                        "DEV Pending 只測 UI，不會呼叫 Gemini。清除後可繼續其他測試。",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
             beginPaidGeneration();
             return;
         }
@@ -1195,6 +1372,13 @@ public final class MainActivity extends Activity {
             share.setOnClickListener(v -> shareController.share());
         }
         resultCard.addView(share, fixedHeightTop(48, 6));
+
+        if (isDebuggableApp()) {
+            Button dev = secondaryButton("DEV · 付款測試");
+            dev.setTextSize(12);
+            dev.setOnClickListener(v -> showDebugCommerceTools());
+            resultCard.addView(dev, fixedHeightTop(42, 8));
+        }
     }
 
     void addOverviewTakeaways(LinearLayout panel, FortuneMode mode) {

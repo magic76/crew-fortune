@@ -44,6 +44,13 @@ final class FortunePaidReadingStore {
         return loadReport(context, readingId) != null;
     }
 
+    static void clearReport(Context context, String readingId) {
+        if (context == null || clean(readingId).isEmpty()) return;
+        prefs(context).edit()
+                .remove(REPORT_PREFIX + readingId)
+                .apply();
+    }
+
     static void beginPurchase(Context context, String readingId) {
         prefs(context).edit()
                 .putString(KEY_PENDING_READING, clean(readingId))
