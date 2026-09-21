@@ -922,9 +922,10 @@ public final class MainActivity extends Activity {
                 13, GOLD, true);
         resultCard.addView(title, marginTop(12));
 
+        int limit = selectedResultTab == 0 ? 2 : 4;
         int index = 0;
         for (final String question : questions) {
-            if (index >= 4) break;
+            if (index >= limit) break;
 
             Button button = secondaryButton(question + "  ›");
             button.setTextSize(13);
