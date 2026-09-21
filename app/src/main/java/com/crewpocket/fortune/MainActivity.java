@@ -109,6 +109,7 @@ public final class MainActivity extends Activity {
     private final TarotResultRenderer tarotResultRenderer = new TarotResultRenderer(this);
     private final FortuneAiController aiController = new FortuneAiController(this);
     private final FortuneTeacherController teacherController = new FortuneTeacherController(this);
+    private final FortuneShareController shareController = new FortuneShareController(this);
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -668,6 +669,14 @@ public final class MainActivity extends Activity {
 
 
 
+
+    FortuneResult shareResultForController() { return currentResult; }
+
+    FortuneFacts shareFactsForController() { return currentFacts; }
+
+    AiFortuneCopy shareCopyForController() { return aiCopy; }
+
+    boolean isAiInterpretationRunning() { return aiController.isRunning(); }
 
     FortuneMode aiModeForController() { return selectedMode; }
 
@@ -1921,85 +1930,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-
-
-
-
-
-
-    private void shareResult() {
-        if (currentResult == null || currentFacts == null) return;
-        if (aiController.isRunning() && aiCopy == null) {
-            Toast.makeText(this, "AI 還在整理，完成後再產生分享圖片", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        final FortuneMode mode = selectedMode;
-        final FortuneFacts facts = currentFacts;
-        final FortuneResult result = currentResult;
-        final AiFortuneCopy copy = aiCopy;
-        final String displayName = "";
-
-        OperationLog.add(this, "SHARE_IMAGE_START", mode.name());
-        Toast.makeText(this, "正在產生分享卡…", Toast.LENGTH_SHORT).show();
-
-        new Thread(() -> {
-            Bitmap bitmap = null;
-            try {
-                FortuneShareCardData data = FortuneShareCardData.from(
-                        mode, facts, result, copy, displayName);
-                bitmap = FortuneShareCardRenderer.render(data);
-
-                File directory = new File(getCacheDir(), "share");
-                if (!directory.exists() && !directory.mkdirs()) {
-                    throw new IllegalStateException("Cannot create share cache");
-                }
-
-                File image = new File(directory, "crew_fortune_share.png");
-                FileOutputStream stream = new FileOutputStream(image, false);
-                try {
-                    if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
-                        throw new IllegalStateException("PNG encode failed");
-                    }
-                    stream.flush();
-                } finally {
-                    try { stream.close(); } catch (Exception ignored) {}
-                }
-
-                Uri uri = FileProvider.getUriForFile(
-                        MainActivity.this,
-                        getPackageName() + ".fileprovider",
-                        image);
-
-                Intent intent = new Intent(Intent.ACTION_SEND);
-                intent.setType("image/png");
-                intent.putExtra(Intent.EXTRA_STREAM, uri);
-                intent.setClipData(ClipData.newRawUri("Crew Fortune", uri));
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                OperationLog.add(
-                        MainActivity.this,
-                        "SHARE_IMAGE_READY",
-                        mode.name() + " · 1080x1350 · privacy_safe");
-
-                runOnUiThread(() -> startActivity(
-                        Intent.createChooser(intent, "分享你的命運")));
-            } catch (Exception error) {
-                OperationLog.add(
-                        MainActivity.this,
-                        "SHARE_IMAGE_FAILED",
-                        safeErrorMessage(error));
-                runOnUiThread(() -> Toast.makeText(
-                        MainActivity.this,
-                        "分享圖片產生失敗，請再試一次",
-                        Toast.LENGTH_SHORT).show());
-            } finally {
-                if (bitmap != null && !bitmap.isRecycled()) {
-                    bitmap.recycle();
-                }
-            }
-        }, "fortune-share-card").start();
-    }
 
     private void showApiKeyDialog() {
         final EditText keyInput = new EditText(this);
