@@ -354,8 +354,7 @@ final class FortuneProfileController {
         vedicLocationSection = host.column();
 
         TextView vedicRule = host.text(
-                "印度星盤 · Sidereal · Lahiri · Whole Sign\n"
-                        + "先填出生城市與時區；精確座標放在進階設定，不會交給 AI 猜。",
+                "先搜尋出生城市，系統會自動帶入座標與時區。",
                 11,
                 MainActivity.GOLD,
                 true);
@@ -443,8 +442,7 @@ final class FortuneProfileController {
                 host.marginTop(4));
 
         TextView locationHint = host.text(
-                "城市搜尋只負責取得 WGS84 座標與 IANA timezone；實際排盤仍只使用"
-                        + " Latitude / Longitude / Timezone 這三個 deterministic 欄位。",
+                "需要時可展開進階設定手動確認 Latitude / Longitude；AI 不會猜出生地。",
                 10,
                 MainActivity.MUTED,
                 false);
