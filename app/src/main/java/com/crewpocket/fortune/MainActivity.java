@@ -57,10 +57,10 @@ public final class MainActivity extends Activity {
     private static final int BG = Color.rgb(23, 17, 38);
     private static final int CARD = Color.rgb(39, 30, 60);
     private static final int CARD_2 = Color.rgb(50, 38, 76);
-    private static final int TEXT = Color.rgb(248, 245, 255);
-    private static final int MUTED = Color.rgb(190, 181, 207);
-    private static final int ACCENT = Color.rgb(183, 156, 255);
-    private static final int GOLD = Color.rgb(255, 214, 128);
+    static final int TEXT = Color.rgb(248, 245, 255);
+    static final int MUTED = Color.rgb(190, 181, 207);
+    static final int ACCENT = Color.rgb(183, 156, 255);
+    static final int GOLD = Color.rgb(255, 214, 128);
 
     private final FortuneEngine engine = new FortuneEngine();
     private final BirthPlaceSearchClient birthPlaceSearchClient = new BirthPlaceSearchClient();
@@ -111,6 +111,7 @@ public final class MainActivity extends Activity {
     private LocalDate selectedVedicTransitDate;
     private long resultReferenceTimeMillis = -1L;
     private LinearLayout resultTabContent;
+    private final VedicResultRenderer vedicResultRenderer = new VedicResultRenderer(this);
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -893,6 +894,12 @@ public final class MainActivity extends Activity {
 
 
 
+    FortuneFacts rendererFacts() { return currentFacts; }
+
+    AiFortuneCopy rendererCopy() { return aiCopy; }
+
+    LocalDate rendererTransitDate() { return selectedVedicTransitDate; }
+
     private void renderUnifiedTab(FortuneResult result, boolean aiLoading) {
         if (resultTabContent == null) return;
         resultTabContent.removeAllViews();
@@ -923,17 +930,17 @@ public final class MainActivity extends Activity {
         if (result.mode == FortuneMode.VEDIC_ASTROLOGY) {
             switch (selectedResultTab) {
                 case 1:
-                    addVedicNatalTab();
+                    vedicResultRenderer.addVedicNatalTab();
                     break;
                 case 2:
-                    addVedicDashaTimelineTab();
+                    vedicResultRenderer.addVedicDashaTimelineTab();
                     break;
                 case 3:
-                    addVedicTopicAnalysisTab();
+                    vedicResultRenderer.addVedicTopicAnalysisTab();
                     break;
                 case 0:
                 default:
-                    addVedicOverviewTab(result, aiLoading);
+                    vedicResultRenderer.addVedicOverviewTab(result, aiLoading);
                     break;
             }
             return;
@@ -1029,537 +1036,17 @@ public final class MainActivity extends Activity {
         panel.addView(hint, marginTop(11));
     }
 
-    private void addVedicOverviewTab(FortuneResult result, boolean aiLoading) {
-        LinearLayout panel = resultPanel();
 
-        LinearLayout hero = new LinearLayout(this);
-        hero.setOrientation(LinearLayout.HORIZONTAL);
-        hero.setGravity(Gravity.CENTER_VERTICAL);
 
-        LinearLayout lagna = column();
-        lagna.addView(text("Lagna", 11, GOLD, true));
-        lagna.addView(text(currentFacts.detailText("lagnaSign"), 22, TEXT, true), marginTop(3));
-        lagna.addView(text(
-                currentFacts.detailText("lagnaNakshatra")
-                        + " · Pada " + currentFacts.detailText("lagnaPada"),
-                11, MUTED, false), marginTop(2));
-        hero.addView(lagna, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-        LinearLayout moon = column();
-        TextView moonLabel = text("Moon", 11, GOLD, true);
-        moonLabel.setGravity(Gravity.END);
-        moon.addView(moonLabel);
-        TextView moonSign = text(currentFacts.detailText("moonSign"), 22, ACCENT, true);
-        moonSign.setGravity(Gravity.END);
-        moon.addView(moonSign, marginTop(3));
-        TextView moonNakshatra = text(
-                currentFacts.detailText("moonNakshatra")
-                        + " · Pada " + currentFacts.detailText("moonPada"),
-                11, MUTED, false);
-        moonNakshatra.setGravity(Gravity.END);
-        moon.addView(moonNakshatra, marginTop(2));
-        hero.addView(moon, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        panel.addView(hero);
 
-        addPanelSection(panel, "本命核心", VedicFactsFormatter.coreSummary(currentFacts));
-        addPanelSection(panel, "目前 Dasha", VedicFactsFormatter.dashaSummary(currentFacts));
 
-        if (!aiLoading && aiCopy != null && !aiCopy.topTraits.isEmpty()) {
-            addTopTraits(panel);
-        }
 
-        String summary;
-        if (aiLoading) {
-            summary = localReportSection("核心總覽");
-        } else if (aiCopy != null && !aiCopy.overview.isEmpty()) {
-            summary = aiCopy.overview;
-        } else {
-            summary = localReportSection("核心總覽");
-        }
-        if (!summary.isEmpty()) addPanelSection(panel, "重點解讀", summary);
 
-        TextView rule = text(
-                "計算規則｜Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu",
-                11, MUTED, false);
-        panel.addView(rule, marginTop(9));
-    }
 
-    private void addVedicNatalTab() {
-        LinearLayout panel = resultPanel();
 
-        TextView intro = text(
-                "這一頁是你的「出生底盤」：看你天生比較容易把力氣放在哪裡、怎麼思考、怎麼做事，以及不同人生主題的基本結構。"
-                        + "下面的星座、宮位、Nakshatra 與宮主是原始命盤資料；不熟印度占星時，不需要自己逐條翻譯。",
-                13, MUTED, false);
-        intro.setLineSpacing(dp(3), 1f);
-        panel.addView(intro);
 
-        addPanelSection(panel, "Lagna / Moon / Sun",
-                VedicFactsFormatter.coreSummary(currentFacts));
-
-        String natalPlain = aiCopy != null && !aiCopy.personality.isEmpty()
-                ? aiCopy.personality
-                : VedicFactsFormatter.profileEvidence(currentFacts, "personalityProfile");
-        if (!natalPlain.isEmpty()) {
-            addPanelSection(panel, "本命白話重點", natalPlain);
-        }
-        if (aiCopy != null && !aiCopy.topTraits.isEmpty()) {
-            addTopTraits(panel);
-        }
-
-        addVedicPageTeacherGuide(
-                panel,
-                "想用語音聽白話版？",
-                "上面的本命內容已經可以直接讀。語音老師會再挑 3–5 個最重要的結構，用比較口語的方式把個性、工作方式與關係模式串起來。",
-                "聽老師講本命",
-                "請把我的本命頁講成人話。不要逐條念資料，也不要先講流年。"
-                        + "請從 Lagna、Moon、Sun、Lagna lord、最重要的 house lord placements、行星落宮、Nakshatra、dignity、retrograde、Drishti/Conjunctions 中挑 3 到 5 個最關鍵的結構。"
-                        + "先說結論，再說每個結論的 deterministic evidence，最後告訴我這些結構在個性、工作方式與關係模式上怎麼彼此連動。");
-
-        TextView chartTitle = text("本命盤 · Whole Sign", 13, GOLD, true);
-        panel.addView(chartTitle, marginTop(14));
-        TextView chartHint = text(
-                "這張圖是本命盤位置圖。H1 是你的上升起點；其他宮位代表工作、財務、關係、家庭等不同人生領域。",
-                11, MUTED, false);
-        chartHint.setLineSpacing(dp(2), 1f);
-        panel.addView(chartHint, marginTop(3));
-        VedicNatalChartView natalChart = new VedicNatalChartView(this, currentFacts);
-        panel.addView(natalChart, marginTop(6));
-
-        TextView planetsTitle = text("九曜 · 行星落點", 13, GOLD, true);
-        panel.addView(planetsTitle, marginTop(14));
-        Object planetsRaw = currentFacts.detail("planets");
-        if (planetsRaw instanceof List) {
-            for (Object raw : (List<?>) planetsRaw) {
-                if (!(raw instanceof Map)) continue;
-                final Map<?, ?> planet = (Map<?, ?>) raw;
-                String title = mapValue(planet, "name")
-                        + " · " + mapValue(planet, "sign")
-                        + " · H" + mapValue(planet, "house");
-                String summary = String.format(
-                        java.util.Locale.US,
-                        "%.2f° sidereal",
-                        numberValue(planet.get("siderealLongitude")))
-                        + " · " + mapValue(planet, "nakshatra")
-                        + " P" + mapValue(planet, "pada")
-                        + (Boolean.TRUE.equals(planet.get("retrograde")) ? " · R" : "")
-                        + " · " + mapValue(planet, "dignity");
-                addClickableFactCard(
-                        panel,
-                        title,
-                        summary,
-                        () -> showFactDetailDialog(
-                                mapValue(planet, "name") + " deterministic facts", planet),
-                        "請只用 deterministic facts 解釋 "
-                                + mapValue(planet, "name")
-                                + " 的 sign、house、Nakshatra、dignity 與它所主宮位對我代表什麼。");
-            }
-        }
-
-        TextView housesTitle = text("12 宮 · 人生領域", 13, GOLD, true);
-        panel.addView(housesTitle, marginTop(18));
-        Object housesRaw = currentFacts.detail("houses");
-        if (housesRaw instanceof List) {
-            for (Object raw : (List<?>) housesRaw) {
-                if (!(raw instanceof Map)) continue;
-                final Map<?, ?> house = (Map<?, ?>) raw;
-                String title = "H" + mapValue(house, "house")
-                        + " · " + mapValue(house, "sign")
-                        + " · lord " + mapValue(house, "lord");
-                String summary = "宮內：" + compactValue(house.get("planets"));
-                addClickableFactCard(
-                        panel,
-                        title,
-                        summary,
-                        () -> showFactDetailDialog(
-                                "House " + mapValue(house, "house"), house),
-                        "請只用 deterministic facts 解釋第 "
-                                + mapValue(house, "house")
-                                + " 宮、宮主 " + mapValue(house, "lord")
-                                + " 與宮內行星的結構。");
-            }
-        }
-
-        addPanelSection(
-                panel,
-                "12 宮主跑到哪裡",
-                VedicFactsFormatter.houseLordPlacements(currentFacts));
-
-        String aspects = VedicFactsFormatter.aspects(currentFacts);
-        addPanelSection(panel, "行星之間的影響 · Drishti / Conjunctions",
-                aspects.isEmpty() ? "目前沒有符合 v1 規則的合相；Drishti 仍保存在 deterministic facts。" : aspects);
-
-        TextView boundary = text(
-                "v1 不計 D9、Yoga、Shadbala、Ashtakavarga；Rahu/Ketu 不套用有爭議的特殊 Drishti 或 dignity。",
-                11, MUTED, false);
-        boundary.setLineSpacing(dp(2), 1f);
-        panel.addView(boundary, marginTop(9));
-    }
-
-    private void addVedicDashaTimelineTab() {
-        LinearLayout panel = resultPanel();
-
-        TextView intro = text(
-                "這一頁在看「現在走到人生哪一段，以及最近哪些主題比較容易被碰到」。"
-                        + "Dasha 像人生目前的大章節，Antardasha 是章節裡的小段落；Gochar 則是現在天空中的行星正在碰你本命的哪些位置。",
-                13, MUTED, false);
-        intro.setLineSpacing(dp(3), 1f);
-        panel.addView(intro);
-
-        addPanelSection(panel, "目前人生週期 · Mahadasha / Antardasha",
-                VedicFactsFormatter.dashaSummary(currentFacts));
-
-        if (aiCopy != null && !aiCopy.currentCycle.isEmpty()) {
-            addPanelSection(panel, "現在的白話解讀", aiCopy.currentCycle);
-        }
-
-        addPanelSection(
-                panel,
-                (selectedVedicTransitDate == null ? "目前 Gochar · " : "查看 Gochar · ")
-                        + currentFacts.detailText("currentTransitDate"),
-                VedicFactsFormatter.currentGochar(currentFacts));
-        String gocharHighlights = VedicFactsFormatter.gocharHighlights(currentFacts);
-        if (!gocharHighlights.isEmpty()) {
-            addPanelSection(panel, "Gochar × 本命重點", gocharHighlights);
-        }
-
-        LinearLayout gocharActions = new LinearLayout(this);
-        gocharActions.setOrientation(LinearLayout.HORIZONTAL);
-        Button pickTransitDate = secondaryButton("選擇 Gochar 日期");
-        pickTransitDate.setOnClickListener(v -> showVedicTransitDatePicker());
-        LinearLayout.LayoutParams pickLp = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        gocharActions.addView(pickTransitDate, pickLp);
-        if (selectedVedicTransitDate != null) {
-            Button today = secondaryButton("回到今天");
-            today.setOnClickListener(v -> applyVedicTransitDate(null));
-            LinearLayout.LayoutParams todayLp = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            todayLp.leftMargin = dp(6);
-            gocharActions.addView(today, todayLp);
-        }
-        panel.addView(gocharActions, marginTop(8));
-
-        TextView gocharRule = text(
-                "Gochar 使用所選日期的 Lahiri sidereal 行星位置，宮位以本命 Lagna 的 Whole Sign Houses 計算。",
-                11, MUTED, false);
-        gocharRule.setLineSpacing(dp(2), 1f);
-        panel.addView(gocharRule, marginTop(7));
-
-        addPanelSection(
-                panel,
-                "目前週期碰上現在行運 · Dasha × Gochar",
-                VedicFactsFormatter.dashaSummary(currentFacts)
-                        + (gocharHighlights.isEmpty()
-                        ? ""
-                        : "\n\n" + gocharHighlights));
-
-        String majorTimeline = VedicFactsFormatter.majorTransitTimeline(currentFacts);
-        if (!majorTimeline.isEmpty()) {
-            addPanelSection(
-                    panel,
-                    "未來 3 年主要行運變化",
-                    majorTimeline);
-            TextView timelineHint = text(
-                    "只列 Jupiter、Saturn、Rahu、Ketu 的換星座／換本命宮事件，減少快行星造成的雜訊。",
-                    11, MUTED, false);
-            timelineHint.setLineSpacing(dp(2), 1f);
-            panel.addView(timelineHint, marginTop(5));
-        }
-
-        if (aiCopy != null && !aiCopy.keyYears.isEmpty()) {
-            addPanelSection(panel, "接下來值得先看的時期", aiCopy.keyYears);
-        }
-
-        addVedicPageTeacherGuide(
-                panel,
-                "想用語音整理這段時間？",
-                "上面的週期、行運與未來變化都已經寫在頁面裡。語音老師只會把它們濃縮成 3–5 個最有感的時間重點，方便你直接問下去。",
-                "聽老師講目前週期",
-                "請把我的流年頁講成人話。請以目前選擇的 currentTransitDate 為基準，"
-                        + "先說 currentMahadasha/currentAntardasha 代表的人生背景，再疊加 currentTransits、transitAspectsToNatal、transitConjunctionsToNatal。"
-                        + "只挑 3 到 5 個目前最值得注意的時間訊號，分清楚哪些來自 Dasha、哪些來自 Gochar。"
-                        + "如果談未來，只能引用 majorTransitTimeline 與既有 Dasha 日期；不要自行補沒有計算的 transit，也不要把任何訊號說成必然事件。");
-
-        TextView visualTitle = text("人生大週期時間軸 · Dasha", 13, GOLD, true);
-        panel.addView(visualTitle, marginTop(14));
-        TextView visualHint = text(
-                "長條代表完整 Mahadasha 序列；紫色高亮目前週期，金線代表今天。",
-                11, MUTED, false);
-        panel.addView(visualHint, marginTop(3));
-        VedicDashaTimelineView dashaTimeline =
-                new VedicDashaTimelineView(this, currentFacts);
-        panel.addView(dashaTimeline, marginTop(5));
-
-        addYearHighlights(panel);
-
-        TextView mdTitle = text("Mahadasha timeline", 13, GOLD, true);
-        panel.addView(mdTitle, marginTop(18));
-        Object raw = currentFacts.detail("mahadashaTimeline");
-        String currentLord = mapValue(currentFacts.detail("currentMahadasha"), "lord");
-        if (raw instanceof List) {
-            for (Object itemRaw : (List<?>) raw) {
-                if (!(itemRaw instanceof Map)) continue;
-                final Map<?, ?> item = (Map<?, ?>) itemRaw;
-                String lord = mapValue(item, "lord");
-                String title = (lord.equals(currentLord) ? "● " : "○ ")
-                        + lord + " Mahadasha";
-                String summary = mapValue(item, "startDate")
-                        + " → " + mapValue(item, "endDate")
-                        + " · age " + mapValue(item, "startAge")
-                        + "–" + mapValue(item, "endAge");
-                addClickableFactCard(
-                        panel,
-                        title,
-                        summary,
-                        () -> showFactDetailDialog(lord + " Mahadasha", item),
-                        "請直接解釋 " + lord
-                                + " Mahadasha 對我代表什麼，只引用本命 planets、houses、houseLords 與這段 Dasha facts。");
-            }
-        }
-
-        TextView adTitle = text("目前 Mahadasha 的 Antardasha", 13, GOLD, true);
-        panel.addView(adTitle, marginTop(18));
-        String adTimeline = VedicFactsFormatter.antardashaTimeline(currentFacts);
-        addPanelSection(panel, "時間軸",
-                adTimeline.isEmpty() ? "目前 Mahadasha 不在已產生的時間範圍內。" : adTimeline);
-
-        TextView convention = text(
-                currentFacts.detailText("vimshottariConvention"),
-                11, MUTED, false);
-        convention.setLineSpacing(dp(2), 1f);
-        panel.addView(convention, marginTop(9));
-    }
-
-    private void addVedicPageTeacherGuide(
-            LinearLayout panel,
-            String title,
-            String body,
-            String buttonLabel,
-            String question) {
-        LinearLayout guide = column();
-        guide.setPadding(dp(11), dp(11), dp(11), dp(12));
-        guide.setBackground(roundBorder(
-                Color.rgb(47, 36, 72),
-                Color.rgb(105, 84, 146),
-                16,
-                1));
-
-        TextView titleView = text(title, 14, TEXT, true);
-        guide.addView(titleView);
-
-        TextView bodyView = text(body, 12, MUTED, false);
-        bodyView.setLineSpacing(dp(2), 1f);
-        guide.addView(bodyView, marginTop(4));
-
-        addAskTeacherAction(guide, buttonLabel, question);
-        panel.addView(guide, marginTop(9));
-    }
-
-    private void addVedicTopicAnalysisTab() {
-        LinearLayout panel = resultPanel();
-
-        TextView intro = text(
-                "不做吉凶分數。每個主題都先給「怎麼看 → 關鍵資料 → 目前時間 → 白話解讀」，語音老師只負責補充與追問。",
-                13, MUTED, false);
-        intro.setLineSpacing(dp(3), 1f);
-        panel.addView(intro);
-
-        addVedicTopicCard(
-                panel,
-                "個性 / 天賦",
-                "Lagna × Moon × Sun × Lagna lord",
-                "personalityProfile",
-                aiCopy == null ? "" : aiCopy.personality,
-                "請直接講我的個性、優勢與盲點。只用 personalityProfile、Lagna、Moon、Sun、house lords 與本命 deterministic facts。");
-
-        addVedicTopicCard(
-                panel,
-                "工作 / Career",
-                "10宮 × 10宮主 × Saturn/Jupiter × Dasha",
-                "careerProfile",
-                aiCopy == null ? "" : aiCopy.career,
-                "請直接講我的工作方向與目前職涯節奏。只用 careerProfile、10宮、10宮主、Saturn/Jupiter、目前 Dasha 與 currentTransits。");
-
-        addVedicTopicCard(
-                panel,
-                "財務 / Wealth",
-                "2宮 × 11宮 × Jupiter/Venus × Dasha",
-                "wealthProfile",
-                aiCopy == null ? "" : aiCopy.wealth,
-                "請直接講我的財務與資源節奏。只用 wealthProfile、2宮、11宮及宮主、Jupiter/Venus、目前 Dasha 與 currentTransits，不做投資預測。");
-
-        addVedicTopicCard(
-                panel,
-                "感情 / Relationships",
-                "7宮 × 7宮主 × Venus × Dasha",
-                "relationshipProfile",
-                aiCopy == null ? "" : aiCopy.relationships,
-                "請直接講我的感情與關係模式。只用 relationshipProfile、7宮、7宮主、Venus、目前 Dasha 與 currentTransits，不把訊號說成必然事件。");
-
-        addVedicTopicCard(
-                panel,
-                "家庭 / Children",
-                "4宮 × 5宮 × Moon/Jupiter",
-                "familyChildrenProfile",
-                aiCopy == null ? "" : aiCopy.family,
-                "請只用 familyChildrenProfile、4宮、5宮及宮主、Moon/Jupiter 說明家庭與子女主題。不要預測懷孕必然結果。");
-
-        TextView boundary = text(
-                "娛樂與自我反思用途。工作、財務、感情與家庭可以談結構與節奏；不做死亡、嚴重疾病、懷孕必然、犯罪或災難斷言。",
-                11, MUTED, false);
-        boundary.setLineSpacing(dp(2), 1f);
-        panel.addView(boundary, marginTop(9));
-    }
-
-    private void addVedicTopicCard(
-            LinearLayout panel,
-            String title,
-            String subtitle,
-            String profileKey,
-            String aiText,
-            String question) {
-        LinearLayout card = topicCard(panel, title, subtitle);
-        Object raw = currentFacts.detail(profileKey);
-        String rule = mapValue(raw, "rule");
-        Object evidence = raw instanceof Map ? ((Map<?, ?>) raw).get("evidence") : null;
-
-        addTopicLine(card, "怎麼看", rule);
-
-        String timingEvidence =
-                VedicFactsFormatter.topicTimingEvidence(currentFacts, profileKey);
-        addVedicEvidenceCardGrid(card, evidence, timingEvidence);
-
-        addTopicLine(card, "白話解讀",
-                FortuneResultTabCopy.compactInterpretation(
-                        aiText,
-                        "上面的本命與時間資料已經可以直接看；完整文字解讀會把這些訊號彼此之間的關係講清楚。"));
-        addAskTeacherAction(card, "用語音追問這一題", question);
-    }
-
-    private void addVedicEvidenceCardGrid(
-            LinearLayout card,
-            Object natalEvidence,
-            String timingEvidence) {
-        List<String> items = new ArrayList<String>();
-
-        if (natalEvidence instanceof List) {
-            for (Object value : (List<?>) natalEvidence) {
-                String item = String.valueOf(value == null ? "" : value).trim();
-                if (!item.isEmpty()) items.add(item);
-                if (items.size() >= 4) break;
-            }
-        }
-
-        if (timingEvidence != null && !timingEvidence.trim().isEmpty()) {
-            String[] timingLines = timingEvidence.split("\\n");
-            for (String line : timingLines) {
-                String item = line == null ? "" : line.trim();
-                if (item.isEmpty()) continue;
-                items.add(item);
-                if (items.size() >= 6) break;
-            }
-        }
-
-        if (items.isEmpty()) return;
-
-        TextView sectionTitle = text("關鍵資料", 11, GOLD, true);
-        card.addView(sectionTitle, marginTop(10));
-
-        for (int i = 0; i < items.size(); i += 2) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.TOP);
-
-            addVedicEvidenceMiniCard(row, items.get(i), false);
-            if (i + 1 < items.size()) {
-                addVedicEvidenceMiniCard(row, items.get(i + 1), true);
-            } else {
-                View spacer = new View(this);
-                LinearLayout.LayoutParams spacerLp =
-                        new LinearLayout.LayoutParams(0, 1, 1f);
-                spacerLp.leftMargin = dp(6);
-                row.addView(spacer, spacerLp);
-            }
-            card.addView(row, marginTop(6));
-        }
-
-        if (natalEvidence instanceof List && ((List<?>) natalEvidence).size() > 4) {
-            addTopicLine(card, "完整本命依據", compactValue(natalEvidence));
-        }
-        if (timingEvidence != null && timingEvidence.split("\\n").length > 2) {
-            addTopicLine(card, "完整目前時間", timingEvidence);
-        }
-    }
-
-    private void addVedicEvidenceMiniCard(
-            LinearLayout row,
-            String rawValue,
-            boolean withLeftMargin) {
-        LinearLayout mini = column();
-        mini.setPadding(dp(9), dp(8), dp(9), dp(9));
-        mini.setBackground(roundBorder(
-                Color.rgb(45, 34, 69),
-                Color.rgb(83, 67, 112),
-                13,
-                1));
-
-        String label = vedicEvidenceLabel(rawValue);
-        String value = vedicEvidenceValue(rawValue, label);
-
-        TextView labelView = text(label, 10, GOLD, true);
-        mini.addView(labelView);
-
-        TextView valueView = text(value, 12, TEXT, true);
-        valueView.setLineSpacing(dp(2), 1f);
-        valueView.setMaxLines(4);
-        mini.addView(valueView, marginTop(3));
-
-        LinearLayout.LayoutParams lp =
-                new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        if (withLeftMargin) lp.leftMargin = dp(6);
-        row.addView(mini, lp);
-    }
-
-    private String vedicEvidenceLabel(String raw) {
-        String value = raw == null ? "" : raw.trim();
-        if (value.startsWith("Mahadasha｜")) return "Mahadasha";
-        if (value.startsWith("Antardasha｜")) return "Antardasha";
-        if (value.startsWith("Gochar ")) {
-            int arrow = value.indexOf(" →");
-            return arrow > 7 ? value.substring(7, arrow).trim() + " Gochar" : "Gochar";
-        }
-        if (value.startsWith("Transit ")) return "Transit";
-        if (value.startsWith("目前 Mahadasha")) return "Dasha";
-        int space = value.indexOf(' ');
-        if (space > 0 && space <= 12) return value.substring(0, space).trim();
-        return "命盤";
-    }
-
-    private String vedicEvidenceValue(String raw, String label) {
-        String value = raw == null ? "" : raw.trim();
-        if ("Mahadasha".equals(label) && value.startsWith("Mahadasha｜")) {
-            return value.substring("Mahadasha｜".length()).trim();
-        }
-        if ("Antardasha".equals(label) && value.startsWith("Antardasha｜")) {
-            return value.substring("Antardasha｜".length()).trim();
-        }
-        if (label.endsWith(" Gochar") && value.startsWith("Gochar ")) {
-            int arrow = value.indexOf(" →");
-            return arrow >= 0 ? value.substring(arrow + 1).trim() : value;
-        }
-        if ("Transit".equals(label) && value.startsWith("Transit ")) {
-            return value.substring("Transit ".length()).trim();
-        }
-        if (value.startsWith(label + " ")) {
-            return value.substring(label.length() + 1).trim();
-        }
-        return value;
-    }
-
-    private double numberValue(Object value) {
+     double numberValue(Object value) {
         if (value instanceof Number) return ((Number) value).doubleValue();
         try { return Double.parseDouble(String.valueOf(value)); }
         catch (Exception ignored) { return 0.0; }
@@ -1827,7 +1314,7 @@ public final class MainActivity extends Activity {
         resultCard.addView(share, fixedHeightTop(48, 6));
     }
 
-    private void addTopTraits(LinearLayout panel) {
+     void addTopTraits(LinearLayout panel) {
         TextView title = text("命盤中的 3 個明顯特徵", 13, GOLD, true);
         panel.addView(title, marginTop(10));
 
@@ -1999,7 +1486,7 @@ public final class MainActivity extends Activity {
         return out;
     }
 
-    private void addYearHighlights(LinearLayout panel) {
+     void addYearHighlights(LinearLayout panel) {
         List<FortuneYearHighlightBuilder.Highlight> highlights =
                 FortuneYearHighlightBuilder.build(selectedMode, currentFacts);
         if (highlights.isEmpty()) return;
@@ -2066,7 +1553,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void addAskTeacherAction(
+     void addAskTeacherAction(
             LinearLayout card,
             String label,
             String question) {
@@ -2499,7 +1986,7 @@ public final class MainActivity extends Activity {
                 "請直接回答我的感情與人際盲點。請從 relationshipProfile、配偶宮與逐年流年挑最重要的依據，不要重新排盤。");
     }
 
-    private LinearLayout resultPanel() {
+     LinearLayout resultPanel() {
         LinearLayout panel = column();
         panel.setPadding(dp(11), dp(12), dp(11), dp(16));
         panel.setBackground(roundBorder(
@@ -2508,7 +1995,7 @@ public final class MainActivity extends Activity {
         return panel;
     }
 
-    private LinearLayout topicCard(LinearLayout parent, String title, String subtitle) {
+     LinearLayout topicCard(LinearLayout parent, String title, String subtitle) {
         LinearLayout card = column();
         card.setPadding(dp(10), dp(10), dp(10), dp(10));
         card.setBackground(roundBorder(
@@ -2523,7 +2010,7 @@ public final class MainActivity extends Activity {
 
 
 
-    private void addTopicLine(LinearLayout card, String label, String value) {
+     void addTopicLine(LinearLayout card, String label, String value) {
         TextView l = text(label, 11, GOLD, true);
         card.addView(l, marginTop(8));
         TextView v = text(value == null || value.isEmpty() ? "—" : value, 14, TEXT, false);
@@ -2538,7 +2025,7 @@ public final class MainActivity extends Activity {
         card.addView(v, marginTop(8));
     }
 
-    private void addClickableFactCard(
+     void addClickableFactCard(
             LinearLayout parent,
             String title,
             String summary,
@@ -2546,7 +2033,7 @@ public final class MainActivity extends Activity {
         addClickableFactCard(parent, title, summary, action, "");
     }
 
-    private void addClickableFactCard(
+     void addClickableFactCard(
             LinearLayout parent,
             String title,
             String summary,
@@ -2597,7 +2084,7 @@ public final class MainActivity extends Activity {
         parent.addView(card, marginTop(8));
     }
 
-    private void showFactDetailDialog(String titleValue, Object value) {
+     void showFactDetailDialog(String titleValue, Object value) {
         LinearLayout panel = column();
         panel.setPadding(dp(14), dp(14), dp(14), dp(12));
         panel.setBackground(roundBorder(
@@ -2643,7 +2130,7 @@ public final class MainActivity extends Activity {
         return ((Map<?, ?>) source).get(key);
     }
 
-    private String compactValue(Object value) {
+     String compactValue(Object value) {
         if (value == null) return "—";
         if (value instanceof List) {
             StringBuilder out = new StringBuilder();
@@ -2749,7 +2236,7 @@ public final class MainActivity extends Activity {
         return key;
     }
 
-    private String localReportSection(String key) {
+     String localReportSection(String key) {
         if (currentFacts == null) return "";
         Map<String, String> sections = FortuneLocalReport.sections(currentFacts);
         String value = sections.get(key);
@@ -3110,7 +2597,7 @@ public final class MainActivity extends Activity {
         row.addView(card, lp);
     }
 
-    private void addPanelSection(LinearLayout panel, String heading, String body) {
+     void addPanelSection(LinearLayout panel, String heading, String body) {
         TextView h = text(heading, 12, GOLD, true);
         panel.addView(h, marginTop(11));
         TextView b = text(body, 13, TEXT, false);
@@ -3209,7 +2696,7 @@ public final class MainActivity extends Activity {
         return out.toString();
     }
 
-    private String mapValue(Object source, String key) {
+     String mapValue(Object source, String key) {
         if (!(source instanceof Map)) return "";
         Object value = ((Map<?, ?>) source).get(key);
         return value == null ? "" : String.valueOf(value);
@@ -3973,7 +3460,7 @@ public final class MainActivity extends Activity {
         dialog.show();
     }
 
-    private void showVedicTransitDatePicker() {
+     void showVedicTransitDatePicker() {
         LocalDate base;
         try {
             base = LocalDate.parse(currentFacts == null
@@ -4005,7 +3492,7 @@ public final class MainActivity extends Activity {
         dialog.show();
     }
 
-    private void applyVedicTransitDate(LocalDate targetDate) {
+     void applyVedicTransitDate(LocalDate targetDate) {
         if (selectedMode != FortuneMode.VEDIC_ASTROLOGY) return;
         closeTeacher();
         closeAgent();
@@ -4350,7 +3837,7 @@ public final class MainActivity extends Activity {
         return button;
     }
 
-    private Button secondaryButton(String value) {
+     Button secondaryButton(String value) {
         Button button = new Button(this);
         button.setText(value);
         button.setTextSize(13);
@@ -4387,9 +3874,9 @@ public final class MainActivity extends Activity {
         return input;
     }
 
-    private TextView label(String value) { return text(value, 14, TEXT, true); }
+     TextView label(String value) { return text(value, 14, TEXT, true); }
 
-    private TextView text(String value, int sp, int color, boolean bold) {
+     TextView text(String value, int sp, int color, boolean bold) {
         TextView view = new TextView(this);
         view.setText(value);
         view.setTextSize(sp);
@@ -4398,13 +3885,13 @@ public final class MainActivity extends Activity {
         return view;
     }
 
-    private LinearLayout column() {
+     LinearLayout column() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         return layout;
     }
 
-    private LinearLayout.LayoutParams marginTop(int dp) {
+     LinearLayout.LayoutParams marginTop(int dp) {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(dp);
@@ -4417,7 +3904,7 @@ public final class MainActivity extends Activity {
         dialog.getWindow().setDimAmount(0.68f);
     }
 
-    private GradientDrawable roundBorder(
+     GradientDrawable roundBorder(
             int fillColor,
             int strokeColor,
             int radiusDp,
@@ -4434,7 +3921,7 @@ public final class MainActivity extends Activity {
         return drawable;
     }
 
-    private int dp(int value) {
+     int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 }
