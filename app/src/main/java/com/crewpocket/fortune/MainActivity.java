@@ -629,15 +629,29 @@ public final class MainActivity extends Activity {
         top.addView(eyebrow, new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-        TextView history = text("記錄", 13, GOLD, true);
-        history.setGravity(Gravity.END);
-        history.setPadding(dp(8), dp(6), 0, dp(6));
+        TextView history = text("記錄 ›", 12, GOLD, true);
+        history.setGravity(Gravity.CENTER);
+        history.setPadding(dp(10), dp(7), dp(10), dp(7));
+        history.setBackground(roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(150, 116, 206),
+                12,
+                1));
         history.setOnClickListener(v -> dialogController.showOperationLog());
-        top.addView(history);
+        LinearLayout.LayoutParams historyLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        historyLp.leftMargin = dp(6);
+        top.addView(history, historyLp);
 
-        aiStatus = text("", 13, ACCENT, true);
-        aiStatus.setGravity(Gravity.END);
-        aiStatus.setPadding(dp(10), dp(6), 0, dp(6));
+        aiStatus = text("", 12, ACCENT, true);
+        aiStatus.setGravity(Gravity.CENTER);
+        aiStatus.setPadding(dp(10), dp(7), dp(10), dp(7));
+        aiStatus.setBackground(roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(150, 116, 206),
+                12,
+                1));
         aiStatus.setOnClickListener(v -> {
             OperationLog.add(this, "OPEN_AI_SETTINGS", "");
             if (FortuneTextModelSession.hasProductionAi(this)) {
@@ -649,7 +663,11 @@ public final class MainActivity extends Activity {
                 dialogController.showApiKey();
             }
         });
-        top.addView(aiStatus);
+        LinearLayout.LayoutParams aiStatusLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        aiStatusLp.leftMargin = dp(5);
+        top.addView(aiStatus, aiStatusLp);
 
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.mipmap.ic_launcher);
@@ -728,12 +746,8 @@ public final class MainActivity extends Activity {
         TextView styleHint = text("嚴謹＝專業｜普通＝白話｜風趣＝有梗；只改文字口吻。", 11, MUTED, false);
         form.addView(styleHint, marginTop(2));
 
-        Button calculate = new Button(this);
-        calculate.setText("開始排盤");
+        Button calculate = primaryButton("開始排盤  →");
         calculate.setTextSize(17);
-        calculate.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        calculate.setTextColor(Color.rgb(30, 22, 46));
-        calculate.setAllCaps(false);
         calculate.setBackground(round(ACCENT, 20));
         calculate.setOnClickListener(v -> calculate());
         LinearLayout.LayoutParams calcLp = new LinearLayout.LayoutParams(
@@ -971,8 +985,12 @@ public final class MainActivity extends Activity {
             tab.setAllCaps(false);
             boolean selected = selectedResultTab == i;
             tab.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
-            tab.setTextColor(selected ? Color.rgb(30, 22, 46) : TEXT);
-            tab.setBackground(round(selected ? ACCENT : CARD_2, 13));
+            tab.setTextColor(selected ? Color.rgb(30, 22, 46) : ACCENT);
+            tab.setBackground(roundBorder(
+                    selected ? ACCENT : Color.rgb(31, 24, 49),
+                    selected ? ACCENT : Color.rgb(150, 116, 206),
+                    13,
+                    selected ? 2 : 1));
             tab.setPadding(dp(10), 0, dp(10), 0);
             tab.setOnClickListener(v -> {
                 selectedResultTab = index;
@@ -997,6 +1015,13 @@ public final class MainActivity extends Activity {
                 12, ACCENT, false);
         selectedTabGuide.setLineSpacing(dp(2), 1f);
         resultCard.addView(selectedTabGuide, marginTop(3));
+
+        TextView interactionHint = text(
+                "紫色外框＋「→／查看／問老師」＝可以點",
+                10,
+                MUTED,
+                true);
+        resultCard.addView(interactionHint, marginTop(4));
 
         resultTabContent = column();
         resultCard.addView(resultTabContent, marginTop(4));
@@ -1435,12 +1460,23 @@ public final class MainActivity extends Activity {
                             aiCopy.topTraits.get(traitIndex), 105))) {
                 final String evidence =
                         aiCopy.topTraitEvidence.get(traitIndex);
+                row.setBackground(roundBorder(
+                        Color.rgb(48, 36, 72),
+                        Color.rgb(168, 137, 230),
+                        13,
+                        2));
                 TextView why = text(
-                        "查看命盤依據 ›",
+                        "可點擊 · 查看命盤依據  →",
                         11,
                         ACCENT,
                         true);
-                copy.addView(why, marginTop(4));
+                why.setPadding(dp(8), dp(5), dp(8), dp(5));
+                why.setBackground(roundBorder(
+                        Color.rgb(31, 24, 49),
+                        Color.rgb(128, 101, 181),
+                        10,
+                        1));
+                copy.addView(why, marginTop(6));
                 row.setClickable(true);
                 row.setOnClickListener(v ->
                         dialogController.showTraitEvidence(value, evidence));
@@ -1499,10 +1535,10 @@ public final class MainActivity extends Activity {
             row.setOrientation(LinearLayout.VERTICAL);
             row.setPadding(dp(9), dp(8), dp(9), dp(8));
             row.setBackground(roundBorder(
-                    Color.rgb(43, 33, 65),
-                    Color.rgb(80, 65, 111),
+                    Color.rgb(48, 36, 72),
+                    Color.rgb(168, 137, 230),
                     13,
-                    1));
+                    2));
             row.setClickable(true);
             row.setOnClickListener(v ->
                     dialogController.showTraitEvidence(traitValue, evidence));
@@ -1527,8 +1563,18 @@ public final class MainActivity extends Activity {
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             row.addView(headline);
 
-            TextView why = text("為什麼這樣說？查看依據 ›", 11, ACCENT, true);
-            row.addView(why, marginTop(4));
+            TextView why = text(
+                    "可點擊 · 為什麼這樣說？查看依據  →",
+                    11,
+                    ACCENT,
+                    true);
+            why.setPadding(dp(8), dp(5), dp(8), dp(5));
+            why.setBackground(roundBorder(
+                    Color.rgb(31, 24, 49),
+                    Color.rgb(128, 101, 181),
+                    10,
+                    1));
+            row.addView(why, marginTop(6));
 
             panel.addView(row, marginTop(5));
             index++;
@@ -1907,7 +1953,10 @@ public final class MainActivity extends Activity {
         LinearLayout card = column();
         card.setPadding(dp(9), dp(9), dp(9), dp(9));
         card.setBackground(roundBorder(
-                Color.rgb(31, 24, 49), Color.rgb(80, 65, 111), 14, 1));
+                Color.rgb(39, 29, 60),
+                Color.rgb(168, 137, 230),
+                14,
+                2));
         TextView h = text(title, 15, TEXT, true);
         card.addView(h);
         TextView s = text(summary, 12, MUTED, false);
@@ -1918,11 +1967,16 @@ public final class MainActivity extends Activity {
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);
 
-        TextView more = text("查看完整依據 ›", 11, ACCENT, true);
+        TextView more = text("查看完整依據  →", 11, ACCENT, true);
         more.setOnClickListener(v -> action.run());
         TextView moreView = more;
         moreView.setGravity(Gravity.CENTER_VERTICAL);
-        moreView.setPadding(0, dp(5), 0, dp(5));
+        moreView.setPadding(dp(9), dp(6), dp(9), dp(6));
+        moreView.setBackground(roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(128, 101, 181),
+                10,
+                1));
         LinearLayout.LayoutParams moreLp = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         moreLp.gravity = Gravity.CENTER_VERTICAL;
@@ -2354,11 +2408,11 @@ public final class MainActivity extends Activity {
     private void refreshAiStatus() {
         if (aiStatus == null) return;
         if (FortuneTextModelSession.hasProductionAi(this)) {
-            aiStatus.setText("AI：雲端");
+            aiStatus.setText("AI 雲端 ›");
         } else if (AppConfig.hasGeminiApiKey(this)) {
-            aiStatus.setText("AI：開發 ⚙");
+            aiStatus.setText("AI 開發 ›");
         } else {
-            aiStatus.setText("AI：待設定 ⚙");
+            aiStatus.setText("AI 設定 ›");
         }
     }
 
@@ -2552,8 +2606,12 @@ public final class MainActivity extends Activity {
     }
 
     private void applyStyleButton(Button button, boolean selected) {
-        button.setBackground(round(selected ? ACCENT : CARD_2, 14));
-        button.setTextColor(selected ? Color.rgb(30, 22, 46) : TEXT);
+        button.setBackground(roundBorder(
+                selected ? ACCENT : Color.rgb(31, 24, 49),
+                selected ? ACCENT : Color.rgb(150, 116, 206),
+                14,
+                selected ? 2 : 1));
+        button.setTextColor(selected ? Color.rgb(30, 22, 46) : ACCENT);
         button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
     }
 
@@ -2573,23 +2631,23 @@ public final class MainActivity extends Activity {
         boolean vedic = selectedMode == FortuneMode.VEDIC_ASTROLOGY;
         if (baZiModeButton != null) {
             baZiModeButton.setBackground(roundBorder(
-                    bazi ? ACCENT : CARD_2,
-                    bazi ? ACCENT : Color.rgb(80, 65, 111),
-                    16, 1));
+                    bazi ? ACCENT : Color.rgb(31, 24, 49),
+                    bazi ? ACCENT : Color.rgb(150, 116, 206),
+                    16, bazi ? 2 : 1));
             baZiModeButton.setTextColor(bazi ? Color.rgb(30, 22, 46) : TEXT);
         }
         if (tarotModeButton != null) {
             tarotModeButton.setBackground(roundBorder(
-                    tarot ? ACCENT : CARD_2,
-                    tarot ? ACCENT : Color.rgb(80, 65, 111),
-                    16, 1));
+                    tarot ? ACCENT : Color.rgb(31, 24, 49),
+                    tarot ? ACCENT : Color.rgb(150, 116, 206),
+                    16, tarot ? 2 : 1));
             tarotModeButton.setTextColor(tarot ? Color.rgb(30, 22, 46) : TEXT);
         }
         if (vedicModeButton != null) {
             vedicModeButton.setBackground(roundBorder(
-                    vedic ? ACCENT : CARD_2,
-                    vedic ? ACCENT : Color.rgb(80, 65, 111),
-                    16, 1));
+                    vedic ? ACCENT : Color.rgb(31, 24, 49),
+                    vedic ? ACCENT : Color.rgb(150, 116, 206),
+                    16, vedic ? 2 : 1));
             vedicModeButton.setTextColor(vedic ? Color.rgb(30, 22, 46) : TEXT);
         }
         if (modeLabel != null) {
@@ -2607,12 +2665,22 @@ public final class MainActivity extends Activity {
     }
 
     private Button styleButton(String value) {
+        Button button = secondaryButton(value);
+        button.setTextSize(13);
+        return button;
+    }
+
+     Button primaryButton(String value) {
         Button button = new Button(this);
         button.setText(value);
-        button.setTextSize(13);
+        button.setTextSize(15);
         button.setAllCaps(false);
-        button.setTextColor(TEXT);
-        button.setBackground(round(CARD_2, 14));
+        button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        button.setTextColor(Color.rgb(30, 22, 46));
+        button.setMinHeight(dp(48));
+        button.setMinimumHeight(0);
+        button.setPadding(dp(14), dp(9), dp(14), dp(9));
+        button.setBackground(round(ACCENT, 16));
         return button;
     }
 
@@ -2621,21 +2689,22 @@ public final class MainActivity extends Activity {
         button.setText(value);
         button.setTextSize(13);
         button.setAllCaps(false);
-        button.setTextColor(TEXT);
+        button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        button.setTextColor(ACCENT);
         button.setMinHeight(dp(44));
         button.setMinimumHeight(0);
         button.setPadding(dp(12), dp(8), dp(12), dp(8));
-        button.setBackground(round(CARD_2, 14));
+        button.setBackground(roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(150, 116, 206),
+                14,
+                1));
         return button;
     }
 
      Button genderButton(String value) {
-        Button button = new Button(this);
-        button.setText(value);
+        Button button = secondaryButton(value);
         button.setTextSize(14);
-        button.setAllCaps(false);
-        button.setTextColor(TEXT);
-        button.setBackground(round(CARD_2, 14));
         return button;
     }
 
