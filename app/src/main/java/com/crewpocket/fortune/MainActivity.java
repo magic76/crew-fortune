@@ -1378,9 +1378,10 @@ public final class MainActivity extends Activity {
         }
 
         if (AppConfig.hasGeminiApiKey(this)) {
-            Button teacher = secondaryButton(
-                    aiLoading ? "語音老師 · 整理中" : "語音老師 · 補充／追問");
+            Button teacher = primaryButton(
+                    aiLoading ? "語音老師 · 整理中" : "語音老師 · 補充／追問  →");
             teacher.setTextSize(14);
+            teacher.setBackground(round(GOLD, 16));
             teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             teacher.setEnabled(!aiLoading);
             teacher.setAlpha(aiLoading ? 0.48f : 1f);
@@ -1594,7 +1595,7 @@ public final class MainActivity extends Activity {
         for (final String question : questions) {
             if (index >= limit) break;
 
-            Button button = secondaryButton(question + "  ›");
+            Button button = secondaryButton(question + "  →");
             button.setTextSize(13);
             button.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
             button.setMinHeight(dp(56));
@@ -1772,7 +1773,7 @@ public final class MainActivity extends Activity {
             LinearLayout card,
             String label,
             String question) {
-        Button ask = secondaryButton(label);
+        Button ask = secondaryButton(label + "  →");
         ask.setTextSize(12);
         ask.setMinHeight(dp(44));
         ask.setMinimumHeight(0);
