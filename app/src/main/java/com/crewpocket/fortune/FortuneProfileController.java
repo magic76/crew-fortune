@@ -138,6 +138,10 @@ final class FortuneProfileController {
                 birthPlace);
     }
 
+    String selectedTimeZoneId() {
+        return selectedTimeZoneId;
+    }
+
     FortunePreset currentPreset(FortuneMode mode) {
         return new FortunePreset(
                 "",
