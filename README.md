@@ -537,3 +537,26 @@ Play Billing dependency: `com.android.billingclient:billing:9.1.0`.
 ### Current limitation
 
 This first commercial version deliberately has no custom backend. Google Play purchase verification is therefore client-side only. Before scaling beyond initial validation, add server-side purchase verification and cross-device entitlement storage.
+
+
+### Commerce test strategy
+
+Use three safety layers while validating one-time purchases:
+
+1. **Debug APK — zero-cost UI testing**
+   - Result footer exposes `DEV · 付款測試` only when the app is debuggable.
+   - Free simulated unlock persists a fake full report locally.
+   - Pending / failed purchase states can be simulated.
+   - These debug actions do not open Google Play and do not call Gemini.
+
+2. **Google Play License Tester — real billing flow, no real charge**
+   - Add the test Google account under Play Console > Settings > License testing.
+   - Install the Internal Testing build from Google Play with that account.
+   - Use Google's test payment methods to validate purchase / pending / consume behavior.
+
+3. **Low launch-safety price before production**
+   - During final real-payment smoke testing, set the Taiwan purchase option to **NT$1 if Play Console accepts it**.
+   - Google Play enforces market-specific price ranges. If NT$1 is below Taiwan's current floor, use the minimum value accepted by Play Console.
+   - Raise the price to the intended launch price only after the end-to-end payment flow is verified.
+
+The app never hard-codes the displayed amount; it always renders the localized price returned by Google Play.
