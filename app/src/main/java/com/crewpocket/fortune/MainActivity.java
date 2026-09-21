@@ -77,7 +77,13 @@ public final class MainActivity extends Activity {
     private LinearLayout resultCard;
     private FortuneResult currentResult;
     private FortuneFacts currentFacts;
+    private FortuneProfile currentProfile;
+    private String currentReadingId = "";
     private AiFortuneCopy aiCopy;
+    private FortuneBillingManager billingManager;
+    private String billingPrice = "";
+    private boolean billingPurchaseRequested;
+    private boolean paidGenerationPending;
     private boolean pendingTeacherStart;
     private String pendingTeacherQuestion = "";
     private TextView aiLoadingStageText;
@@ -102,6 +108,7 @@ public final class MainActivity extends Activity {
         getWindow().setNavigationBarColor(BG);
         selectedAiStyle = AppConfig.getAiStyle(this);
         setContentView(buildScreen());
+        setupBilling();
         refreshAiStatus();
         updateAiStyleButtons();
         if (state != null) {
@@ -116,6 +123,7 @@ public final class MainActivity extends Activity {
         OperationLog.add(this, "APP_DESTROY", "changingConfig=" + isChangingConfigurations());
         teacherController.close();
         aiController.close();
+        if (billingManager != null) billingManager.close();
         super.onDestroy();
     }
 
@@ -191,7 +199,14 @@ public final class MainActivity extends Activity {
         aiStatus.setPadding(dp(10), dp(6), 0, dp(6));
         aiStatus.setOnClickListener(v -> {
             OperationLog.add(this, "OPEN_AI_SETTINGS", "");
-            dialogController.showApiKey();
+            if (FortuneTextModelSession.hasProductionAi(this)) {
+                Toast.makeText(
+                        this,
+                        "正式版使用 Firebase AI Logic，App 內不保存 Gemini Key",
+                        Toast.LENGTH_SHORT).show();
+            } else {
+                dialogController.showApiKey();
+            }
         });
         top.addView(aiStatus);
 
@@ -308,6 +323,8 @@ public final class MainActivity extends Activity {
             aiController.close();
             currentResult = null;
             currentFacts = null;
+            currentProfile = null;
+            currentReadingId = "";
             aiCopy = null;
             selectedVedicTransitDate = null;
             resultReferenceTimeMillis = -1L;
@@ -339,19 +356,45 @@ public final class MainActivity extends Activity {
         aiController.close();
         try {
             FortuneProfile profile = profileController.buildProfile(selectedMode);
+            FortunePreset preset = profileController.currentPreset(selectedMode);
+            currentProfile = profile;
+            currentReadingId = FortuneReadingId.from(preset);
+
             Date referenceTime = new Date();
             resultReferenceTimeMillis = referenceTime.getTime();
             currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
             currentResult = engine.calculate(selectedMode, profile, referenceTime);
-            FortunePresetStore.saveLast(
-                    this,
-                    profileController.currentPreset(selectedMode));
+            FortunePresetStore.saveLast(this, preset);
             OperationLog.add(this, "CALCULATE_SUCCESS",
                     selectedMode.name() + " · " + currentFacts.basis);
-            aiCopy = null;
-            boolean useAi = AppConfig.hasGeminiApiKey(this);
-            renderResult(currentResult, useAi);
-            if (useAi) aiController.start(profile);
+
+            aiCopy = FortunePaidReadingStore.loadReport(
+                    this,
+                    currentReadingId);
+            paidGenerationPending = false;
+
+            if (aiCopy == null
+                && !FortuneTextModelSession.usesDeveloperKey(this)) {
+            addPaidInterpretationPaywall(panel);
+            return;
+        }
+
+        if (aiCopy != null) {
+                renderResult(currentResult, false);
+                consumeSavedPendingPurchaseIfNeeded();
+            } else if (FortuneTextModelSession.usesDeveloperKey(this)) {
+                renderResult(currentResult, true);
+                aiController.start(profile);
+            } else if (FortunePaidReadingStore.isPendingFor(
+                    this,
+                    currentReadingId)
+                    && !FortunePaidReadingStore.pendingPurchaseToken(this)
+                            .isEmpty()
+                    && FortuneTextModelSession.hasProductionAi(this)) {
+                beginPaidGeneration();
+            } else {
+                renderResult(currentResult, false);
+            }
         } catch (IllegalArgumentException error) {
             OperationLog.add(this, "CALCULATE_FAILED",
                     error.getMessage() == null ? "unknown" : error.getMessage());
@@ -554,13 +597,41 @@ public final class MainActivity extends Activity {
 
     void onAiCopyReady(AiFortuneCopy copy) {
         aiCopy = copy;
+
+        if (paidGenerationPending
+                && !currentReadingId.isEmpty()
+                && copy != null) {
+            FortunePaidReadingStore.saveReport(
+                    this,
+                    currentReadingId,
+                    copy);
+            String token =
+                    FortunePaidReadingStore.pendingPurchaseToken(this);
+            paidGenerationPending = false;
+            OperationLog.add(
+                    this,
+                    "PAID_READING_SAVED",
+                    "reading=" + currentReadingId.substring(0, 12));
+            if (billingManager != null && !token.isEmpty()) {
+                billingManager.consume(token);
+            }
+        }
+
         if (currentResult != null) renderResult(currentResult, false);
     }
 
     void onAiFallback(String message) {
         aiCopy = null;
+        paidGenerationPending = false;
         if (currentResult != null) renderResult(currentResult, false);
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        Toast.makeText(
+                this,
+                message + (FortunePaidReadingStore.isPendingFor(
+                        this,
+                        currentReadingId)
+                        ? " 這筆購買仍保留，可重新產生。"
+                        : ""),
+                Toast.LENGTH_SHORT).show();
     }
 
     FortuneFacts rendererFacts() { return currentFacts; }
@@ -724,8 +795,8 @@ public final class MainActivity extends Activity {
                 aiLoading
                         ? "本地計算已完成 · AI 完整解讀整理中"
                         : aiCopy == null
-                        ? "本地完整資料 · AI 可選"
-                        : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
+                        ? "免費排盤已完成 · 完整解讀可單次解鎖"
+                        : "完整解讀已解鎖 · " + selectedAiStyle.label() + " · 計算資料固定",
                 12,
                 aiLoading ? ACCENT : MUTED,
                 aiLoading);
@@ -740,16 +811,18 @@ public final class MainActivity extends Activity {
             }
         }
 
-        Button teacher = secondaryButton(
-                aiLoading ? "語音老師 · 整理中" : "語音老師 · 補充／追問");
-        teacher.setTextSize(14);
-        teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        teacher.setEnabled(!aiLoading);
-        teacher.setAlpha(aiLoading ? 0.48f : 1f);
-        if (!aiLoading) {
-            teacher.setOnClickListener(v -> startTeacherExplanation());
+        if (AppConfig.hasGeminiApiKey(this)) {
+            Button teacher = secondaryButton(
+                    aiLoading ? "語音老師 · 整理中" : "語音老師 · 補充／追問");
+            teacher.setTextSize(14);
+            teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            teacher.setEnabled(!aiLoading);
+            teacher.setAlpha(aiLoading ? 0.48f : 1f);
+            if (!aiLoading) {
+                teacher.setOnClickListener(v -> startTeacherExplanation());
+            }
+            resultCard.addView(teacher, fixedHeightTop(48, 8));
         }
-        resultCard.addView(teacher, fixedHeightTop(48, 8));
 
         Button share = secondaryButton(aiLoading ? "分享圖片 · 整理中" : "分享圖片");
         share.setEnabled(!aiLoading);
@@ -1682,8 +1755,15 @@ public final class MainActivity extends Activity {
             return;
         }
         if (!AppConfig.hasGeminiApiKey(this)) {
-            Toast.makeText(this, "先設定 Gemini Key 才能使用語音老師", Toast.LENGTH_SHORT).show();
-            dialogController.showApiKey();
+            Toast.makeText(
+                    this,
+                    FortuneTextModelSession.hasProductionAi(this)
+                            ? "語音老師目前先保留給開發模式；正式版完整文字解讀不需要 API Key"
+                            : "開發模式需先設定 Gemini Key",
+                    Toast.LENGTH_SHORT).show();
+            if (!FortuneTextModelSession.hasProductionAi(this)) {
+                dialogController.showApiKey();
+            }
             return;
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
@@ -1725,7 +1805,13 @@ public final class MainActivity extends Activity {
 
     private void refreshAiStatus() {
         if (aiStatus == null) return;
-        aiStatus.setText(AppConfig.hasGeminiApiKey(this) ? "AI：ON ⚙" : "AI：OFF ⚙");
+        if (FortuneTextModelSession.hasProductionAi(this)) {
+            aiStatus.setText("AI：雲端");
+        } else if (AppConfig.hasGeminiApiKey(this)) {
+            aiStatus.setText("AI：開發 ⚙");
+        } else {
+            aiStatus.setText("AI：待設定 ⚙");
+        }
     }
 
     private void restoreInstanceState(Bundle state) {
@@ -1759,6 +1845,9 @@ public final class MainActivity extends Activity {
             if (state.getBoolean("state_has_result", false)) {
                 FortuneProfile profile =
                         profileController.buildProfile(selectedMode);
+                currentProfile = profile;
+                currentReadingId = FortuneReadingId.from(
+                        profileController.currentPreset(selectedMode));
                 Date referenceTime =
                         FortuneResultState.referenceDate(
                                 resultReferenceTimeMillis);
@@ -1782,7 +1871,13 @@ public final class MainActivity extends Activity {
                         aiCopy = null;
                     }
                 }
+                if (aiCopy == null) {
+                    aiCopy = FortunePaidReadingStore.loadReport(
+                            this,
+                            currentReadingId);
+                }
                 renderResult(currentResult, false);
+                consumeSavedPendingPurchaseIfNeeded();
             }
 
             OperationLog.add(
