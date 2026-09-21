@@ -27,6 +27,14 @@ public final class FortuneResultTabCopyTest {
         assertFalse(compact.equals(longText.toString()));
     }
 
+    @Test public void overviewDescriptionsPromiseFastFirstRead() {
+        for (FortuneMode mode : FortuneMode.values()) {
+            String overview = FortuneResultTabCopy.description(mode, 0);
+            assertTrue(overview.contains("10 秒"));
+            assertTrue(overview.contains("3 個"));
+        }
+    }
+
     @Test public void overviewHintsKeepInterpretationAsPrimaryLongFormDestination() {
         for (FortuneMode mode : FortuneMode.values()) {
             assertTrue(FortuneResultTabCopy.overviewHint(mode).contains("解讀＝完整文字報告"));
