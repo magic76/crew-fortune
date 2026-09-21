@@ -2129,13 +2129,15 @@ public final class MainActivity extends Activity {
         teacherController.close();
         aiController.close();
         try {
-            FortuneProfile profile = buildCurrentProfile();
+            FortuneProfile profile =
+                    profileController.buildProfile(selectedMode);
             Date target;
             if (targetDate == null) {
                 target = new Date();
                 selectedVedicTransitDate = null;
             } else {
-                ZoneId zone = ZoneId.of(selectedTimeZoneId);
+                ZoneId zone =
+                        ZoneId.of(profileController.selectedTimeZoneId());
                 target = Date.from(targetDate.atTime(12, 0).atZone(zone).toInstant());
                 selectedVedicTransitDate = targetDate;
             }
