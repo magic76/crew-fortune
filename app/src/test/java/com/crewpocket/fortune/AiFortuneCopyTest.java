@@ -132,12 +132,11 @@ public final class AiFortuneCopyTest {
         assertFalse(issues.contains("topTraits="));
         assertFalse(issues.contains("topTraitEvidence="));
         assertFalse(issues.contains("followUps="));
+        assertFalse(issues.contains("family="));
     }
 
     @Test public void vedicRequiresWrittenFamilyInterpretation() {
-        AiFortuneCopy copy = AiFortuneCopy.parse(FULL_JSON.replace(
-                "\\\"family\\\":\\\"家庭與子女內容\\\",",
-                "\\\"family\\\":\\\"短\\\","));
+        AiFortuneCopy copy = AiFortuneCopy.parse(FULL_JSON);
         String issues = copy.qualityIssueSummary(FortuneMode.VEDIC_ASTROLOGY);
         assertTrue(issues.contains("family="));
     }
