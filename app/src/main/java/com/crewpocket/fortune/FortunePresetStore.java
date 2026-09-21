@@ -68,7 +68,10 @@ public final class FortunePresetStore {
 
     public static void clearPresets(Context context) {
         if (context == null) return;
-        prefs(context).edit().remove(KEY_PRESETS).apply();
+        prefs(context).edit()
+                .remove(KEY_PRESETS)
+                .remove(KEY_LAST)
+                .apply();
     }
 
     private static SharedPreferences prefs(Context context) {
