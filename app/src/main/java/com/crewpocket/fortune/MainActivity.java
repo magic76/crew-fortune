@@ -109,6 +109,7 @@ public final class MainActivity extends Activity {
     private int aiLoadingStage = 0;
     private int selectedResultTab = 0;
     private LocalDate selectedVedicTransitDate;
+    private long resultReferenceTimeMillis = -1L;
     private LinearLayout resultTabContent;
 
     @Override protected void onCreate(Bundle state) {
@@ -146,7 +147,6 @@ public final class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString("state_name", nameInput == null ? "" : nameInput.getText().toString());
         outState.putString("state_birth_date", birthInput == null ? "" : birthInput.getText().toString());
         outState.putString("state_birth_time", birthTimeInput == null ? "" : birthTimeInput.getText().toString());
         outState.putString("state_gender", selectedGender);
@@ -161,6 +161,9 @@ public final class MainActivity extends Activity {
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
         outState.putInt("state_result_tab", selectedResultTab);
+        outState.putLong("state_result_reference_time", resultReferenceTimeMillis);
+        outState.putString("state_vedic_transit_date",
+                selectedVedicTransitDate == null ? "" : selectedVedicTransitDate.toString());
         if (aiCopy != null) outState.putString("state_ai_copy", serializeAiCopy(aiCopy));
         OperationLog.add(this, "STATE_SAVED",
                 currentResult == null ? "no_result" : "result_saved");
@@ -271,7 +274,9 @@ public final class MainActivity extends Activity {
         form.addView(modeLabel, marginTop(5));
 
         form.addView(label("基本資料"), marginTop(8));
-        nameInput = input("你的名字");
+        // Kept as a hidden compatibility field for old presets/state only.
+        // Fortune calculations and prompts no longer use a person's name.
+        nameInput = input("");
         birthInput = input("生日，例如 1985-07-22");
         birthInput.setFocusable(false);
         birthInput.setClickable(true);
@@ -281,8 +286,7 @@ public final class MainActivity extends Activity {
         birthTimeInput.setFocusable(false);
         birthTimeInput.setClickable(true);
         birthTimeInput.setOnClickListener(v -> showTimePicker());
-        form.addView(nameInput, marginTop(8));
-        form.addView(birthInput, marginTop(6));
+        form.addView(birthInput, marginTop(8));
         form.addView(birthTimeInput, marginTop(6));
 
         genderRow = new LinearLayout(this);
@@ -439,6 +443,7 @@ public final class MainActivity extends Activity {
             currentFacts = null;
             aiCopy = null;
             selectedVedicTransitDate = null;
+            resultReferenceTimeMillis = -1L;
             selectedResultTab = 0;
             if (resultCard != null) resultCard.setVisibility(View.GONE);
         }
@@ -475,8 +480,10 @@ public final class MainActivity extends Activity {
         closeAgent();
         try {
             FortuneProfile profile = buildCurrentProfile();
-            currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
-            currentResult = engine.calculate(selectedMode, profile, new Date());
+            Date referenceTime = new Date();
+            resultReferenceTimeMillis = referenceTime.getTime();
+            currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
+            currentResult = engine.calculate(selectedMode, profile, referenceTime);
             FortunePresetStore.saveLast(this, currentPreset());
             OperationLog.add(this, "CALCULATE_SUCCESS",
                     selectedMode.name() + " · " + currentFacts.basis);
@@ -3407,9 +3414,9 @@ public final class MainActivity extends Activity {
                 selectedMode,
                 selectedAiStyle,
                 currentFacts,
-                nameInput.getText().toString());
+                "");
         String opening = directQuestion.isEmpty()
-                ? FortuneTeacherPrompt.openingPrompt(nameInput.getText().toString())
+                ? FortuneTeacherPrompt.openingPrompt("")
                 : "使用者剛剛點選追問：「" + directQuestion + "」。"
                 + "不要做一般 60–90 秒開場，直接回答這個問題。"
                 + "先給白話結論，再講 2–4 個 deterministicFacts 裡的具體依據，"
@@ -3514,8 +3521,7 @@ public final class MainActivity extends Activity {
         final FortuneFacts facts = currentFacts;
         final FortuneResult result = currentResult;
         final AiFortuneCopy copy = aiCopy;
-        final String displayName = nameInput == null
-                ? "" : nameInput.getText().toString().trim();
+        final String displayName = "";
 
         OperationLog.add(this, "SHARE_IMAGE_START", mode.name());
         Toast.makeText(this, "正在產生分享卡…", Toast.LENGTH_SHORT).show();
@@ -3690,7 +3696,7 @@ public final class MainActivity extends Activity {
                     zoneText);
         }
         return new FortuneProfile(
-                nameInput.getText().toString(),
+                "",
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
                 selectedGender,
@@ -3699,7 +3705,7 @@ public final class MainActivity extends Activity {
 
     private FortunePreset currentPreset() {
         return new FortunePreset(
-                nameInput.getText().toString(),
+                "",
                 birthInput.getText().toString(),
                 birthTimeInput.getText().toString(),
                 selectedGender,
@@ -3717,10 +3723,6 @@ public final class MainActivity extends Activity {
 
     private void saveCurrentPreset() {
         FortunePreset preset = currentPreset();
-        if (preset.name.isEmpty()) {
-            Toast.makeText(this, "先輸入名字再儲存 preset", Toast.LENGTH_SHORT).show();
-            return;
-        }
         if (preset.birthDate.isEmpty()) {
             Toast.makeText(this, "先選生日再儲存 preset", Toast.LENGTH_SHORT).show();
             return;
@@ -3777,7 +3779,7 @@ public final class MainActivity extends Activity {
 
     private void applyPreset(FortunePreset preset) {
         if (preset == null) return;
-        nameInput.setText(preset.name);
+        nameInput.setText("");
         birthInput.setText(preset.birthDate);
         birthTimeInput.setText(preset.birthTime);
         if (birthPlaceNameInput != null) birthPlaceNameInput.setText(preset.birthPlaceName);
@@ -3797,7 +3799,7 @@ public final class MainActivity extends Activity {
 
     private void restoreInstanceState(Bundle state) {
         try {
-            nameInput.setText(state.getString("state_name", ""));
+            nameInput.setText("");
             birthInput.setText(state.getString("state_birth_date", ""));
             birthTimeInput.setText(state.getString("state_birth_time", ""));
             if (birthPlaceNameInput != null) {
@@ -3816,6 +3818,10 @@ public final class MainActivity extends Activity {
             selectedAiStyle = AiStyle.valueOf(
                     state.getString("state_ai_style", AiStyle.FUNNY.name()));
             selectedResultTab = state.getInt("state_result_tab", 0);
+            resultReferenceTimeMillis = state.getLong("state_result_reference_time", -1L);
+            String savedTransitDate = state.getString("state_vedic_transit_date", "");
+            selectedVedicTransitDate = savedTransitDate.isEmpty()
+                    ? null : LocalDate.parse(savedTransitDate);
 
             selectMode(selectedMode);
             if (!selectedGender.isEmpty()) selectGender(selectedGender);
@@ -3823,8 +3829,12 @@ public final class MainActivity extends Activity {
 
             if (state.getBoolean("state_has_result", false)) {
                 FortuneProfile profile = buildCurrentProfile();
-                currentFacts = engine.calculateFacts(selectedMode, profile, new Date());
-                currentResult = engine.calculate(selectedMode, profile, new Date());
+                Date referenceTime = resultReferenceTimeMillis > 0L
+                        ? new Date(resultReferenceTimeMillis)
+                        : new Date();
+                resultReferenceTimeMillis = referenceTime.getTime();
+                currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
+                currentResult = engine.calculate(selectedMode, profile, referenceTime);
 
                 String aiRaw = state.getString("state_ai_copy", "");
                 if (!aiRaw.isEmpty()) {
@@ -4043,6 +4053,7 @@ public final class MainActivity extends Activity {
                 target = Date.from(targetDate.atTime(12, 0).atZone(zone).toInstant());
                 selectedVedicTransitDate = targetDate;
             }
+            resultReferenceTimeMillis = target.getTime();
             currentFacts = engine.calculateFacts(FortuneMode.VEDIC_ASTROLOGY, profile, target);
             currentResult = engine.calculate(FortuneMode.VEDIC_ASTROLOGY, profile, target);
             aiCopy = null;
@@ -4353,7 +4364,7 @@ public final class MainActivity extends Activity {
             } else if (tarot) {
                 modeLabel.setText(
                         "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n"
-                                + "名字只用來稱呼你；計算只使用生日，不使用姓名或出生時間");
+                                + "計算只使用生日，不使用姓名或出生時間");
             } else {
                 modeLabel.setText(
                         "Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu\n"
