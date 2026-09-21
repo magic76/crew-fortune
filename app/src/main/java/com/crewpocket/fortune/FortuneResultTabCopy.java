@@ -36,7 +36,7 @@ final class FortuneResultTabCopy {
                 case 4:
                     return "這頁就是完整文字報告；不開語音也能讀完主要解讀。";
                 default:
-                    return "這頁先抓日主、旺衰、目前大運與今年流年，再看最重要的白話重點。";
+                    return "先用 10 秒看懂：你最明顯的 3 個特徵、現在的大運／流年，以及一句總結。詳細命盤再往後看。";
             }
         }
         if (mode == FortuneMode.TAROT_NUMEROLOGY) {
@@ -50,7 +50,7 @@ final class FortuneResultTabCopy {
                 case 4:
                     return "這頁就是完整文字報告；語音老師只負責補充與追問。";
                 default:
-                    return "這頁先看外在人格牌、內在靈魂牌、生命道路與目前流年。";
+                    return "先用 10 秒看懂：內外人格最明顯的 3 個重點、目前流年，以及一句總結。完整數字與週期再往後看。";
             }
         }
         switch (tab) {
@@ -63,7 +63,7 @@ final class FortuneResultTabCopy {
             case 4:
                 return "這頁就是完整文字報告；語音老師只負責把內容講得更口語、或回答追問。";
             default:
-                return "這頁先看核心命盤身份、目前人生週期，以及最值得先理解的幾個重點。";
+                return "先用 10 秒看懂：命盤最重要的 3 個結構、目前 Dasha／Gochar，以及一句總結。行星與宮位細節再往後看。";
         }
     }
 }
