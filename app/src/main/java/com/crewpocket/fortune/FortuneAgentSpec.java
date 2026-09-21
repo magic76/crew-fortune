@@ -28,7 +28,6 @@ public final class FortuneAgentSpec implements AgentSpec {
                         "Calculate the complete deterministic BaZi, birthday-based tarot numerology, or Vedic astrology report before interpretation.",
                         "{\"type\":\"object\",\"properties\":{"
                                 + "\"mode\":{\"type\":\"string\",\"enum\":[\"BA_ZI\",\"TAROT_NUMEROLOGY\",\"VEDIC_ASTROLOGY\"]},"
-                                + "\"name\":{\"type\":\"string\"},"
                                 + "\"birthDate\":{\"type\":\"string\",\"description\":\"yyyy-MM-dd\"},"
                                 + "\"birthTime\":{\"type\":\"string\",\"description\":\"HH:mm, required for BA_ZI and VEDIC_ASTROLOGY\"},"
                                 + "\"gender\":{\"type\":\"string\",\"enum\":[\"male\",\"female\"],\"description\":\"required for BA_ZI luck pillars\"},"
@@ -36,7 +35,7 @@ public final class FortuneAgentSpec implements AgentSpec {
                                 + "\"latitude\":{\"type\":\"number\",\"description\":\"required for VEDIC_ASTROLOGY\"},"
                                 + "\"longitude\":{\"type\":\"number\",\"description\":\"required for VEDIC_ASTROLOGY\"},"
                                 + "\"timeZoneId\":{\"type\":\"string\",\"description\":\"IANA zone like Asia/Taipei or explicit UTC offset; required for VEDIC_ASTROLOGY\"}"
-                                + "},\"required\":[\"mode\",\"name\",\"birthDate\"]}"
+                                + "},\"required\":[\"mode\",\"birthDate\"]}"
                 ))
                 : Collections.<ToolSpec>emptyList();
     }
