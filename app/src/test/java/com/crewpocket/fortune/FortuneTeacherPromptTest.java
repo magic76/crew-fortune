@@ -45,6 +45,23 @@ public final class FortuneTeacherPromptTest {
         assertEquals("Charon", FortuneTeacherPrompt.voiceName(AiStyle.STRICT));
     }
 
+    @Test public void teacherIsExplicitlyAuxiliaryAndConcise() {
+        FortuneFacts facts = engine.calculateFacts(
+                FortuneMode.TAROT_NUMEROLOGY,
+                new FortuneProfile("", "1985-07-06", "", ""),
+                new Date(1789766400000L));
+
+        String prompt = FortuneTeacherPrompt.systemPrompt(
+                FortuneMode.TAROT_NUMEROLOGY,
+                AiStyle.NORMAL,
+                facts);
+
+        assertTrue(prompt.contains("書面內容才是主體"));
+        assertTrue(prompt.contains("語音只補充"));
+        assertTrue(prompt.contains("35 到 60 秒"));
+        assertTrue(prompt.contains("不要重複整份書面報告"));
+    }
+
     @Test public void teacherKeepsUserNameSeparateFromTeacherIdentity() {
         FortuneFacts facts = engine.calculateFacts(
                 FortuneMode.TAROT_NUMEROLOGY,
