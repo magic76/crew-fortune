@@ -467,7 +467,7 @@ public final class MainActivity extends Activity {
         share.setTextColor(TEXT);
         share.setAllCaps(false);
         share.setBackground(round(CARD_2, 18));
-        share.setOnClickListener(v -> shareResult());
+        share.setOnClickListener(v -> shareController.share());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(54));
         lp.topMargin = dp(18);
@@ -761,7 +761,7 @@ public final class MainActivity extends Activity {
         share.setEnabled(!aiLoading);
         share.setAlpha(aiLoading ? 0.48f : 1f);
         if (!aiLoading) {
-            share.setOnClickListener(v -> shareResult());
+            share.setOnClickListener(v -> shareController.share());
         }
         resultCard.addView(share, fixedHeightTop(48, 6));
     }
