@@ -637,13 +637,7 @@ public final class MainActivity extends Activity {
                     currentReadingId);
             paidGenerationPending = false;
 
-            if (aiCopy == null
-                && !FortuneTextModelSession.usesDeveloperKey(this)) {
-            addPaidInterpretationPaywall(panel);
-            return;
-        }
-
-        if (aiCopy != null) {
+            if (aiCopy != null) {
                 renderResult(currentResult, false);
                 consumeSavedPendingPurchaseIfNeeded();
             } else if (FortuneTextModelSession.usesDeveloperKey(this)) {
@@ -976,6 +970,12 @@ public final class MainActivity extends Activity {
 
         if (aiLoading) {
             addAiLoadingPlaceholder(panel, result.mode);
+            return;
+        }
+
+        if (aiCopy == null
+                && !FortuneTextModelSession.usesDeveloperKey(this)) {
+            addPaidInterpretationPaywall(panel);
             return;
         }
 
