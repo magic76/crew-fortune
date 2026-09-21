@@ -244,6 +244,19 @@ public final class MainActivity extends Activity {
         });
         panel.addView(pending, fixedHeightTop(46, 6));
 
+        Button failed = secondaryButton("模擬付款失敗");
+        failed.setOnClickListener(v -> {
+            OperationLog.add(
+                    this,
+                    "DEBUG_PURCHASE_FAILED",
+                    "");
+            Toast.makeText(
+                    this,
+                    "模擬：付款失敗／取消，沒有解鎖，也沒有任何扣款",
+                    Toast.LENGTH_SHORT).show();
+        });
+        panel.addView(failed, fixedHeightTop(46, 6));
+
         Button clear = secondaryButton("清除這份已購報告／Pending");
         clear.setOnClickListener(v -> {
             if (!currentReadingId.isEmpty()) {
@@ -487,6 +500,15 @@ public final class MainActivity extends Activity {
                 && !FortunePaidReadingStore
                         .pendingPurchaseToken(this)
                         .isEmpty()) {
+            String pendingToken =
+                    FortunePaidReadingStore.pendingPurchaseToken(this);
+            if (pendingToken.startsWith("debug_")) {
+                Toast.makeText(
+                        this,
+                        "DEV Pending 只測 UI，不會呼叫 Gemini。清除後可繼續其他測試。",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
             beginPaidGeneration();
             return;
         }
