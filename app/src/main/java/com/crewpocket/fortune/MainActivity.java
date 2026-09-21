@@ -645,7 +645,7 @@ public final class MainActivity extends Activity {
         }
 
         if (aiCopy != null) {
-            addPanelSection(panel, "總覽", aiCopy.overview);
+            addPanelSection(panel, "先說結論", aiCopy.overview);
             if (!aiCopy.personality.isEmpty()) {
                 addPanelSection(panel, "性格、優勢與盲點", aiCopy.personality);
             }
@@ -1948,16 +1948,13 @@ public final class MainActivity extends Activity {
         if (modeLabel != null) {
             if (bazi) {
                 modeLabel.setText(
-                        "四柱、十神、大運、逐年流年 · 需要出生時間與性別\n"
-                                + "以出生地當地民用時間排盤，目前不做真太陽時校正");
+                        "需要：生日＋出生時間＋性別｜會看到：本命、大運、逐年流年");
             } else if (tarot) {
                 modeLabel.setText(
-                        "人格牌、靈魂牌、生命道路、巔峰／挑戰、個人流年與個人月\n"
-                                + "計算只使用生日，不使用姓名或出生時間");
+                        "只需要生日｜會看到：內外人格、生命道路、人生階段、年度／月份循環");
             } else {
                 modeLabel.setText(
-                        "Sidereal · Lahiri · Whole Sign · Mean Rahu/Ketu\n"
-                                + "需要精確出生時間與出生地；時區可直接選，座標放在進階設定");
+                        "需要：生日＋精確出生時間＋出生城市｜會看到：本命、Dasha、Gochar");
             }
         }
     }
