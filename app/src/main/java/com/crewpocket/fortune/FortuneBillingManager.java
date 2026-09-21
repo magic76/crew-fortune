@@ -32,7 +32,7 @@ final class FortuneBillingManager implements PurchasesUpdatedListener {
 
     interface Listener {
         void onBillingReady(String formattedPrice);
-        void onPurchaseReady(String purchaseToken);
+        void onPurchaseReady(String purchaseToken, String readingId);
         void onPurchasePending();
         void onBillingError(String message);
         void onPurchaseConsumed(String purchaseToken);
@@ -100,7 +100,7 @@ final class FortuneBillingManager implements PurchasesUpdatedListener {
                 && productDetails != null;
     }
 
-    void launchPurchase() {
+    void launchPurchase(String readingId) {
         BillingClient client = billingClient;
         ProductDetails details = productDetails;
         if (client == null || !client.isReady() || details == null) {
@@ -121,10 +121,14 @@ final class FortuneBillingManager implements PurchasesUpdatedListener {
             item.setOfferToken(offer.getOfferToken());
         }
 
-        BillingFlowParams params = BillingFlowParams.newBuilder()
+        BillingFlowParams.Builder flow = BillingFlowParams.newBuilder()
                 .setProductDetailsParamsList(
-                        Collections.singletonList(item.build()))
-                .build();
+                        Collections.singletonList(item.build()));
+        String opaqueReadingId = clean(readingId);
+        if (!opaqueReadingId.isEmpty()) {
+            flow.setObfuscatedAccountId(opaqueReadingId);
+        }
+        BillingFlowParams params = flow.build();
 
         BillingResult result =
                 client.launchBillingFlow(activity, params);
@@ -255,8 +259,15 @@ final class FortuneBillingManager implements PurchasesUpdatedListener {
             if (purchase.getPurchaseState()
                     == Purchase.PurchaseState.PURCHASED) {
                 if (listener != null) {
+                    String readingId = "";
+                    if (purchase.getAccountIdentifiers() != null) {
+                        readingId = clean(
+                                purchase.getAccountIdentifiers()
+                                        .getObfuscatedAccountId());
+                    }
                     listener.onPurchaseReady(
-                            purchase.getPurchaseToken());
+                            purchase.getPurchaseToken(),
+                            readingId);
                 }
             }
         }
