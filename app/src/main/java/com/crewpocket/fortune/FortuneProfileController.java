@@ -90,6 +90,13 @@ final class FortuneProfileController {
         sharedHint.setLineSpacing(host.dp(2), 1f);
         form.addView(sharedHint, host.marginTop(4));
 
+        TextView genderLabel = host.text(
+                "性別 · 八字使用",
+                11,
+                MainActivity.MUTED,
+                true);
+        form.addView(genderLabel, host.marginTop(7));
+
         genderRow = new LinearLayout(host);
         genderRow.setOrientation(LinearLayout.HORIZONTAL);
         maleButton = host.genderButton("男");
