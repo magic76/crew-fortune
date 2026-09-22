@@ -44,6 +44,33 @@ public final class FortuneCommercialFlowTest {
                         .equals(FortuneReadingId.from(tarot)));
     }
 
+    @Test public void irrelevantSharedFieldsDoNotChangeTarotReadingId() {
+        FortunePreset first = new FortunePreset(
+                "",
+                "1985-07-06",
+                "04:10",
+                "male",
+                FortuneMode.TAROT_NUMEROLOGY,
+                "Bangkok",
+                "13.7563",
+                "100.5018",
+                "Asia/Bangkok");
+        FortunePreset second = new FortunePreset(
+                "",
+                "1985-07-06",
+                "22:45",
+                "female",
+                FortuneMode.TAROT_NUMEROLOGY,
+                "Taipei",
+                "25.0330",
+                "121.5654",
+                "Asia/Taipei");
+
+        assertEquals(
+                FortuneReadingId.from(first),
+                FortuneReadingId.from(second));
+    }
+
     @Test public void aiCopyRoundTripsForPaidLocalRestore() {
         AiFortuneCopy copy = AiFortuneCopy.parse(
                 "{"
