@@ -51,6 +51,7 @@ final class FortuneDialogController {
         panel.addView(hint, host.marginTop(4));
 
         LinearLayout body = host.column();
+        final AlertDialog[] dialogHolder = new AlertDialog[1];
 
         if (entries.isEmpty()) {
             TextView empty = host.text(
@@ -118,8 +119,13 @@ final class FortuneDialogController {
                 item.addView(state, host.marginTop(5));
 
                 final FortuneHistoryEntry selected = entry;
-                item.setOnClickListener(v ->
-                        host.openHistoryEntry(selected));
+                item.setOnClickListener(v -> {
+                    AlertDialog current = dialogHolder[0];
+                    if (current != null && current.isShowing()) {
+                        current.dismiss();
+                    }
+                    host.openHistoryEntry(selected);
+                });
 
                 body.addView(item, host.marginTop(8));
             }
@@ -164,6 +170,7 @@ final class FortuneDialogController {
                 new AlertDialog.Builder(host)
                         .setView(panel)
                         .create();
+        dialogHolder[0] = dialog;
 
         clear.setOnClickListener(v -> {
             FortuneHistoryStore.clear(host);
