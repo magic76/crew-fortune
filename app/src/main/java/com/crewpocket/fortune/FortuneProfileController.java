@@ -422,6 +422,37 @@ final class FortuneProfileController {
                     return false;
                 });
 
+        birthPlaceNameInput.addTextChangedListener(
+                new android.text.TextWatcher() {
+                    @Override public void beforeTextChanged(
+                            CharSequence value,
+                            int start,
+                            int count,
+                            int after) {}
+
+                    @Override public void onTextChanged(
+                            CharSequence value,
+                            int start,
+                            int before,
+                            int count) {}
+
+                    @Override public void afterTextChanged(
+                            android.text.Editable value) {
+                        if (latitudeInput != null) {
+                            latitudeInput.setText("");
+                        }
+                        if (longitudeInput != null) {
+                            longitudeInput.setText("");
+                        }
+                        if (geocodeStatus != null) {
+                            geocodeStatus.setText(
+                                    "城市有變更時請重新搜尋；座標與時區會自動更新。");
+                            geocodeStatus.setTextColor(
+                                    MainActivity.MUTED);
+                        }
+                    }
+                });
+
         geocodeButton = host.primaryButton("搜尋");
         geocodeButton.setTextSize(13);
         geocodeButton.setMinHeight(0);
