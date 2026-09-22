@@ -306,6 +306,16 @@ final class FortuneProfileController {
             return;
         }
 
+        android.view.inputmethod.InputMethodManager keyboard =
+                (android.view.inputmethod.InputMethodManager)
+                        host.getSystemService(
+                                android.content.Context.INPUT_METHOD_SERVICE);
+        if (keyboard != null && birthPlaceNameInput != null) {
+            keyboard.hideSoftInputFromWindow(
+                    birthPlaceNameInput.getWindowToken(),
+                    0);
+        }
+
         geocodingBirthPlace = true;
         if (geocodeButton != null) {
             geocodeButton.setEnabled(false);
@@ -366,7 +376,7 @@ final class FortuneProfileController {
         vedicLocationSection = host.column();
 
         TextView vedicRule = host.text(
-                "先搜尋出生城市，系統會自動帶入座標與時區。",
+                "輸入出生城市，直接按右側「搜尋」。",
                 11,
                 MainActivity.GOLD,
                 true);
@@ -374,17 +384,61 @@ final class FortuneProfileController {
         vedicLocationSection.addView(vedicRule);
 
         birthPlaceNameInput = host.input(
-                "搜尋出生城市，例如 新北市、Bangkok、Tokyo");
+                "新北市、Bangkok、Tokyo…");
+        birthPlaceNameInput.setBackgroundColor(Color.TRANSPARENT);
+        birthPlaceNameInput.setPadding(
+                host.dp(12), 0, host.dp(8), 0);
+        birthPlaceNameInput.setImeOptions(
+                android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        birthPlaceNameInput.setOnEditorActionListener(
+                (view, actionId, event) -> {
+                    if (actionId
+                            == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                        geocodeBirthPlace(false);
+                        return true;
+                    }
+                    return false;
+                });
 
-        geocodeButton = host.secondaryButton("搜尋出生城市");
-        geocodeButton.setGravity(
-                Gravity.CENTER_VERTICAL | Gravity.START);
-        geocodeButton.setPadding(host.dp(12), 0, host.dp(12), 0);
+        geocodeButton = host.primaryButton("搜尋");
+        geocodeButton.setTextSize(13);
+        geocodeButton.setMinHeight(0);
+        geocodeButton.setMinimumHeight(0);
+        geocodeButton.setPadding(
+                host.dp(14), 0, host.dp(14), 0);
         geocodeButton.setOnClickListener(
                 v -> geocodeBirthPlace(false));
 
+        LinearLayout citySearchRow = new LinearLayout(host);
+        citySearchRow.setOrientation(LinearLayout.HORIZONTAL);
+        citySearchRow.setGravity(Gravity.CENTER_VERTICAL);
+        citySearchRow.setPadding(
+                host.dp(2), host.dp(2), host.dp(2), host.dp(2));
+        citySearchRow.setBackground(host.roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(150, 116, 206),
+                15,
+                1));
+
+        LinearLayout.LayoutParams cityInputLp =
+                new LinearLayout.LayoutParams(
+                        0,
+                        host.dp(48),
+                        1f);
+        citySearchRow.addView(
+                birthPlaceNameInput,
+                cityInputLp);
+
+        LinearLayout.LayoutParams searchButtonLp =
+                new LinearLayout.LayoutParams(
+                        host.dp(82),
+                        host.dp(44));
+        citySearchRow.addView(
+                geocodeButton,
+                searchButtonLp);
+
         geocodeStatus = host.text(
-                "搜尋後選擇城市，會自動填入 Latitude / Longitude / Timezone。",
+                "選擇搜尋結果後，時區與座標會自動帶入。",
                 10,
                 MainActivity.MUTED,
                 false);
@@ -435,10 +489,7 @@ final class FortuneProfileController {
         });
 
         vedicLocationSection.addView(
-                birthPlaceNameInput,
-                host.marginTop(6));
-        vedicLocationSection.addView(
-                geocodeButton,
+                citySearchRow,
                 host.marginTop(6));
         vedicLocationSection.addView(
                 geocodeStatus,
@@ -661,7 +712,7 @@ final class FortuneProfileController {
         geocodingBirthPlace = false;
         if (geocodeButton != null) {
             geocodeButton.setEnabled(true);
-            geocodeButton.setText("搜尋出生城市");
+            geocodeButton.setText("搜尋");
         }
     }
 
