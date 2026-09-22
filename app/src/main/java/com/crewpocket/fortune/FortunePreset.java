@@ -58,8 +58,18 @@ public final class FortunePreset {
     }
 
     public String key() {
-        return birthDate + "|" + birthTime + "|" + gender
-                + "|" + mode.name() + "|" + latitude + "|" + longitude + "|" + timeZoneId;
+        if (mode == FortuneMode.TAROT_NUMEROLOGY) {
+            return mode.name() + "|" + birthDate;
+        }
+        if (mode == FortuneMode.BA_ZI) {
+            return mode.name() + "|" + birthDate
+                    + "|" + birthTime + "|" + gender;
+        }
+        return mode.name() + "|" + birthDate
+                + "|" + birthTime
+                + "|" + latitude
+                + "|" + longitude
+                + "|" + timeZoneId;
     }
 
     public BirthPlace birthPlaceOrNull() {

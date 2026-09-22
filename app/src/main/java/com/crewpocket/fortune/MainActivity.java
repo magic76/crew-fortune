@@ -79,6 +79,7 @@ public final class MainActivity extends Activity {
     private FortuneFacts currentFacts;
     private FortuneProfile currentProfile;
     private String currentReadingId = "";
+    private String currentHistoryId = "";
     private AiFortuneCopy aiCopy;
     private FortuneBillingManager billingManager;
     private String billingPrice = "";
@@ -144,6 +145,7 @@ public final class MainActivity extends Activity {
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
         outState.putInt("state_result_tab", selectedResultTab);
         outState.putLong("state_result_reference_time", resultReferenceTimeMillis);
+        outState.putString("state_history_id", currentHistoryId);
         outState.putString("state_vedic_transit_date",
                 FortuneResultState.transitDateText(selectedVedicTransitDate));
         if (aiCopy != null) outState.putString("state_ai_copy", serializeAiCopy(aiCopy));
@@ -198,6 +200,12 @@ public final class MainActivity extends Activity {
             FortunePaidReadingStore.clearPending(this);
             aiCopy = fake;
             paidGenerationPending = false;
+            if (!currentHistoryId.isEmpty()) {
+                FortuneHistoryStore.updateAiCopy(
+                        this,
+                        currentHistoryId,
+                        fake);
+            }
             OperationLog.add(
                     this,
                     "DEBUG_PAID_READING_UNLOCKED",
@@ -267,6 +275,12 @@ public final class MainActivity extends Activity {
             FortunePaidReadingStore.clearPending(this);
             aiCopy = null;
             paidGenerationPending = false;
+            if (!currentHistoryId.isEmpty()) {
+                FortuneHistoryStore.updateAiCopy(
+                        this,
+                        currentHistoryId,
+                        null);
+            }
             OperationLog.add(
                     this,
                     "DEBUG_PAID_READING_CLEARED",
@@ -489,6 +503,12 @@ public final class MainActivity extends Activity {
             aiCopy = FortunePaidReadingStore.loadReport(
                     this,
                     currentReadingId);
+            if (!currentHistoryId.isEmpty()) {
+                FortuneHistoryStore.updateAiCopy(
+                        this,
+                        currentHistoryId,
+                        aiCopy);
+            }
             renderResult(currentResult, false);
             consumeSavedPendingPurchaseIfNeeded();
             return;
@@ -637,7 +657,7 @@ public final class MainActivity extends Activity {
                 Color.rgb(150, 116, 206),
                 12,
                 1));
-        history.setOnClickListener(v -> dialogController.showOperationLog());
+        history.setOnClickListener(v -> dialogController.showFortuneHistory());
         LinearLayout.LayoutParams historyLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -780,6 +800,7 @@ public final class MainActivity extends Activity {
             currentFacts = null;
             currentProfile = null;
             currentReadingId = "";
+            currentHistoryId = "";
             aiCopy = null;
             selectedVedicTransitDate = null;
             resultReferenceTimeMillis = -1L;
@@ -827,6 +848,18 @@ public final class MainActivity extends Activity {
                     this,
                     currentReadingId);
             paidGenerationPending = false;
+
+            FortuneHistoryEntry historyEntry =
+                    FortuneHistoryStore.add(
+                            this,
+                            preset,
+                            resultReferenceTimeMillis,
+                            FortuneResultState.transitDateText(
+                                    selectedVedicTransitDate),
+                            currentResult,
+                            currentFacts,
+                            aiCopy);
+            currentHistoryId = historyEntry.id;
 
             if (aiCopy != null) {
                 renderResult(currentResult, false);
@@ -1057,6 +1090,12 @@ public final class MainActivity extends Activity {
 
     void onAiCopyReady(AiFortuneCopy copy) {
         aiCopy = copy;
+        if (copy != null && !currentHistoryId.isEmpty()) {
+            FortuneHistoryStore.updateAiCopy(
+                    this,
+                    currentHistoryId,
+                    copy);
+        }
 
         if (paidGenerationPending
                 && !currentReadingId.isEmpty()
@@ -2434,6 +2473,8 @@ public final class MainActivity extends Activity {
                     state.getLong(
                             "state_result_reference_time",
                             -1L);
+            currentHistoryId =
+                    state.getString("state_history_id", "");
             String savedTransitDate =
                     state.getString(
                             "state_vedic_transit_date",
@@ -2446,41 +2487,49 @@ public final class MainActivity extends Activity {
             updateAiStyleButtons();
 
             if (state.getBoolean("state_has_result", false)) {
-                FortuneProfile profile =
-                        profileController.buildProfile(selectedMode);
-                currentProfile = profile;
-                currentReadingId = FortuneReadingId.from(
-                        profileController.currentPreset(selectedMode));
-                Date referenceTime =
-                        FortuneResultState.referenceDate(
-                                resultReferenceTimeMillis);
-                resultReferenceTimeMillis =
-                        referenceTime.getTime();
-                currentFacts = engine.calculateFacts(
-                        selectedMode,
-                        profile,
-                        referenceTime);
-                currentResult = engine.calculate(
-                        selectedMode,
-                        profile,
-                        referenceTime);
+                FortuneHistoryEntry snapshot =
+                        FortuneHistoryStore.get(
+                                this,
+                                currentHistoryId);
+                if (snapshot != null) {
+                    restoreHistoryEntry(snapshot, false);
+                } else {
+                    FortuneProfile profile =
+                            profileController.buildProfile(selectedMode);
+                    currentProfile = profile;
+                    currentReadingId = FortuneReadingId.from(
+                            profileController.currentPreset(selectedMode));
+                    Date referenceTime =
+                            FortuneResultState.referenceDate(
+                                    resultReferenceTimeMillis);
+                    resultReferenceTimeMillis =
+                            referenceTime.getTime();
+                    currentFacts = engine.calculateFacts(
+                            selectedMode,
+                            profile,
+                            referenceTime);
+                    currentResult = engine.calculate(
+                            selectedMode,
+                            profile,
+                            referenceTime);
 
-                String aiRaw =
-                        state.getString("state_ai_copy", "");
-                if (!aiRaw.isEmpty()) {
-                    try {
-                        aiCopy = AiFortuneCopy.parse(aiRaw);
-                    } catch (Exception ignored) {
-                        aiCopy = null;
+                    String aiRaw =
+                            state.getString("state_ai_copy", "");
+                    if (!aiRaw.isEmpty()) {
+                        try {
+                            aiCopy = AiFortuneCopy.parse(aiRaw);
+                        } catch (Exception ignored) {
+                            aiCopy = null;
+                        }
                     }
+                    if (aiCopy == null) {
+                        aiCopy = FortunePaidReadingStore.loadReport(
+                                this,
+                                currentReadingId);
+                    }
+                    renderResult(currentResult, false);
+                    consumeSavedPendingPurchaseIfNeeded();
                 }
-                if (aiCopy == null) {
-                    aiCopy = FortunePaidReadingStore.loadReport(
-                            this,
-                            currentReadingId);
-                }
-                renderResult(currentResult, false);
-                consumeSavedPendingPurchaseIfNeeded();
             }
 
             OperationLog.add(
@@ -2495,6 +2544,60 @@ public final class MainActivity extends Activity {
                     this,
                     "STATE_RESTORE_FAILED",
                     safeErrorMessage(error));
+        }
+    }
+
+    void openHistoryEntry(FortuneHistoryEntry entry) {
+        restoreHistoryEntry(entry, true);
+    }
+
+    private void restoreHistoryEntry(
+            FortuneHistoryEntry entry,
+            boolean fromUser) {
+        if (entry == null
+                || entry.preset == null
+                || entry.result == null
+                || entry.facts == null) {
+            return;
+        }
+
+        teacherController.close();
+        aiController.close();
+        paidGenerationPending = false;
+
+        profileController.applyHistoryPreset(entry.preset);
+        selectedMode = entry.preset.mode;
+        currentHistoryId = entry.id;
+        currentReadingId = FortuneReadingId.from(entry.preset);
+        resultReferenceTimeMillis = entry.referenceTimeMillis;
+        selectedVedicTransitDate =
+                FortuneResultState.parseTransitDate(
+                        entry.transitDate);
+        currentFacts = entry.facts;
+        currentResult = entry.result;
+        aiCopy = entry.aiCopy;
+        selectedResultTab = 0;
+
+        try {
+            currentProfile =
+                    profileController.buildProfile(selectedMode);
+        } catch (RuntimeException ignored) {
+            currentProfile = null;
+        }
+
+        updateModeSelectionUi();
+        renderResult(currentResult, false);
+        consumeSavedPendingPurchaseIfNeeded();
+
+        if (fromUser) {
+            OperationLog.add(
+                    this,
+                    "HISTORY_RESULT_OPENED",
+                    entry.titleLine());
+            Toast.makeText(
+                    this,
+                    "已開啟歷史結果，不會重新排盤或呼叫 AI",
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -2654,13 +2757,13 @@ public final class MainActivity extends Activity {
         if (modeLabel != null) {
             if (bazi) {
                 modeLabel.setText(
-                        "需要：生日＋出生時間＋性別｜會看到：本命、大運、逐年流年");
+                        "八字會用：生日＋時間＋性別｜出生城市可先不填");
             } else if (tarot) {
                 modeLabel.setText(
-                        "只需要生日｜會看到：內外人格、生命道路、人生階段、年度／月份循環");
+                        "塔羅生命靈數主要用生日｜其他基本資料保留，切換模式不用重填");
             } else {
                 modeLabel.setText(
-                        "需要：生日＋精確出生時間＋出生城市｜會看到：本命、Dasha、Gochar");
+                        "印度星盤會用：生日＋精確時間＋出生城市｜城市會自動換算座標與時區");
             }
         }
     }

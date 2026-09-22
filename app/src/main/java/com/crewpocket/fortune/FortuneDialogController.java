@@ -22,6 +22,171 @@ final class FortuneDialogController {
         this.host = host;
     }
 
+    void showFortuneHistory() {
+        final List<FortuneHistoryEntry> entries =
+                FortuneHistoryStore.list(host);
+
+        LinearLayout panel = host.column();
+        panel.setPadding(
+                host.dp(14), host.dp(14),
+                host.dp(14), host.dp(12));
+        panel.setBackground(host.roundBorder(
+                MainActivity.CARD,
+                Color.rgb(92, 73, 127),
+                22,
+                1));
+
+        panel.addView(host.text(
+                "算命記錄",
+                22,
+                MainActivity.TEXT,
+                true));
+
+        TextView hint = host.text(
+                "點之前的結果直接查看，不會重新排盤，也不會重新呼叫 AI。",
+                12,
+                MainActivity.MUTED,
+                false);
+        hint.setLineSpacing(host.dp(2), 1f);
+        panel.addView(hint, host.marginTop(4));
+
+        LinearLayout body = host.column();
+        final AlertDialog[] dialogHolder = new AlertDialog[1];
+
+        if (entries.isEmpty()) {
+            TextView empty = host.text(
+                    "還沒有算命記錄。完成一次排盤後會自動保存在這裡。",
+                    14,
+                    MainActivity.MUTED,
+                    false);
+            empty.setLineSpacing(host.dp(2), 1f);
+            body.addView(empty, host.marginTop(14));
+        } else {
+            for (FortuneHistoryEntry entry : entries) {
+                LinearLayout item = host.column();
+                item.setPadding(
+                        host.dp(11), host.dp(10),
+                        host.dp(11), host.dp(10));
+                item.setBackground(host.roundBorder(
+                        Color.rgb(39, 29, 60),
+                        Color.rgb(168, 137, 230),
+                        15,
+                        2));
+                item.setClickable(true);
+
+                LinearLayout head = new LinearLayout(host);
+                head.setOrientation(LinearLayout.HORIZONTAL);
+                head.setGravity(Gravity.CENTER_VERTICAL);
+
+                TextView title = host.text(
+                        entry.titleLine(),
+                        15,
+                        MainActivity.TEXT,
+                        true);
+                head.addView(
+                        title,
+                        new LinearLayout.LayoutParams(
+                                0,
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                1f));
+
+                TextView time = host.text(
+                        entry.savedAtText(),
+                        11,
+                        MainActivity.MUTED,
+                        false);
+                head.addView(time);
+                item.addView(head);
+
+                TextView profile = host.text(
+                        entry.subtitleLine(),
+                        12,
+                        MainActivity.ACCENT,
+                        true);
+                profile.setLineSpacing(host.dp(2), 1f);
+                item.addView(profile, host.marginTop(4));
+
+                TextView state = host.text(
+                        (entry.aiCopy == null
+                                ? "本地排盤"
+                                : "完整解讀已保存")
+                                + " · 點擊查看  →",
+                        11,
+                        entry.aiCopy == null
+                                ? MainActivity.MUTED
+                                : MainActivity.GOLD,
+                        true);
+                item.addView(state, host.marginTop(5));
+
+                final FortuneHistoryEntry selected = entry;
+                item.setOnClickListener(v -> {
+                    AlertDialog current = dialogHolder[0];
+                    if (current != null && current.isShowing()) {
+                        current.dismiss();
+                    }
+                    host.openHistoryEntry(selected);
+                });
+
+                body.addView(item, host.marginTop(8));
+            }
+        }
+
+        ScrollView scroll = new ScrollView(host);
+        scroll.setFillViewport(false);
+        scroll.addView(body);
+        LinearLayout.LayoutParams scrollLp =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        entries.isEmpty()
+                                ? host.dp(150)
+                                : host.dp(430));
+        scrollLp.topMargin = host.dp(8);
+        panel.addView(scroll, scrollLp);
+
+        LinearLayout actions = new LinearLayout(host);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button clear = host.secondaryButton("清除記錄");
+        clear.setEnabled(!entries.isEmpty());
+        clear.setAlpha(entries.isEmpty() ? 0.45f : 1f);
+
+        Button close = host.secondaryButton("關閉");
+        LinearLayout.LayoutParams actionLp =
+                new LinearLayout.LayoutParams(
+                        0,
+                        host.dp(44),
+                        1f);
+        actionLp.rightMargin = host.dp(6);
+        actions.addView(clear, actionLp);
+        actions.addView(
+                close,
+                new LinearLayout.LayoutParams(
+                        0,
+                        host.dp(44),
+                        1f));
+        panel.addView(actions, host.marginTop(10));
+
+        final AlertDialog dialog =
+                new AlertDialog.Builder(host)
+                        .setView(panel)
+                        .create();
+        dialogHolder[0] = dialog;
+
+        clear.setOnClickListener(v -> {
+            FortuneHistoryStore.clear(host);
+            OperationLog.add(host, "FORTUNE_HISTORY_CLEARED", "");
+            Toast.makeText(
+                    host,
+                    "已清除算命記錄",
+                    Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+        close.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+        host.styleDarkDialog(dialog);
+    }
+
     void showOperationLog() {
         OperationLog.add(host, "OPEN_OPERATION_LOG", "");
         List<OperationLog.Entry> entries = OperationLog.list(host);

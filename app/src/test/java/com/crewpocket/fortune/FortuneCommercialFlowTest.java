@@ -44,6 +44,59 @@ public final class FortuneCommercialFlowTest {
                         .equals(FortuneReadingId.from(tarot)));
     }
 
+    @Test public void irrelevantSharedFieldsDoNotChangeTarotReadingId() {
+        FortunePreset first = new FortunePreset(
+                "",
+                "1985-07-06",
+                "04:10",
+                "male",
+                FortuneMode.TAROT_NUMEROLOGY,
+                "Bangkok",
+                "13.7563",
+                "100.5018",
+                "Asia/Bangkok");
+        FortunePreset second = new FortunePreset(
+                "",
+                "1985-07-06",
+                "22:45",
+                "female",
+                FortuneMode.TAROT_NUMEROLOGY,
+                "Taipei",
+                "25.0330",
+                "121.5654",
+                "Asia/Taipei");
+
+        assertEquals(
+                FortuneReadingId.from(first),
+                FortuneReadingId.from(second));
+    }
+
+    @Test public void irrelevantSharedFieldsDoNotChangeBaziOrVedicReadingId() {
+        FortunePreset baziA = new FortunePreset(
+                "", "1985-07-06", "04:10", "male",
+                FortuneMode.BA_ZI,
+                "Bangkok", "13.7", "100.5", "Asia/Bangkok");
+        FortunePreset baziB = new FortunePreset(
+                "", "1985-07-06", "04:10", "male",
+                FortuneMode.BA_ZI,
+                "Taipei", "25.0", "121.5", "Asia/Taipei");
+        assertEquals(
+                FortuneReadingId.from(baziA),
+                FortuneReadingId.from(baziB));
+
+        FortunePreset vedicA = new FortunePreset(
+                "", "1985-07-06", "04:10", "male",
+                FortuneMode.VEDIC_ASTROLOGY,
+                "Bangkok", "13.7", "100.5", "Asia/Bangkok");
+        FortunePreset vedicB = new FortunePreset(
+                "", "1985-07-06", "04:10", "female",
+                FortuneMode.VEDIC_ASTROLOGY,
+                "Bangkok", "13.7", "100.5", "Asia/Bangkok");
+        assertEquals(
+                FortuneReadingId.from(vedicA),
+                FortuneReadingId.from(vedicB));
+    }
+
     @Test public void aiCopyRoundTripsForPaidLocalRestore() {
         AiFortuneCopy copy = AiFortuneCopy.parse(
                 "{"
