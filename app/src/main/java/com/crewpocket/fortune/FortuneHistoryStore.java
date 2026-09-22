@@ -56,6 +56,14 @@ final class FortuneHistoryStore {
         return out;
     }
 
+    static FortuneHistoryEntry get(Context context, String id) {
+        if (id == null || id.trim().isEmpty()) return null;
+        for (FortuneHistoryEntry entry : list(context)) {
+            if (id.equals(entry.id)) return entry;
+        }
+        return null;
+    }
+
     static void updateAiCopy(
             Context context,
             String id,
