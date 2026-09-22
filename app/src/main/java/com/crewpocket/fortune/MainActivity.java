@@ -275,6 +275,12 @@ public final class MainActivity extends Activity {
             FortunePaidReadingStore.clearPending(this);
             aiCopy = null;
             paidGenerationPending = false;
+            if (!currentHistoryId.isEmpty()) {
+                FortuneHistoryStore.updateAiCopy(
+                        this,
+                        currentHistoryId,
+                        null);
+            }
             OperationLog.add(
                     this,
                     "DEBUG_PAID_READING_CLEARED",
@@ -497,6 +503,12 @@ public final class MainActivity extends Activity {
             aiCopy = FortunePaidReadingStore.loadReport(
                     this,
                     currentReadingId);
+            if (!currentHistoryId.isEmpty()) {
+                FortuneHistoryStore.updateAiCopy(
+                        this,
+                        currentHistoryId,
+                        aiCopy);
+            }
             renderResult(currentResult, false);
             consumeSavedPendingPurchaseIfNeeded();
             return;
