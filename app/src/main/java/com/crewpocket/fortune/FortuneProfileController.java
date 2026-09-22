@@ -70,8 +70,25 @@ final class FortuneProfileController {
                 1));
         birthTimeInput.setOnClickListener(v -> showTimePicker());
 
-        form.addView(birthInput, host.marginTop(8));
-        form.addView(birthTimeInput, host.marginTop(6));
+        LinearLayout dateTimeRow = new LinearLayout(host);
+        dateTimeRow.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams dateLp =
+                new LinearLayout.LayoutParams(0, host.dp(48), 1.15f);
+        dateLp.rightMargin = host.dp(6);
+        dateTimeRow.addView(birthInput, dateLp);
+        dateTimeRow.addView(
+                birthTimeInput,
+                new LinearLayout.LayoutParams(
+                        0, host.dp(48), 0.85f));
+        form.addView(dateTimeRow, host.marginTop(8));
+
+        TextView sharedHint = host.text(
+                "基本資料固定顯示，切換命理不會消失；不同系統只取它需要的欄位。",
+                10,
+                MainActivity.MUTED,
+                false);
+        sharedHint.setLineSpacing(host.dp(2), 1f);
+        form.addView(sharedHint, host.marginTop(4));
 
         genderRow = new LinearLayout(host);
         genderRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -94,18 +111,14 @@ final class FortuneProfileController {
     }
 
     void onModeSelected(FortuneMode mode) {
-        boolean isBaZi = mode == FortuneMode.BA_ZI;
-        boolean isVedic = mode == FortuneMode.VEDIC_ASTROLOGY;
         if (birthTimeInput != null) {
-            birthTimeInput.setVisibility(
-                    (isBaZi || isVedic) ? View.VISIBLE : View.GONE);
+            birthTimeInput.setVisibility(View.VISIBLE);
         }
         if (genderRow != null) {
-            genderRow.setVisibility(isBaZi ? View.VISIBLE : View.GONE);
+            genderRow.setVisibility(View.VISIBLE);
         }
         if (vedicLocationSection != null) {
-            vedicLocationSection.setVisibility(
-                    isVedic ? View.VISIBLE : View.GONE);
+            vedicLocationSection.setVisibility(View.VISIBLE);
         }
     }
 
@@ -121,7 +134,7 @@ final class FortuneProfileController {
                     || longitudeText.isEmpty()
                     || zoneText.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "印度星盤需要出生地 latitude、longitude 與 timezone");
+                        "印度星盤請先搜尋並選擇出生城市");
             }
 
             final double latitude;
@@ -229,7 +242,7 @@ final class FortuneProfileController {
                 && preset.birthPlaceOrNull() == null) {
             Toast.makeText(
                     host,
-                    "印度星盤 preset 需要有效的出生地座標與時區",
+                    "印度星盤常用資料需要先選擇出生城市",
                     Toast.LENGTH_SHORT).show();
             return;
         }
@@ -355,7 +368,7 @@ final class FortuneProfileController {
                     finishBirthPlaceSearchUi();
                     if (geocodeStatus != null) {
                         geocodeStatus.setText(
-                                "城市搜尋失敗，可稍後重試或用進階設定手動輸入");
+                                "城市搜尋失敗，請稍後重試");
                         geocodeStatus.setTextColor(
                                 Color.rgb(255, 150, 150));
                     }
@@ -365,7 +378,7 @@ final class FortuneProfileController {
                             host.safeErrorMessage(error));
                     Toast.makeText(
                             host,
-                            "城市搜尋暫時無法使用，仍可手動輸入座標與時區",
+                            "城市搜尋暫時無法使用，請稍後重試",
                             Toast.LENGTH_LONG).show();
                 });
             }
@@ -375,13 +388,22 @@ final class FortuneProfileController {
     private void addVedicLocationFields(LinearLayout form) {
         vedicLocationSection = host.column();
 
-        TextView vedicRule = host.text(
-                "輸入出生城市，直接按右側「搜尋」。",
-                11,
-                MainActivity.GOLD,
+        TextView cityLabel = host.text(
+                "出生城市",
+                12,
+                MainActivity.TEXT,
                 true);
+        vedicLocationSection.addView(cityLabel);
+
+        TextView vedicRule = host.text(
+                "搜尋城市後，座標與時區會自動設定；不用另外輸入。",
+                10,
+                MainActivity.MUTED,
+                false);
         vedicRule.setLineSpacing(host.dp(2), 1f);
-        vedicLocationSection.addView(vedicRule);
+        vedicLocationSection.addView(
+                vedicRule,
+                host.marginTop(2));
 
         birthPlaceNameInput = host.input(
                 "新北市、Bangkok、Tokyo…");
@@ -438,55 +460,20 @@ final class FortuneProfileController {
                 searchButtonLp);
 
         geocodeStatus = host.text(
-                "選擇搜尋結果後，時區與座標會自動帶入。",
+                "印度星盤會使用；八字／塔羅可先不填。",
                 10,
                 MainActivity.MUTED,
                 false);
         geocodeStatus.setLineSpacing(host.dp(2), 1f);
 
-        timeZoneButton = host.secondaryButton("時區：UTC+08:00");
-        timeZoneButton.setGravity(
-                Gravity.CENTER_VERTICAL | Gravity.START);
-        timeZoneButton.setPadding(host.dp(12), 0, host.dp(12), 0);
-        timeZoneButton.setOnClickListener(v -> showTimeZonePicker());
-
-        Button advancedCoordinates =
-                host.secondaryButton(
-                        "進階設定：Latitude / Longitude");
-        advancedCoordinates.setGravity(
-                Gravity.CENTER_VERTICAL | Gravity.START);
-        advancedCoordinates.setPadding(
-                host.dp(12), 0, host.dp(12), 0);
-
-        latitudeInput = host.input("Latitude，例如 25.0120");
-        longitudeInput = host.input("Longitude，例如 121.4657");
-        latitudeInput.setInputType(
-                InputType.TYPE_CLASS_NUMBER
-                        | InputType.TYPE_NUMBER_FLAG_DECIMAL
-                        | InputType.TYPE_NUMBER_FLAG_SIGNED);
-        longitudeInput.setInputType(
-                InputType.TYPE_CLASS_NUMBER
-                        | InputType.TYPE_NUMBER_FLAG_DECIMAL
-                        | InputType.TYPE_NUMBER_FLAG_SIGNED);
-
+        // Coordinates/timezone are implementation details. Keep them in state only,
+        // not as separate user-facing controls.
+        latitudeInput = host.input("");
+        longitudeInput = host.input("");
+        latitudeInput.setVisibility(View.GONE);
+        longitudeInput.setVisibility(View.GONE);
         vedicCoordinateFields = host.column();
-        vedicCoordinateFields.addView(latitudeInput);
-        vedicCoordinateFields.addView(
-                longitudeInput,
-                host.marginTop(6));
         vedicCoordinateFields.setVisibility(View.GONE);
-
-        advancedCoordinates.setOnClickListener(v -> {
-            boolean opening =
-                    vedicCoordinateFields.getVisibility()
-                            != View.VISIBLE;
-            vedicCoordinateFields.setVisibility(
-                    opening ? View.VISIBLE : View.GONE);
-            advancedCoordinates.setText(
-                    opening
-                            ? "收起進階設定：Latitude / Longitude"
-                            : "進階設定：Latitude / Longitude");
-        });
 
         vedicLocationSection.addView(
                 citySearchRow,
@@ -494,27 +481,8 @@ final class FortuneProfileController {
         vedicLocationSection.addView(
                 geocodeStatus,
                 host.marginTop(4));
-        vedicLocationSection.addView(
-                timeZoneButton,
-                host.marginTop(6));
-        vedicLocationSection.addView(
-                advancedCoordinates,
-                host.marginTop(6));
-        vedicLocationSection.addView(
-                vedicCoordinateFields,
-                host.marginTop(4));
-
-        TextView locationHint = host.text(
-                "需要時可展開進階設定手動確認 Latitude / Longitude；AI 不會猜出生地。",
-                10,
-                MainActivity.MUTED,
-                false);
-        locationHint.setLineSpacing(host.dp(2), 1f);
-        vedicLocationSection.addView(
-                locationHint,
-                host.marginTop(4));
-        vedicLocationSection.setVisibility(View.GONE);
-        form.addView(vedicLocationSection, host.marginTop(6));
+        vedicLocationSection.setVisibility(View.VISIBLE);
+        form.addView(vedicLocationSection, host.marginTop(8));
     }
 
     private void addPresetActions(LinearLayout form) {
@@ -543,6 +511,10 @@ final class FortuneProfileController {
                         host.dp(44),
                         1f));
         form.addView(presetRow, host.marginTop(6));
+    }
+
+    void applyHistoryPreset(FortunePreset preset) {
+        applyPreset(preset);
     }
 
     private void applyPreset(FortunePreset preset) {
@@ -728,11 +700,7 @@ final class FortuneProfileController {
         if (geocodeStatus != null) {
             geocodeStatus.setText(
                     "已選：" + result.displayName()
-                            + " · " + result.timezone
-                            + "\n"
-                            + formatCoordinate(result.latitude)
-                            + ", "
-                            + formatCoordinate(result.longitude));
+                            + " · 已自動設定時區");
             geocodeStatus.setTextColor(MainActivity.GOLD);
         }
 
