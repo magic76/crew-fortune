@@ -113,7 +113,7 @@ final class BaZiResultRenderer {
         LinearLayout panel = host.resultPanel();
 
         TextView intro = host.text(
-                "這裡不做神祕分數。每個主題都直接給「本命依據 → 現在大運 → 關鍵年份 → 白話解讀」，語音老師只負責補充。",
+                "先看工作、財運、感情對你代表什麼；命盤術語只放在後面的「為什麼這樣說」。",
                 13, MainActivity.MUTED, false);
         intro.setLineSpacing(host.dp(3), 1f);
         panel.addView(intro);
@@ -124,19 +124,19 @@ final class BaZiResultRenderer {
     }
     void addWealthTopic(LinearLayout panel) {
         Object p = host.rendererFacts().detail("wealthProfile");
-        LinearLayout card = host.topicCard(panel, "財運", "看財星、財星位置、大運與逐年啟動");
-        host.addTopicLine(card, "本命",
-                "財星五行 " + host.mapValue(p, "wealthElement")
-                        + "　·　正財 " + host.mapValue(p, "directWealthCount")
-                        + "　·　偏財 " + host.mapValue(p, "indirectWealthCount"));
-        host.addTopicLine(card, "依據", host.compactValue(host.mapObjectValue(p, "natalEvidence")));
-        host.addTopicLine(card, "目前大運", host.summaryLuck(host.mapObjectValue(p, "currentLuck")));
-        host.addTopicLine(card, "時間",
-                "財星訊號年份：" + host.compactValue(host.mapObjectValue(p, "annualSignalYears")));
-        host.addTopicLine(card, "白話解讀",
+        LinearLayout card = host.topicCard(panel, "財運", "先看白話重點，需要時再看命盤依據");
+        host.addTopicLine(card, "先說重點",
                 host.rendererCopy() != null && !host.rendererCopy().wealth.isEmpty()
                         ? FortuneResultTabCopy.compactInterpretation(host.rendererCopy().wealth, "")
                         : FortuneResultTabCopy.compactInterpretation("", host.localReportSection("工作與財務")));
+        host.addTopicLine(card, "為什麼這樣說",
+                "財星五行 " + host.mapValue(p, "wealthElement")
+                        + "　·　正財 " + host.mapValue(p, "directWealthCount")
+                        + "　·　偏財 " + host.mapValue(p, "indirectWealthCount"));
+        host.addTopicLine(card, "命盤依據", host.compactValue(host.mapObjectValue(p, "natalEvidence")));
+        host.addTopicLine(card, "目前階段", host.summaryLuck(host.mapObjectValue(p, "currentLuck")));
+        host.addTopicLine(card, "值得留意",
+                "財星訊號年份：" + host.compactValue(host.mapObjectValue(p, "annualSignalYears")));
         host.addTopicBoundary(card, host.mapValue(p, "evidenceRule"));
         host.addAskTeacherAction(
                 card,
@@ -145,19 +145,19 @@ final class BaZiResultRenderer {
     }
     void addCareerTopic(LinearLayout panel) {
         Object p = host.rendererFacts().detail("careerProfile");
-        LinearLayout card = host.topicCard(panel, "工作", "看官殺、印、食傷與大運流年");
-        host.addTopicLine(card, "本命",
-                "官殺 " + host.mapValue(p, "officerCount")
-                        + "　·　印 " + host.mapValue(p, "resourceCount")
-                        + "　·　食傷 " + host.mapValue(p, "outputCount"));
-        host.addTopicLine(card, "依據", host.compactValue(host.mapObjectValue(p, "natalEvidence")));
-        host.addTopicLine(card, "目前大運", host.summaryLuck(host.mapObjectValue(p, "currentLuck")));
-        host.addTopicLine(card, "時間",
-                "工作訊號年份：" + host.compactValue(host.mapObjectValue(p, "annualSignalYears")));
-        host.addTopicLine(card, "白話解讀",
+        LinearLayout card = host.topicCard(panel, "工作", "先看白話重點，需要時再看命盤依據");
+        host.addTopicLine(card, "先說重點",
                 host.rendererCopy() != null && !host.rendererCopy().career.isEmpty()
                         ? FortuneResultTabCopy.compactInterpretation(host.rendererCopy().career, "")
                         : host.localReportSection("工作與財務"));
+        host.addTopicLine(card, "為什麼這樣說",
+                "官殺 " + host.mapValue(p, "officerCount")
+                        + "　·　印 " + host.mapValue(p, "resourceCount")
+                        + "　·　食傷 " + host.mapValue(p, "outputCount"));
+        host.addTopicLine(card, "命盤依據", host.compactValue(host.mapObjectValue(p, "natalEvidence")));
+        host.addTopicLine(card, "目前階段", host.summaryLuck(host.mapObjectValue(p, "currentLuck")));
+        host.addTopicLine(card, "值得留意",
+                "工作訊號年份：" + host.compactValue(host.mapObjectValue(p, "annualSignalYears")));
         host.addTopicBoundary(card, host.mapValue(p, "evidenceRule"));
         host.addAskTeacherAction(
                 card,
@@ -166,20 +166,20 @@ final class BaZiResultRenderer {
     }
     void addRelationshipTopic(LinearLayout panel) {
         Object p = host.rendererFacts().detail("relationshipProfile");
-        LinearLayout card = host.topicCard(panel, "感情", "看日支配偶宮、財官約定與合沖");
-        host.addTopicLine(card, "本命",
-                "配偶宮 " + host.mapValue(p, "spousePalace")
-                        + "　·　藏干十神 " + host.compactValue(host.mapObjectValue(p, "spousePalaceTenGods")));
-        host.addTopicLine(card, "依據",
-                "常見財官約定 " + host.compactValue(host.mapObjectValue(p, "partnerGodConvention"))
-                        + "　·　本命數量 " + host.mapValue(p, "partnerGodCount"));
-        host.addTopicLine(card, "時間",
-                "配偶宮／財官訊號年份：" + host.compactRelationshipYears(
-                        host.mapObjectValue(p, "annualSignalYears")));
-        host.addTopicLine(card, "白話解讀",
+        LinearLayout card = host.topicCard(panel, "感情", "先看白話重點，需要時再看命盤依據");
+        host.addTopicLine(card, "先說重點",
                 host.rendererCopy() != null && !host.rendererCopy().relationships.isEmpty()
                         ? FortuneResultTabCopy.compactInterpretation(host.rendererCopy().relationships, "")
                         : host.localReportSection("感情與人際"));
+        host.addTopicLine(card, "為什麼這樣說",
+                "配偶宮 " + host.mapValue(p, "spousePalace")
+                        + "　·　藏干十神 " + host.compactValue(host.mapObjectValue(p, "spousePalaceTenGods")));
+        host.addTopicLine(card, "命盤依據",
+                "常見財官約定 " + host.compactValue(host.mapObjectValue(p, "partnerGodConvention"))
+                        + "　·　本命數量 " + host.mapValue(p, "partnerGodCount"));
+        host.addTopicLine(card, "值得留意",
+                "配偶宮／財官訊號年份：" + host.compactRelationshipYears(
+                        host.mapObjectValue(p, "annualSignalYears")));
         host.addTopicBoundary(card, host.mapValue(p, "evidenceRule"));
         host.addAskTeacherAction(
                 card,
