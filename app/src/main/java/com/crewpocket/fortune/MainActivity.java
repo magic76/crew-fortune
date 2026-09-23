@@ -80,6 +80,7 @@ public final class MainActivity extends Activity {
     private boolean showingResultPage;
     private boolean resultExpanded;
     private boolean loadMoreRequested;
+    private long calculationGeneration;
     private FortuneResult currentResult;
     private FortuneFacts currentFacts;
     private FortuneProfile currentProfile;
@@ -420,7 +421,7 @@ public final class MainActivity extends Activity {
 
                             if (resolvedReadingId.equals(currentReadingId)
                                     && currentProfile != null) {
-                                beginPaidGeneration();
+                                beginPaidGeneration(true);
                             } else {
                                 Toast.makeText(
                                         MainActivity.this,
@@ -537,7 +538,7 @@ public final class MainActivity extends Activity {
                         Toast.LENGTH_SHORT).show();
                 return;
             }
-            beginPaidGeneration();
+            beginPaidGeneration(true);
             return;
         }
 
@@ -571,7 +572,7 @@ public final class MainActivity extends Activity {
         billingManager.launchPurchase(currentReadingId);
     }
 
-    private void beginPaidGeneration() {
+    private void beginPaidGeneration(boolean revealFullResult) {
         if (currentProfile == null
                 || currentResult == null
                 || currentReadingId.isEmpty()) {
@@ -594,9 +595,15 @@ public final class MainActivity extends Activity {
         }
 
         paidGenerationPending = true;
-        loadMoreRequested = true;
-        resultExpanded = true;
-        selectedResultTab = 3;
+        if (revealFullResult) {
+            loadMoreRequested = true;
+            resultExpanded = true;
+            selectedResultTab = 3;
+        } else {
+            loadMoreRequested = false;
+            resultExpanded = false;
+            selectedResultTab = 0;
+        }
         showResultPage();
         OperationLog.add(
                 this,
@@ -837,7 +844,9 @@ public final class MainActivity extends Activity {
         FortuneMode previous = selectedMode;
         selectedMode = mode;
         OperationLog.add(this, "MODE_SELECTED", mode.name());
-        if (previous != mode && currentResult != null) {
+        if (previous != mode
+                && (currentResult != null || currentProfile != null)) {
+            calculationGeneration++;
             teacherController.close();
             aiController.close();
             currentResult = null;
@@ -901,6 +910,9 @@ public final class MainActivity extends Activity {
             return;
         }
 
+        final FortuneMode calculationMode = selectedMode;
+        final long generation = ++calculationGeneration;
+
         currentProfile = profile;
         currentReadingId = FortuneReadingId.from(preset);
         currentResult = null;
@@ -913,12 +925,22 @@ public final class MainActivity extends Activity {
         // Let Android paint the new page first. The deterministic engine then
         // produces the fast preview, while AI can continue in the background.
         resultCard.post(() ->
-                finishCalculation(profile, preset));
+                finishCalculation(
+                        generation,
+                        calculationMode,
+                        profile,
+                        preset));
     }
 
     private void finishCalculation(
+            long generation,
+            FortuneMode calculationMode,
             FortuneProfile profile,
             FortunePreset preset) {
+        if (generation != calculationGeneration
+                || calculationMode != selectedMode) {
+            return;
+        }
         try {
             Date referenceTime = new Date();
             resultReferenceTimeMillis = referenceTime.getTime();
@@ -934,7 +956,7 @@ public final class MainActivity extends Activity {
             OperationLog.add(
                     this,
                     "CALCULATE_SUCCESS",
-                    selectedMode.name()
+                    calculationMode.name()
                             + " · "
                             + currentFacts.basis);
 
@@ -953,6 +975,10 @@ public final class MainActivity extends Activity {
                             currentResult,
                             currentFacts,
                             aiCopy);
+            if (generation != calculationGeneration
+                    || calculationMode != selectedMode) {
+                return;
+            }
             currentHistoryId = historyEntry.id;
 
             if (aiCopy != null) {
@@ -968,7 +994,7 @@ public final class MainActivity extends Activity {
                             .pendingPurchaseToken(this)
                             .isEmpty()
                     && FortuneTextModelSession.hasProductionAi(this)) {
-                beginPaidGeneration();
+                beginPaidGeneration(false);
             } else {
                 renderResult(currentResult, false);
             }
