@@ -1590,7 +1590,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addSharedResultActions(boolean aiLoading, FortuneMode mode) {
-        if (aiLoading) {
+        if (aiLoading && selectedResultTab != 3) {
             addAiLoadingBanner(mode);
         }
 
