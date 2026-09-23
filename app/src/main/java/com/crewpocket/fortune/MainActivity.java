@@ -286,7 +286,7 @@ public final class MainActivity extends Activity {
                     "DEBUG_PAID_READING_CLEARED",
                     "");
             if (currentResult != null) {
-                selectedResultTab = 4;
+                selectedResultTab = 3;
                 renderResult(currentResult, false);
             }
             Toast.makeText(
@@ -455,7 +455,7 @@ public final class MainActivity extends Activity {
                                         Toast.LENGTH_SHORT).show();
                             }
                             if (currentResult != null
-                                    && selectedResultTab == 4
+                                    && selectedResultTab == 3
                                     && aiCopy == null) {
                                 renderResult(currentResult, false);
                             }
@@ -1410,7 +1410,7 @@ public final class MainActivity extends Activity {
 
         if (!aiLoading
                 && aiCopy != null
-                && (selectedResultTab == 0 || selectedResultTab == 4)) {
+                && (selectedResultTab == 0 || selectedResultTab == 3)) {
             List<String> contextualQuestions = buildContextFollowUps();
             if (!contextualQuestions.isEmpty()) {
                 addFollowUpQuestions(contextualQuestions);
@@ -1735,7 +1735,7 @@ public final class MainActivity extends Activity {
 
     private void addFollowUpQuestions(List<String> questions) {
         TextView title = text(
-                selectedResultTab == 0 || selectedResultTab == 4
+                selectedResultTab == 0 || selectedResultTab == 3
                         ? "你可能想問"
                         : "這一頁可以直接問",
                 13, GOLD, true);
