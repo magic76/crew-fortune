@@ -6,13 +6,16 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public final class FortuneResultTabCopyTest {
-    @Test public void topicTabsPointToShortSummaryAndInterpretationOwnsFullReport() {
+    @Test public void plainLanguageTabsSeparateTopicsReportAndRawData() {
         for (FortuneMode mode : FortuneMode.values()) {
-            String topic = FortuneResultTabCopy.description(mode, 3);
-            String interpretation = FortuneResultTabCopy.description(mode, 4);
-            assertTrue(topic.contains("短摘要"));
-            assertTrue(topic.contains("解讀"));
-            assertTrue(interpretation.contains("完整文字報告"));
+            String topics = FortuneResultTabCopy.description(mode, 2);
+            String interpretation = FortuneResultTabCopy.description(mode, 3);
+            String data = FortuneResultTabCopy.description(mode, 4);
+
+            assertTrue(topics.contains("生活主題")
+                    || topics.contains("個性"));
+            assertTrue(interpretation.contains("完整個人文字報告"));
+            assertTrue(data.contains("專業命盤資料"));
         }
     }
 
@@ -23,7 +26,7 @@ public final class FortuneResultTabCopyTest {
         StringBuilder longText = new StringBuilder();
         for (int i = 0; i < 220; i++) longText.append('甲');
         String compact = FortuneResultTabCopy.compactInterpretation(longText.toString(), "");
-        assertTrue(compact.contains("完整內容請看「解讀」"));
+        assertTrue(compact.contains("完整內容請看「完整解讀」"));
         assertFalse(compact.equals(longText.toString()));
     }
 
@@ -35,9 +38,12 @@ public final class FortuneResultTabCopyTest {
         }
     }
 
-    @Test public void overviewHintsKeepInterpretationAsPrimaryLongFormDestination() {
+    @Test public void overviewHintsPushTechnicalDataToTheEnd() {
         for (FortuneMode mode : FortuneMode.values()) {
-            assertTrue(FortuneResultTabCopy.overviewHint(mode).contains("解讀＝完整文字報告"));
+            String hint = FortuneResultTabCopy.overviewHint(mode);
+            assertTrue(hint.contains("先看懂自己"));
+            assertTrue(hint.contains("命盤資料"));
+            assertTrue(hint.contains("專業細節"));
         }
     }
 }

@@ -242,7 +242,7 @@ public final class MainActivity extends Activity {
                             0,
                             Math.min(12, currentReadingId.length())));
             if (currentResult != null) {
-                selectedResultTab = 4;
+                selectedResultTab = 3;
                 renderResult(currentResult, false);
             }
             Toast.makeText(
@@ -286,7 +286,7 @@ public final class MainActivity extends Activity {
                     "DEBUG_PAID_READING_CLEARED",
                     "");
             if (currentResult != null) {
-                selectedResultTab = 4;
+                selectedResultTab = 3;
                 renderResult(currentResult, false);
             }
             Toast.makeText(
@@ -344,7 +344,7 @@ public final class MainActivity extends Activity {
                                     ? ""
                                     : formattedPrice.trim();
                             if (currentResult != null
-                                    && selectedResultTab == 4
+                                    && selectedResultTab == 3
                                     && aiCopy == null) {
                                 renderResult(currentResult, false);
                             }
@@ -455,7 +455,7 @@ public final class MainActivity extends Activity {
                                         Toast.LENGTH_SHORT).show();
                             }
                             if (currentResult != null
-                                    && selectedResultTab == 4
+                                    && selectedResultTab == 3
                                     && aiCopy == null) {
                                 renderResult(currentResult, false);
                             }
@@ -586,7 +586,7 @@ public final class MainActivity extends Activity {
         }
 
         paidGenerationPending = true;
-        selectedResultTab = 4;
+        selectedResultTab = 3;
         OperationLog.add(
                 this,
                 "PAID_READING_GENERATION_START",
@@ -908,7 +908,13 @@ public final class MainActivity extends Activity {
                     ? "你的出生牌已翻開"
                     : result.title;
         } else {
-            titleValue = aiCopy == null ? result.title : aiCopy.title;
+            titleValue = aiCopy == null
+                    ? result.mode == FortuneMode.BA_ZI
+                        ? "你的八字重點"
+                        : result.mode == FortuneMode.TAROT_NUMEROLOGY
+                        ? "你的塔羅生命靈數重點"
+                        : "你的印度星盤重點"
+                    : aiCopy.title;
         }
 
         TextView title = text(titleValue, 25, TEXT, true);
@@ -1000,16 +1006,13 @@ public final class MainActivity extends Activity {
     }
 
     private void addUnifiedTabbedResult(FortuneResult result, boolean aiLoading) {
-        TextView basis = text("計算依據｜" + result.basis, 12, MUTED, false);
-        resultCard.addView(basis, marginTop(6));
-
         HorizontalScrollView tabScroll = new HorizontalScrollView(this);
         tabScroll.setHorizontalScrollBarEnabled(false);
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabScroll.addView(tabs);
 
-        final String[] labels = {"總覽", "本命", "流年", "主題", "解讀"};
+        final String[] labels = {"重點", "人生節奏", "主題", "完整解讀", "命盤資料"};
         for (int i = 0; i < labels.length; i++) {
             final int index = i;
             Button tab = new Button(this);
@@ -1146,7 +1149,8 @@ public final class MainActivity extends Activity {
     private void renderUnifiedTab(FortuneResult result, boolean aiLoading) {
         if (resultTabContent == null) return;
         resultTabContent.removeAllViews();
-        if (selectedResultTab == 4) {
+
+        if (selectedResultTab == 3) {
             addInterpretationTab(result, aiLoading);
             return;
         }
@@ -1154,13 +1158,13 @@ public final class MainActivity extends Activity {
         if (result.mode == FortuneMode.BA_ZI) {
             switch (selectedResultTab) {
                 case 1:
-                    baZiResultRenderer.addBaZiResultPanel();
-                    break;
-                case 2:
                     baZiResultRenderer.addBaZiLuckTimelineTab();
                     break;
-                case 3:
+                case 2:
                     baZiResultRenderer.addBaZiTopicAnalysisTab();
+                    break;
+                case 4:
+                    baZiResultRenderer.addBaZiResultPanel();
                     break;
                 case 0:
                 default:
@@ -1173,13 +1177,13 @@ public final class MainActivity extends Activity {
         if (result.mode == FortuneMode.VEDIC_ASTROLOGY) {
             switch (selectedResultTab) {
                 case 1:
-                    vedicResultRenderer.addVedicNatalTab();
-                    break;
-                case 2:
                     vedicResultRenderer.addVedicDashaTimelineTab();
                     break;
-                case 3:
+                case 2:
                     vedicResultRenderer.addVedicTopicAnalysisTab();
+                    break;
+                case 4:
+                    vedicResultRenderer.addVedicNatalTab();
                     break;
                 case 0:
                 default:
@@ -1191,13 +1195,13 @@ public final class MainActivity extends Activity {
 
         switch (selectedResultTab) {
             case 1:
-                tarotResultRenderer.addTarotResultPanel();
-                break;
-            case 2:
                 tarotResultRenderer.addTarotTimelineTab();
                 break;
-            case 3:
+            case 2:
                 tarotResultRenderer.addTarotTopicAnalysisTab();
+                break;
+            case 4:
+                tarotResultRenderer.addTarotResultPanel();
                 break;
             case 0:
             default:
@@ -1409,7 +1413,7 @@ public final class MainActivity extends Activity {
 
         if (!aiLoading
                 && aiCopy != null
-                && (selectedResultTab == 0 || selectedResultTab == 4)) {
+                && (selectedResultTab == 0 || selectedResultTab == 3)) {
             List<String> contextualQuestions = buildContextFollowUps();
             if (!contextualQuestions.isEmpty()) {
                 addFollowUpQuestions(contextualQuestions);
@@ -1446,6 +1450,179 @@ public final class MainActivity extends Activity {
         }
     }
 
+    void addOverviewIdentity(LinearLayout panel, FortuneMode mode) {
+        String value = "";
+        if (aiCopy != null) {
+            value = !aiCopy.translation.isEmpty()
+                    ? aiCopy.translation
+                    : aiCopy.overview;
+        }
+
+        if (value == null || value.trim().isEmpty()) {
+            if (mode == FortuneMode.BA_ZI) {
+                value = localReportSection("性格與天賦");
+                value = value.replaceFirst(
+                        "^[木火土金水]日主常被拿來描述成",
+                        "你通常");
+            } else if (mode == FortuneMode.TAROT_NUMEROLOGY) {
+                value = localReportSection("內在 vs 外在");
+                int outer = value.indexOf("外在層：");
+                if (outer >= 0) {
+                    value = value.substring(outer)
+                            .replace("外在層：", "別人先看到的你：")
+                            .replace("內在層：", "相處久了的你：");
+                }
+            } else {
+                value = plainVedicIdentity();
+            }
+        }
+
+        value = FortuneOverviewSnapshot.compact(value, 155);
+        if (value.isEmpty()) return;
+
+        LinearLayout card = column();
+        card.setPadding(dp(11), dp(11), dp(11), dp(11));
+        card.setBackground(roundBorder(
+                Color.rgb(55, 42, 82),
+                Color.rgb(111, 91, 157),
+                15,
+                1));
+        card.addView(text("一句話看你", 12, GOLD, true));
+
+        TextView body = text(value, 16, TEXT, true);
+        body.setLineSpacing(dp(3), 1f);
+        card.addView(body, marginTop(5));
+        panel.addView(card);
+    }
+
+    private String plainVedicIdentity() {
+        String outer = vedicSignTrait(
+                currentFacts == null
+                        ? ""
+                        : currentFacts.detailText("lagnaSign"),
+                false);
+        String inner = vedicSignTrait(
+                currentFacts == null
+                        ? ""
+                        : currentFacts.detailText("moonSign"),
+                true);
+
+        if (outer.isEmpty() && inner.isEmpty()) {
+            return "這張盤先看你對外的做事方式，以及內在真正需要的安全感，兩者的落差通常最有感。";
+        }
+        if (outer.isEmpty()) return "你的內在比較" + inner + "。";
+        if (inner.isEmpty()) return "你給人的感覺比較" + outer + "。";
+        return "你給人的感覺比較" + outer
+                + "，但內在其實更" + inner
+                + "；這兩種節奏怎麼配合，是這張盤先看的重點。";
+    }
+
+    private String vedicSignTrait(String sign, boolean inner) {
+        String value = sign == null
+                ? ""
+                : sign.trim().toLowerCase(java.util.Locale.US);
+        if ("aries".equals(value)) return inner ? "需要直接與行動感" : "主動直接、反應快";
+        if ("taurus".equals(value)) return inner ? "需要穩定、可預期與踏實感" : "穩定務實、步調有自己的節奏";
+        if ("gemini".equals(value)) return inner ? "需要交流、資訊與新鮮感" : "好奇靈活、很會接收資訊";
+        if ("cancer".equals(value)) return inner ? "重視安全感、熟悉感與情感連結" : "敏感細膩、先觀察環境";
+        if ("leo".equals(value)) return inner ? "需要被看見、被肯定與有發揮空間" : "有存在感、願意主動表達";
+        if ("virgo".equals(value)) return inner ? "需要秩序、清楚與事情有被處理好" : "細緻務實、容易先看到問題";
+        if ("libra".equals(value)) return inner ? "需要和諧、互相理解與公平感" : "重視互動品質、會看場合";
+        if ("scorpio".equals(value)) return inner ? "需要深度、信任與真正的掌控感" : "專注、有強烈觀察力";
+        if ("sagittarius".equals(value)) return inner ? "需要空間、方向與成長感" : "直率開放、喜歡往前探索";
+        if ("capricorn".equals(value)) return inner ? "需要目標、可靠與可累積的成果" : "沉穩務實、責任感明顯";
+        if ("aquarius".equals(value)) return inner ? "需要自由、距離與自己的思考空間" : "獨立理性、做法常有自己的版本";
+        if ("pisces".equals(value)) return inner ? "需要感受、想像與情緒流動的空間" : "感受力強、容易讀到環境氣氛";
+        return "";
+    }
+
+    void addOverviewNextFocus(LinearLayout panel) {
+        List<FortuneYearHighlightBuilder.Highlight> highlights =
+                FortuneYearHighlightBuilder.build(
+                        selectedMode,
+                        currentFacts);
+
+        TextView title = text(
+                selectedMode == FortuneMode.VEDIC_ASTROLOGY
+                        ? "接下來先注意這 2 個時期"
+                        : "接下來先注意這 2 件事",
+                13,
+                GOLD,
+                true);
+        panel.addView(title, marginTop(10));
+
+        int shown = 0;
+        for (FortuneYearHighlightBuilder.Highlight highlight : highlights) {
+            if (shown >= 2) break;
+
+            LinearLayout card = column();
+            card.setPadding(dp(10), dp(9), dp(10), dp(9));
+            card.setBackground(round(
+                    Color.rgb(43, 33, 65),
+                    13));
+
+            TextView heading = text(
+                    highlight.year + " · " + highlight.theme,
+                    13,
+                    TEXT,
+                    true);
+            card.addView(heading);
+
+            TextView summary = text(
+                    FortuneOverviewSnapshot.compact(
+                            highlight.summary,
+                            105),
+                    12,
+                    MUTED,
+                    false);
+            summary.setLineSpacing(dp(2), 1f);
+            card.addView(summary, marginTop(3));
+            panel.addView(card, marginTop(5));
+            shown++;
+        }
+
+        if (shown == 0) {
+            String fallback = aiCopy != null
+                    ? FortuneOverviewSnapshot.compact(aiCopy.advice, 120)
+                    : "";
+            if (fallback.isEmpty()) {
+                fallback = "目前先把「現在走到哪裡」看懂；更細的年份與週期放在「人生節奏」。";
+            }
+            TextView body = text(fallback, 12, MUTED, false);
+            body.setLineSpacing(dp(2), 1f);
+            panel.addView(body, marginTop(4));
+        }
+    }
+
+    void addOverviewPrimaryAction(LinearLayout panel, boolean aiLoading) {
+        Button button = primaryButton(
+                aiLoading
+                        ? "完整解讀整理中  →"
+                        : aiCopy == null
+                        ? "看完整解讀  →"
+                        : "閱讀完整解讀  →");
+        button.setEnabled(!aiLoading || aiController.isRunning());
+        button.setOnClickListener(v -> {
+            selectedResultTab = 3;
+            OperationLog.add(
+                    this,
+                    "OVERVIEW_OPEN_INTERPRETATION",
+                    aiCopy == null ? "locked_or_local" : "unlocked");
+            renderResult(
+                    currentResult,
+                    aiController.isRunning() && aiCopy == null);
+        });
+        panel.addView(button, fixedHeightTop(50, 12));
+
+        TextView dataHint = text(
+                "想研究四柱、行星、宮位或數字結構，再到「命盤資料」。",
+                10,
+                MUTED,
+                false);
+        dataHint.setGravity(Gravity.CENTER);
+        panel.addView(dataHint, marginTop(5));
+    }
+
     void addOverviewTakeaways(LinearLayout panel, FortuneMode mode) {
         List<String> values = FortuneOverviewSnapshot.keyTakeaways(
                 mode,
@@ -1456,7 +1633,7 @@ public final class MainActivity extends Activity {
         panel.addView(title, marginTop(10));
 
         TextView hint = text(
-                "先抓結論；原始命盤放在「本命／流年」，完整長文放在「解讀」。",
+                "先看懂自己，不用先學命理術語。",
                 11,
                 MUTED,
                 false);
@@ -1545,11 +1722,7 @@ public final class MainActivity extends Activity {
                 14,
                 1));
 
-        String label = mode == FortuneMode.BA_ZI
-                ? "現在走到哪裡 · 大運／流年"
-                : mode == FortuneMode.VEDIC_ASTROLOGY
-                ? "現在走到哪裡 · Dasha／Gochar"
-                : "現在走到哪裡 · 個人流年";
+        String label = "現在走到哪裡";
         card.addView(text(label, 12, GOLD, true));
 
         TextView body = text(timing, 13, TEXT, false);
@@ -1623,7 +1796,7 @@ public final class MainActivity extends Activity {
 
     private void addFollowUpQuestions(List<String> questions) {
         TextView title = text(
-                selectedResultTab == 0 || selectedResultTab == 4
+                selectedResultTab == 0 || selectedResultTab == 3
                         ? "你可能想問"
                         : "這一頁可以直接問",
                 13, GOLD, true);
@@ -1661,32 +1834,12 @@ public final class MainActivity extends Activity {
         List<String> out = new ArrayList<String>();
         if (aiCopy == null) return out;
 
-        if (selectedResultTab == 0 || selectedResultTab == 4) {
+        if (selectedResultTab == 0 || selectedResultTab == 3) {
             out.addAll(aiCopy.followUps);
             return trimQuestions(out, 4);
         }
 
         if (selectedResultTab == 1) {
-            if (selectedMode == FortuneMode.BA_ZI) {
-                out.add("我的日主和旺衰放到生活裡，最像什麼？");
-                out.add("我的十神組合最明顯的優勢是什麼？");
-                out.add("我的本命最容易卡在哪裡？");
-                out.add("五行結構對我的做事方式有什麼影響？");
-            } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
-                out.add("我的 Lagna 和 Lagna lord 最像我的地方是什麼？");
-                out.add("Moon Nakshatra 對我的內在節奏代表什麼？");
-                out.add("本命裡最值得注意的 house lord 落點是什麼？");
-                out.add("哪些 Drishti 或 conjunction 最影響我的做事方式？");
-            } else {
-                out.add("外在人格牌和內在靈魂牌最大的落差是什麼？");
-                out.add("生命道路 " + currentFacts.detailText("lifePathDisplay") + " 最像我的地方是什麼？");
-                out.add("我的天賦數最適合怎麼用？");
-                out.add("四大挑戰裡，哪一個最值得我注意？");
-            }
-            return out;
-        }
-
-        if (selectedResultTab == 2) {
             for (FortuneYearHighlightBuilder.Highlight highlight
                     : FortuneYearHighlightBuilder.build(selectedMode, currentFacts)) {
                 out.add(highlight.question);
@@ -1706,7 +1859,7 @@ public final class MainActivity extends Activity {
             return trimQuestions(out, 4);
         }
 
-        if (selectedResultTab == 3) {
+        if (selectedResultTab == 2) {
             if (selectedMode == FortuneMode.BA_ZI) {
                 out.add("直接講我的工作優勢與盲點。");
                 out.add("直接講我的財運重點，不要只講好壞。");
@@ -1723,7 +1876,24 @@ public final class MainActivity extends Activity {
                 out.add("直接講我的感情與人際模式。");
                 out.add("未來三年哪個主題最值得我注意？");
             }
-            return out;
+            return trimQuestions(out, 4);
+        }
+
+        if (selectedResultTab == 4) {
+            if (selectedMode == FortuneMode.BA_ZI) {
+                out.add("我的日主和旺衰放到生活裡，最像什麼？");
+                out.add("我的十神組合最明顯的優勢是什麼？");
+                out.add("五行結構對我的做事方式有什麼影響？");
+            } else if (selectedMode == FortuneMode.VEDIC_ASTROLOGY) {
+                out.add("我的 Lagna 和 Lagna lord 最像我的地方是什麼？");
+                out.add("Moon Nakshatra 對我的內在節奏代表什麼？");
+                out.add("哪個 house lord 落點最值得注意？");
+            } else {
+                out.add("外在人格牌和內在靈魂牌最大的落差是什麼？");
+                out.add("生命道路 " + currentFacts.detailText("lifePathDisplay") + " 最像我的地方是什麼？");
+                out.add("我的天賦數最適合怎麼用？");
+            }
+            return trimQuestions(out, 4);
         }
 
         out.addAll(aiCopy.followUps);
@@ -1896,11 +2066,11 @@ public final class MainActivity extends Activity {
 
         String subtitleValue;
         if (mode == FortuneMode.BA_ZI) {
-            subtitleValue = "本命、流年等資料已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。";
+            subtitleValue = "重點與人生節奏已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。";
         } else if (mode == FortuneMode.VEDIC_ASTROLOGY) {
-            subtitleValue = "Lagna、九曜、12 宮與 Dasha 已經可以先看；AI 正在只依 deterministic Vedic facts 整理完整報告。";
+            subtitleValue = "重點與人生節奏已經可以先看；AI 正在依完整星盤資料整理個人報告。";
         } else {
-            subtitleValue = "本命與流年資料已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。";
+            subtitleValue = "重點與人生節奏已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。";
         }
         TextView subtitle = text(subtitleValue, 13, MUTED, false);
         subtitle.setLineSpacing(dp(2), 1f);
@@ -1913,7 +2083,7 @@ public final class MainActivity extends Activity {
                 : "未來幾年";
         String timingLabel = mode == FortuneMode.VEDIC_ASTROLOGY ? "值得留意的時期" : "值得留意的年份";
         String[] sections = {
-                "總覽",
+                "先說結論",
                 "性格、優勢與盲點",
                 "工作",
                 "財運與資源",
@@ -2680,7 +2850,7 @@ public final class MainActivity extends Activity {
             currentFacts = engine.calculateFacts(FortuneMode.VEDIC_ASTROLOGY, profile, target);
             currentResult = engine.calculate(FortuneMode.VEDIC_ASTROLOGY, profile, target);
             aiCopy = null;
-            selectedResultTab = 2;
+            selectedResultTab = 1;
             renderResult(currentResult, false);
             OperationLog.add(
                     this,

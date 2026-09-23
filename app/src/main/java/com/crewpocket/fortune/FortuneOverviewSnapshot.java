@@ -41,15 +41,15 @@ final class FortuneOverviewSnapshot {
             };
         } else if (mode == FortuneMode.VEDIC_ASTROLOGY) {
             keys = new String[] {
-                    "核心總覽",
                     "工作",
-                    "感情"
+                    "感情",
+                    "家庭／子女"
             };
         } else {
             keys = new String[] {
-                    "內在 vs 外在",
                     "性格與天賦",
-                    "工作與財務"
+                    "工作與財務",
+                    "感情與人際"
             };
         }
 
@@ -62,7 +62,7 @@ final class FortuneOverviewSnapshot {
         }
 
         while (out.size() < 3) {
-            out.add("完整命盤資料已算好；可到「本命」查看原始依據。");
+            out.add("完整資料已算好；想看專業原始依據可到「命盤資料」。");
         }
         return out;
     }
