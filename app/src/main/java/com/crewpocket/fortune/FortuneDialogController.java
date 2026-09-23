@@ -43,7 +43,7 @@ final class FortuneDialogController {
                 true));
 
         TextView hint = host.text(
-                "點之前的結果直接查看，不會重新排盤，也不會重新呼叫 AI。",
+                "點之前的結果會直接開完整結果，不需要再按 Load more，也不會重新排盤或呼叫 AI。",
                 12,
                 MainActivity.MUTED,
                 false);
@@ -67,9 +67,11 @@ final class FortuneDialogController {
                 item.setPadding(
                         host.dp(11), host.dp(10),
                         host.dp(11), host.dp(10));
+                int modeColor = MainActivity.modeAccent(entry.preset.mode);
+                int modeSurface = MainActivity.modeSurface(entry.preset.mode);
                 item.setBackground(host.roundBorder(
-                        Color.rgb(39, 29, 60),
-                        Color.rgb(168, 137, 230),
+                        modeSurface,
+                        modeColor,
                         15,
                         2));
                 item.setClickable(true);
@@ -81,7 +83,7 @@ final class FortuneDialogController {
                 TextView title = host.text(
                         entry.titleLine(),
                         15,
-                        MainActivity.TEXT,
+                        modeColor,
                         true);
                 head.addView(
                         title,
@@ -101,16 +103,16 @@ final class FortuneDialogController {
                 TextView profile = host.text(
                         entry.subtitleLine(),
                         12,
-                        MainActivity.ACCENT,
+                        MainActivity.TEXT,
                         true);
                 profile.setLineSpacing(host.dp(2), 1f);
                 item.addView(profile, host.marginTop(4));
 
                 TextView state = host.text(
                         (entry.aiCopy == null
-                                ? "本地排盤"
+                                ? "基本結果已保存"
                                 : "完整解讀已保存")
-                                + " · 點擊查看  →",
+                                + " · 直接查看完整結果  →",
                         11,
                         entry.aiCopy == null
                                 ? MainActivity.MUTED
