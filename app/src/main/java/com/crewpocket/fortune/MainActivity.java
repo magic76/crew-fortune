@@ -74,7 +74,11 @@ public final class MainActivity extends Activity {
     private Button normalStyleButton;
     private Button funnyStyleButton;
     private AiStyle selectedAiStyle = AiStyle.FUNNY;
+    private ScrollView mainScroll;
+    private LinearLayout inputPage;
     private LinearLayout resultCard;
+    private boolean resultExpanded;
+    private boolean loadMoreRequested;
     private FortuneResult currentResult;
     private FortuneFacts currentFacts;
     private FortuneProfile currentProfile;
@@ -144,6 +148,8 @@ public final class MainActivity extends Activity {
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
         outState.putInt("state_result_tab", selectedResultTab);
+        outState.putBoolean("state_result_expanded", resultExpanded);
+        outState.putBoolean("state_load_more_requested", loadMoreRequested);
         outState.putLong("state_result_reference_time", resultReferenceTimeMillis);
         outState.putString("state_history_id", currentHistoryId);
         outState.putString("state_vedic_transit_date",
@@ -586,7 +592,10 @@ public final class MainActivity extends Activity {
         }
 
         paidGenerationPending = true;
+        loadMoreRequested = true;
+        resultExpanded = true;
         selectedResultTab = 3;
+        showResultPage();
         OperationLog.add(
                 this,
                 "PAID_READING_GENERATION_START",
@@ -614,6 +623,7 @@ public final class MainActivity extends Activity {
 
     private View buildScreen() {
         ScrollView scroll = new ScrollView(this);
+        mainScroll = scroll;
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
 
@@ -702,18 +712,21 @@ public final class MainActivity extends Activity {
 
         root.addView(top);
 
+        inputPage = column();
+        root.addView(inputPage);
+
         TextView title = text("看懂你的命盤，\n也看懂自己的節奏。", 32, TEXT, true);
         title.setLineSpacing(0, 1.04f);
-        root.addView(title, marginTop(4));
+        inputPage.addView(title, marginTop(4));
 
         TextView sub = text("八字、塔羅生命靈數、印度星盤。\n固定規則排盤，AI 命理老師只負責把結果講成人話。", 15, MUTED, false);
         sub.setLineSpacing(dp(2), 1f);
-        root.addView(sub, marginTop(6));
+        inputPage.addView(sub, marginTop(6));
 
         LinearLayout form = column();
         form.setPadding(dp(12), dp(12), dp(12), dp(12));
         form.setBackground(round(CARD, 18));
-        root.addView(form, marginTop(6));
+        inputPage.addView(form, marginTop(6));
 
         form.addView(label("選擇排盤方式"));
 
@@ -773,7 +786,7 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams calcLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(52));
         calcLp.topMargin = dp(12);
-        root.addView(calculate, calcLp);
+        inputPage.addView(calculate, calcLp);
 
         resultCard = column();
         resultCard.setPadding(dp(12), dp(12), dp(12), dp(12));
@@ -787,6 +800,34 @@ public final class MainActivity extends Activity {
         foot.setGravity(Gravity.CENTER);
         root.addView(foot, marginTop(9));
         return scroll;
+    }
+
+    private void showResultPage() {
+        if (inputPage != null) inputPage.setVisibility(View.GONE);
+        if (resultCard != null) resultCard.setVisibility(View.VISIBLE);
+        if (mainScroll != null) {
+            mainScroll.post(() -> mainScroll.smoothScrollTo(0, 0));
+        }
+    }
+
+    private void showInputPage() {
+        if (inputPage != null) inputPage.setVisibility(View.VISIBLE);
+        if (resultCard != null) resultCard.setVisibility(View.GONE);
+        if (mainScroll != null) {
+            mainScroll.post(() -> mainScroll.smoothScrollTo(0, 0));
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (resultCard != null
+                && resultCard.getVisibility() == View.VISIBLE
+                && inputPage != null
+                && inputPage.getVisibility() != View.VISIBLE) {
+            showInputPage();
+            return;
+        }
+        super.onBackPressed();
     }
 
     private void selectMode(FortuneMode mode) {
@@ -806,6 +847,7 @@ public final class MainActivity extends Activity {
             resultReferenceTimeMillis = -1L;
             selectedResultTab = 0;
             if (resultCard != null) resultCard.setVisibility(View.GONE);
+            showInputPage();
         }
         profileController.onModeSelected(mode);
         updateModeSelectionUi();
@@ -826,6 +868,8 @@ public final class MainActivity extends Activity {
             return;
         }
         selectedResultTab = 0;
+        resultExpanded = false;
+        loadMoreRequested = false;
         selectedVedicTransitDate = null;
         OperationLog.add(this, "CALCULATE_START", selectedMode.name());
         teacherController.close();
@@ -860,6 +904,7 @@ public final class MainActivity extends Activity {
                             currentFacts,
                             aiCopy);
             currentHistoryId = historyEntry.id;
+            showResultPage();
 
             if (aiCopy != null) {
                 renderResult(currentResult, false);
@@ -895,114 +940,121 @@ public final class MainActivity extends Activity {
     }
 
     private void renderResult(FortuneResult result, boolean aiLoading) {
+        if (result == null || resultCard == null) return;
         resultCard.removeAllViews();
 
-        TextView badge = text(result.mode.title().toUpperCase(), 12, GOLD, true);
-        resultCard.addView(badge);
+        LinearLayout nav = new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        nav.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView back = text("‹ 修改資料", 12, ACCENT, true);
+        back.setPadding(dp(8), dp(7), dp(8), dp(7));
+        back.setBackground(roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(128, 101, 181),
+                11,
+                1));
+        back.setOnClickListener(v -> showInputPage());
+        nav.addView(back);
+
+        TextView pageState = text(
+                resultExpanded ? "完整結果" : "初步結果",
+                11,
+                resultExpanded ? GOLD : MUTED,
+                true);
+        pageState.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        nav.addView(
+                pageState,
+                new LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f));
+        resultCard.addView(nav);
+
+        TextView badge = text(
+                result.mode.title().toUpperCase(),
+                12,
+                GOLD,
+                true);
+        resultCard.addView(badge, marginTop(10));
 
         String titleValue;
-        if (aiLoading) {
+        if (!resultExpanded) {
             titleValue = result.mode == FortuneMode.BA_ZI
-                    ? "命盤已排好，現在開始講人話"
+                    ? "你的八字重點"
                     : result.mode == FortuneMode.TAROT_NUMEROLOGY
-                    ? "你的出生牌已翻開"
-                    : result.title;
+                    ? "你的塔羅生命靈數重點"
+                    : "你的印度星盤重點";
         } else {
-            titleValue = aiCopy == null
-                    ? result.mode == FortuneMode.BA_ZI
-                        ? "你的八字重點"
-                        : result.mode == FortuneMode.TAROT_NUMEROLOGY
-                        ? "你的塔羅生命靈數重點"
-                        : "你的印度星盤重點"
-                    : aiCopy.title;
+            titleValue = aiCopy != null && !aiCopy.title.isEmpty()
+                    ? aiCopy.title
+                    : result.mode == FortuneMode.BA_ZI
+                    ? "你的八字完整結果"
+                    : result.mode == FortuneMode.TAROT_NUMEROLOGY
+                    ? "你的塔羅生命靈數完整結果"
+                    : "你的印度星盤完整結果";
         }
 
         TextView title = text(titleValue, 25, TEXT, true);
         resultCard.addView(title, marginTop(8));
 
-        if (result.mode == FortuneMode.BA_ZI
-                || result.mode == FortuneMode.TAROT_NUMEROLOGY
-                || result.mode == FortuneMode.VEDIC_ASTROLOGY) {
-            addUnifiedTabbedResult(result, aiLoading);
+        if (!resultExpanded) {
+            addProgressiveOverview(result, aiLoading);
             resultCard.setVisibility(View.VISIBLE);
             return;
         }
+
+        addUnifiedTabbedResult(result, aiLoading);
+        resultCard.setVisibility(View.VISIBLE);
+    }
+
+    private void addProgressiveOverview(
+            FortuneResult result,
+            boolean aiLoading) {
+        resultTabContent = column();
+        resultCard.addView(resultTabContent, marginTop(4));
 
         if (result.mode == FortuneMode.BA_ZI) {
-            baZiResultRenderer.addBaZiResultPanel();
-        } else if (result.mode == FortuneMode.TAROT_NUMEROLOGY) {
-            tarotResultRenderer.addTarotResultPanel();
+            baZiResultRenderer.addBaZiOverviewTab(result, aiLoading);
+        } else if (result.mode == FortuneMode.VEDIC_ASTROLOGY) {
+            vedicResultRenderer.addVedicOverviewTab(result, aiLoading);
         } else {
-            TextView score = text(primaryMetric(result), 30, ACCENT, true);
-            resultCard.addView(score, marginTop(8));
-
-            TextView basis = text("計算依據｜" + result.basis, 13, MUTED, false);
-            resultCard.addView(basis, marginTop(4));
+            tarotResultRenderer.addTarotOverviewTab(result, aiLoading);
         }
 
-        if (aiLoading) {
-            TextView loading = text(
-                    result.mode == FortuneMode.BA_ZI
-                            ? "✦ 四柱、五行與十神已排好。AI 命理老師正在整理重點與依據…"
-                            : result.mode == FortuneMode.TAROT_NUMEROLOGY
-                            ? "✦ 出生牌已確認。AI 命理老師正在把牌義整理成比較好懂的版本…"
-                            : "✦ 命盤已排好。AI 命理老師正在整理星盤重點與週期…",
-                    15, ACCENT, true);
-            loading.setLineSpacing(dp(3), 1f);
-            resultCard.addView(loading, marginTop(20));
-            resultCard.setVisibility(View.VISIBLE);
-            return;
-        }
-
-        if (aiCopy == null) {
-            for (Map.Entry<String, String> entry : FortuneLocalReport.sections(currentFacts).entrySet()) {
-                addSection(entry.getKey(), entry.getValue());
-            }
-            addSection("翻譯成人話", result.translation);
-            addSection("命理師補充", result.punchline);
-            addSection("建議", result.advice);
+        TextView state;
+        if (aiCopy != null) {
+            state = text(
+                    "完整解讀已準備好，點 Load more 直接展開。",
+                    11,
+                    GOLD,
+                    true);
+        } else if (aiController.isRunning()) {
+            state = text(
+                    "AI 正在背景整理完整解讀，你可以先看上面的初步結果。",
+                    11,
+                    ACCENT,
+                    true);
+        } else if (FortuneTextModelSession.usesDeveloperKey(this)) {
+            state = text(
+                    "完整解讀尚未完成；Load more 仍可查看目前可用內容。",
+                    11,
+                    MUTED,
+                    false);
         } else {
-            addSection("總覽", aiCopy.overview);
-            if (!aiCopy.personality.isEmpty()) addSection("性格與天賦", aiCopy.personality);
-            if (!aiCopy.careerWealth.isEmpty()) addSection("工作與財務", aiCopy.careerWealth);
-            if (!aiCopy.relationships.isEmpty()) addSection("感情與人際", aiCopy.relationships);
-            if (!aiCopy.timing.isEmpty()) addSection("目前週期", aiCopy.timing);
-            addSection("翻譯成人話", aiCopy.translation);
-            addSection("命理師補充", aiCopy.punchline);
-            addSection("建議", aiCopy.advice);
+            state = text(
+                    "初步結果免費；Load more 可查看完整解讀。",
+                    11,
+                    MUTED,
+                    false);
         }
+        state.setGravity(Gravity.CENTER);
+        state.setLineSpacing(dp(2), 1f);
+        resultCard.addView(state, marginTop(7));
 
-        TextView source = text(aiCopy == null
-                ? "本地完整解讀 · 無需 AI"
-                : "AI 深度解讀 · " + selectedAiStyle.label() + " · 計算資料固定",
-                12, MUTED, false);
-        resultCard.addView(source, marginTop(6));
-
-        Button teacher = new Button(this);
-        teacher.setText("老師跟我講解");
-        teacher.setTextSize(15);
-        teacher.setAllCaps(false);
-        teacher.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        teacher.setTextColor(Color.rgb(30, 22, 46));
-        teacher.setBackground(round(GOLD, 18));
-        teacher.setOnClickListener(v -> startTeacherExplanation());
-        LinearLayout.LayoutParams teacherLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(52));
-        teacherLp.topMargin = dp(16);
-        resultCard.addView(teacher, teacherLp);
-
-        Button share = new Button(this);
-        share.setText("分享這個荒謬但有點準的結果");
-        share.setTextSize(15);
-        share.setTextColor(TEXT);
-        share.setAllCaps(false);
-        share.setBackground(round(CARD_2, 18));
+        Button share = secondaryButton("分享初步結果");
         share.setOnClickListener(v -> shareController.share());
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(54));
-        lp.topMargin = dp(18);
-        resultCard.addView(share, lp);
-        resultCard.setVisibility(View.VISIBLE);
+        resultCard.addView(share, fixedHeightTop(44, 7));
     }
 
     private void addUnifiedTabbedResult(FortuneResult result, boolean aiLoading) {
@@ -1119,7 +1171,13 @@ public final class MainActivity extends Activity {
             }
         }
 
-        if (currentResult != null) renderResult(currentResult, false);
+        if (currentResult != null) {
+            if (loadMoreRequested) {
+                resultExpanded = true;
+                selectedResultTab = 3;
+            }
+            renderResult(currentResult, false);
+        }
     }
 
     void onAiFallback(String message) {
@@ -1595,32 +1653,38 @@ public final class MainActivity extends Activity {
     }
 
     void addOverviewPrimaryAction(LinearLayout panel, boolean aiLoading) {
-        Button button = primaryButton(
-                aiLoading
-                        ? "完整解讀整理中  →"
-                        : aiCopy == null
-                        ? "看完整解讀  →"
-                        : "閱讀完整解讀  →");
-        button.setEnabled(!aiLoading || aiController.isRunning());
+        Button button = primaryButton("Load more  ↓");
         button.setOnClickListener(v -> {
+            loadMoreRequested = true;
+            resultExpanded = true;
             selectedResultTab = 3;
             OperationLog.add(
                     this,
-                    "OVERVIEW_OPEN_INTERPRETATION",
-                    aiCopy == null ? "locked_or_local" : "unlocked");
+                    "RESULT_LOAD_MORE",
+                    aiCopy != null
+                            ? "ready"
+                            : aiController.isRunning()
+                            ? "loading"
+                            : "not_ready");
             renderResult(
                     currentResult,
                     aiController.isRunning() && aiCopy == null);
         });
         panel.addView(button, fixedHeightTop(50, 12));
 
-        TextView dataHint = text(
-                "想研究四柱、行星、宮位或數字結構，再到「命盤資料」。",
-                10,
-                MUTED,
-                false);
-        dataHint.setGravity(Gravity.CENTER);
-        panel.addView(dataHint, marginTop(5));
+        String hintValue;
+        if (aiCopy != null) {
+            hintValue = "完整解讀已經準備好。";
+        } else if (aiController.isRunning()) {
+            hintValue = "AI 正在背景整理；現在點也可以，完成後會自動顯示。";
+        } else if (!FortuneTextModelSession.usesDeveloperKey(this)) {
+            hintValue = "完整解讀需要解鎖；不影響上面的免費初步結果。";
+        } else {
+            hintValue = "會顯示目前可用的完整內容。";
+        }
+        TextView hint = text(hintValue, 10, MUTED, false);
+        hint.setGravity(Gravity.CENTER);
+        panel.addView(hint, marginTop(5));
     }
 
     void addOverviewTakeaways(LinearLayout panel, FortuneMode mode) {
@@ -2639,6 +2703,10 @@ public final class MainActivity extends Activity {
                             AiStyle.FUNNY.name()));
             selectedResultTab =
                     state.getInt("state_result_tab", 0);
+            resultExpanded =
+                    state.getBoolean("state_result_expanded", false);
+            loadMoreRequested =
+                    state.getBoolean("state_load_more_requested", false);
             resultReferenceTimeMillis =
                     state.getLong(
                             "state_result_reference_time",
@@ -2746,7 +2814,11 @@ public final class MainActivity extends Activity {
         currentFacts = entry.facts;
         currentResult = entry.result;
         aiCopy = entry.aiCopy;
-        selectedResultTab = 0;
+        if (fromUser) {
+            selectedResultTab = 0;
+            resultExpanded = false;
+            loadMoreRequested = false;
+        }
 
         try {
             currentProfile =
@@ -2756,6 +2828,7 @@ public final class MainActivity extends Activity {
         }
 
         updateModeSelectionUi();
+        showResultPage();
         renderResult(currentResult, false);
         consumeSavedPendingPurchaseIfNeeded();
 
