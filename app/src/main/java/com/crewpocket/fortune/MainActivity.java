@@ -870,26 +870,73 @@ public final class MainActivity extends Activity {
             profileController.geocodeBirthPlace(true);
             return;
         }
+
         selectedResultTab = 0;
         resultExpanded = false;
         loadMoreRequested = false;
         selectedVedicTransitDate = null;
-        OperationLog.add(this, "CALCULATE_START", selectedMode.name());
+        OperationLog.add(
+                this,
+                "CALCULATE_START",
+                selectedMode.name());
         teacherController.close();
         aiController.close();
-        try {
-            FortuneProfile profile = profileController.buildProfile(selectedMode);
-            FortunePreset preset = profileController.currentPreset(selectedMode);
-            currentProfile = profile;
-            currentReadingId = FortuneReadingId.from(preset);
 
+        final FortuneProfile profile;
+        final FortunePreset preset;
+        try {
+            profile = profileController.buildProfile(selectedMode);
+            preset = profileController.currentPreset(selectedMode);
+        } catch (IllegalArgumentException error) {
+            OperationLog.add(
+                    this,
+                    "CALCULATE_FAILED",
+                    error.getMessage() == null
+                            ? "unknown"
+                            : error.getMessage());
+            Toast.makeText(
+                    this,
+                    error.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        currentProfile = profile;
+        currentReadingId = FortuneReadingId.from(preset);
+        currentResult = null;
+        currentFacts = null;
+        aiCopy = null;
+
+        showResultPage();
+        renderCalculationShell();
+
+        // Let Android paint the new page first. The deterministic engine then
+        // produces the fast preview, while AI can continue in the background.
+        resultCard.post(() ->
+                finishCalculation(profile, preset));
+    }
+
+    private void finishCalculation(
+            FortuneProfile profile,
+            FortunePreset preset) {
+        try {
             Date referenceTime = new Date();
             resultReferenceTimeMillis = referenceTime.getTime();
-            currentFacts = engine.calculateFacts(selectedMode, profile, referenceTime);
-            currentResult = engine.calculate(selectedMode, profile, referenceTime);
+            currentFacts = engine.calculateFacts(
+                    selectedMode,
+                    profile,
+                    referenceTime);
+            currentResult = engine.calculate(
+                    selectedMode,
+                    profile,
+                    referenceTime);
             FortunePresetStore.saveLast(this, preset);
-            OperationLog.add(this, "CALCULATE_SUCCESS",
-                    selectedMode.name() + " · " + currentFacts.basis);
+            OperationLog.add(
+                    this,
+                    "CALCULATE_SUCCESS",
+                    selectedMode.name()
+                            + " · "
+                            + currentFacts.basis);
 
             aiCopy = FortunePaidReadingStore.loadReport(
                     this,
@@ -907,7 +954,6 @@ public final class MainActivity extends Activity {
                             currentFacts,
                             aiCopy);
             currentHistoryId = historyEntry.id;
-            showResultPage();
 
             if (aiCopy != null) {
                 renderResult(currentResult, false);
@@ -918,7 +964,8 @@ public final class MainActivity extends Activity {
             } else if (FortunePaidReadingStore.isPendingFor(
                     this,
                     currentReadingId)
-                    && !FortunePaidReadingStore.pendingPurchaseToken(this)
+                    && !FortunePaidReadingStore
+                            .pendingPurchaseToken(this)
                             .isEmpty()
                     && FortuneTextModelSession.hasProductionAi(this)) {
                 beginPaidGeneration();
@@ -926,10 +973,64 @@ public final class MainActivity extends Activity {
                 renderResult(currentResult, false);
             }
         } catch (IllegalArgumentException error) {
-            OperationLog.add(this, "CALCULATE_FAILED",
-                    error.getMessage() == null ? "unknown" : error.getMessage());
-            Toast.makeText(this, error.getMessage(), Toast.LENGTH_SHORT).show();
+            OperationLog.add(
+                    this,
+                    "CALCULATE_FAILED",
+                    error.getMessage() == null
+                            ? "unknown"
+                            : error.getMessage());
+            showInputPage();
+            Toast.makeText(
+                    this,
+                    error.getMessage(),
+                    Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void renderCalculationShell() {
+        if (resultCard == null) return;
+        resultCard.removeAllViews();
+
+        TextView back = text(
+                "‹ 修改資料",
+                12,
+                ACCENT,
+                true);
+        back.setPadding(dp(8), dp(7), dp(8), dp(7));
+        back.setBackground(roundBorder(
+                Color.rgb(31, 24, 49),
+                Color.rgb(128, 101, 181),
+                11,
+                1));
+        back.setOnClickListener(v -> showInputPage());
+        resultCard.addView(back);
+
+        TextView title = text(
+                "正在建立初步結果",
+                24,
+                TEXT,
+                true);
+        resultCard.addView(title, marginTop(14));
+
+        TextView body = text(
+                "先完成本機排盤，結果一出就可以先看；完整解讀會在後面繼續整理。",
+                13,
+                MUTED,
+                false);
+        body.setLineSpacing(dp(3), 1f);
+        resultCard.addView(body, marginTop(6));
+
+        ProgressBar progress = new ProgressBar(this);
+        progress.setIndeterminate(true);
+        LinearLayout.LayoutParams progressLp =
+                new LinearLayout.LayoutParams(
+                        dp(34),
+                        dp(34));
+        progressLp.gravity = Gravity.CENTER_HORIZONTAL;
+        progressLp.topMargin = dp(18);
+        resultCard.addView(progress, progressLp);
+        resultCard.setVisibility(
+                showingResultPage ? View.VISIBLE : View.GONE);
     }
 
      String safeErrorMessage(Throwable error) {
@@ -1003,7 +1104,8 @@ public final class MainActivity extends Activity {
 
         if (!resultExpanded) {
             addProgressiveOverview(result, aiLoading);
-            resultCard.setVisibility(View.VISIBLE);
+            resultCard.setVisibility(
+                    showingResultPage ? View.VISIBLE : View.GONE);
             return;
         }
 
