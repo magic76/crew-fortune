@@ -908,7 +908,13 @@ public final class MainActivity extends Activity {
                     ? "你的出生牌已翻開"
                     : result.title;
         } else {
-            titleValue = aiCopy == null ? result.title : aiCopy.title;
+            titleValue = aiCopy == null
+                    ? result.mode == FortuneMode.BA_ZI
+                        ? "你的八字重點"
+                        : result.mode == FortuneMode.TAROT_NUMEROLOGY
+                        ? "你的塔羅生命靈數重點"
+                        : "你的印度星盤重點"
+                    : aiCopy.title;
         }
 
         TextView title = text(titleValue, 25, TEXT, true);
@@ -1451,9 +1457,26 @@ public final class MainActivity extends Activity {
                     ? aiCopy.translation
                     : aiCopy.overview;
         }
+
         if (value == null || value.trim().isEmpty()) {
-            value = localReportSection("核心總覽");
+            if (mode == FortuneMode.BA_ZI) {
+                value = localReportSection("性格與天賦");
+                value = value.replaceFirst(
+                        "^[木火土金水]日主常被拿來描述成",
+                        "你通常");
+            } else if (mode == FortuneMode.TAROT_NUMEROLOGY) {
+                value = localReportSection("內在 vs 外在");
+                int outer = value.indexOf("外在層：");
+                if (outer >= 0) {
+                    value = value.substring(outer)
+                            .replace("外在層：", "別人先看到的你：")
+                            .replace("內在層：", "相處久了的你：");
+                }
+            } else {
+                value = plainVedicIdentity();
+            }
         }
+
         value = FortuneOverviewSnapshot.compact(value, 155);
         if (value.isEmpty()) return;
 
@@ -1470,6 +1493,47 @@ public final class MainActivity extends Activity {
         body.setLineSpacing(dp(3), 1f);
         card.addView(body, marginTop(5));
         panel.addView(card);
+    }
+
+    private String plainVedicIdentity() {
+        String outer = vedicSignTrait(
+                currentFacts == null
+                        ? ""
+                        : currentFacts.detailText("lagnaSign"),
+                false);
+        String inner = vedicSignTrait(
+                currentFacts == null
+                        ? ""
+                        : currentFacts.detailText("moonSign"),
+                true);
+
+        if (outer.isEmpty() && inner.isEmpty()) {
+            return "這張盤先看你對外的做事方式，以及內在真正需要的安全感，兩者的落差通常最有感。";
+        }
+        if (outer.isEmpty()) return "你的內在比較" + inner + "。";
+        if (inner.isEmpty()) return "你給人的感覺比較" + outer + "。";
+        return "你給人的感覺比較" + outer
+                + "，但內在其實更" + inner
+                + "；這兩種節奏怎麼配合，是這張盤先看的重點。";
+    }
+
+    private String vedicSignTrait(String sign, boolean inner) {
+        String value = sign == null
+                ? ""
+                : sign.trim().toLowerCase(java.util.Locale.US);
+        if ("aries".equals(value)) return inner ? "需要直接與行動感" : "主動直接、反應快";
+        if ("taurus".equals(value)) return inner ? "需要穩定、可預期與踏實感" : "穩定務實、步調有自己的節奏";
+        if ("gemini".equals(value)) return inner ? "需要交流、資訊與新鮮感" : "好奇靈活、很會接收資訊";
+        if ("cancer".equals(value)) return inner ? "重視安全感、熟悉感與情感連結" : "敏感細膩、先觀察環境";
+        if ("leo".equals(value)) return inner ? "需要被看見、被肯定與有發揮空間" : "有存在感、願意主動表達";
+        if ("virgo".equals(value)) return inner ? "需要秩序、清楚與事情有被處理好" : "細緻務實、容易先看到問題";
+        if ("libra".equals(value)) return inner ? "需要和諧、互相理解與公平感" : "重視互動品質、會看場合";
+        if ("scorpio".equals(value)) return inner ? "需要深度、信任與真正的掌控感" : "專注、有強烈觀察力";
+        if ("sagittarius".equals(value)) return inner ? "需要空間、方向與成長感" : "直率開放、喜歡往前探索";
+        if ("capricorn".equals(value)) return inner ? "需要目標、可靠與可累積的成果" : "沉穩務實、責任感明顯";
+        if ("aquarius".equals(value)) return inner ? "需要自由、距離與自己的思考空間" : "獨立理性、做法常有自己的版本";
+        if ("pisces".equals(value)) return inner ? "需要感受、想像與情緒流動的空間" : "感受力強、容易讀到環境氣氛";
+        return "";
     }
 
     void addOverviewNextFocus(LinearLayout panel) {
@@ -2019,7 +2083,7 @@ public final class MainActivity extends Activity {
                 : "未來幾年";
         String timingLabel = mode == FortuneMode.VEDIC_ASTROLOGY ? "值得留意的時期" : "值得留意的年份";
         String[] sections = {
-                "總覽",
+                "先說結論",
                 "性格、優勢與盲點",
                 "工作",
                 "財運與資源",
