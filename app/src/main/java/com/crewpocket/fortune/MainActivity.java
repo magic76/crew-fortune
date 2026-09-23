@@ -61,6 +61,12 @@ public final class MainActivity extends Activity {
     static final int MUTED = Color.rgb(190, 181, 207);
     static final int ACCENT = Color.rgb(183, 156, 255);
     static final int GOLD = Color.rgb(255, 214, 128);
+    static final int BAZI_ACCENT = Color.rgb(255, 183, 104);
+    static final int TAROT_ACCENT = Color.rgb(103, 220, 193);
+    static final int VEDIC_ACCENT = Color.rgb(111, 181, 255);
+    static final int ROSE = Color.rgb(245, 143, 184);
+    static final int SKY = Color.rgb(119, 191, 255);
+    static final int TEAL = Color.rgb(103, 220, 193);
 
     private final FortuneEngine engine = new FortuneEngine();
 
@@ -1108,7 +1114,7 @@ public final class MainActivity extends Activity {
         TextView badge = text(
                 result.mode.title().toUpperCase(),
                 12,
-                GOLD,
+                modeAccent(result.mode),
                 true);
         resultCard.addView(badge, marginTop(10));
 
@@ -1208,11 +1214,12 @@ public final class MainActivity extends Activity {
             tab.setTextSize(13);
             tab.setAllCaps(false);
             boolean selected = selectedResultTab == i;
+            int tabColor = resultTabAccent(i);
             tab.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
-            tab.setTextColor(selected ? Color.rgb(30, 22, 46) : ACCENT);
+            tab.setTextColor(selected ? Color.rgb(30, 22, 46) : tabColor);
             tab.setBackground(roundBorder(
-                    selected ? ACCENT : Color.rgb(31, 24, 49),
-                    selected ? ACCENT : Color.rgb(150, 116, 206),
+                    selected ? tabColor : Color.rgb(31, 24, 49),
+                    tabColor,
                     13,
                     selected ? 2 : 1));
             tab.setPadding(dp(10), 0, dp(10), 0);
@@ -1676,12 +1683,13 @@ public final class MainActivity extends Activity {
 
         LinearLayout card = column();
         card.setPadding(dp(11), dp(11), dp(11), dp(11));
+        int identityAccent = modeAccent(mode);
         card.setBackground(roundBorder(
-                Color.rgb(55, 42, 82),
-                Color.rgb(111, 91, 157),
+                modeSurface(mode),
+                identityAccent,
                 15,
                 1));
-        card.addView(text("一句話看你", 12, GOLD, true));
+        card.addView(text("一句話看你", 12, identityAccent, true));
 
         TextView body = text(value, 16, TEXT, true);
         body.setLineSpacing(dp(3), 1f);
@@ -1741,7 +1749,7 @@ public final class MainActivity extends Activity {
                         ? "接下來先注意這 2 個時期"
                         : "接下來先注意這 2 件事",
                 13,
-                GOLD,
+                ROSE,
                 true);
         panel.addView(title, marginTop(10));
 
@@ -1751,9 +1759,14 @@ public final class MainActivity extends Activity {
 
             LinearLayout card = column();
             card.setPadding(dp(10), dp(9), dp(10), dp(9));
-            card.setBackground(round(
-                    Color.rgb(43, 33, 65),
-                    13));
+            int focusAccent = shown == 0 ? ROSE : GOLD;
+            card.setBackground(roundBorder(
+                    shown == 0
+                            ? Color.rgb(56, 33, 48)
+                            : Color.rgb(55, 44, 31),
+                    focusAccent,
+                    13,
+                    1));
 
             TextView heading = text(
                     highlight.year + " · " + highlight.theme,
@@ -1829,7 +1842,7 @@ public final class MainActivity extends Activity {
                 currentFacts,
                 aiCopy);
 
-        TextView title = text("先看這三件事", 14, GOLD, true);
+        TextView title = text("先看這三件事", 14, modeAccent(mode), true);
         panel.addView(title, marginTop(10));
 
         TextView hint = text(
@@ -1848,16 +1861,25 @@ public final class MainActivity extends Activity {
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.TOP);
             row.setPadding(dp(10), dp(9), dp(10), dp(9));
+            int takeawayAccent = index == 0
+                    ? modeAccent(mode)
+                    : index == 1
+                    ? TEAL
+                    : GOLD;
             row.setBackground(roundBorder(
-                    Color.rgb(43, 33, 65),
-                    Color.rgb(80, 65, 111),
+                    index == 0
+                            ? modeSurface(mode)
+                            : index == 1
+                            ? Color.rgb(28, 49, 53)
+                            : Color.rgb(55, 44, 31),
+                    takeawayAccent,
                     13,
                     1));
 
             TextView number = text(
                     index == 0 ? "①" : index == 1 ? "②" : "③",
                     18,
-                    ACCENT,
+                    takeawayAccent,
                     true);
             LinearLayout.LayoutParams numberLp = new LinearLayout.LayoutParams(
                     dp(30),
@@ -1878,8 +1900,12 @@ public final class MainActivity extends Activity {
                 final String evidence =
                         aiCopy.topTraitEvidence.get(traitIndex);
                 row.setBackground(roundBorder(
-                        Color.rgb(48, 36, 72),
-                        Color.rgb(168, 137, 230),
+                        index == 0
+                                ? modeSurface(mode)
+                                : index == 1
+                                ? Color.rgb(28, 49, 53)
+                                : Color.rgb(55, 44, 31),
+                        takeawayAccent,
                         13,
                         2));
                 TextView why = text(
@@ -1917,13 +1943,13 @@ public final class MainActivity extends Activity {
         LinearLayout card = column();
         card.setPadding(dp(10), dp(10), dp(10), dp(10));
         card.setBackground(roundBorder(
-                Color.rgb(55, 42, 82),
-                Color.rgb(111, 91, 157),
+                Color.rgb(28, 41, 59),
+                SKY,
                 14,
                 1));
 
         String label = "現在走到哪裡";
-        card.addView(text(label, 12, GOLD, true));
+        card.addView(text(label, 12, SKY, true));
 
         TextView body = text(timing, 13, TEXT, false);
         body.setLineSpacing(dp(2), 1f);
@@ -2313,7 +2339,10 @@ public final class MainActivity extends Activity {
         LinearLayout panel = column();
         panel.setPadding(dp(11), dp(12), dp(11), dp(16));
         panel.setBackground(roundBorder(
-                CARD_2, Color.rgb(86, 70, 119), 16, 1));
+                Color.rgb(35, 29, 49),
+                resultTabAccent(selectedResultTab),
+                16,
+                1));
         resultTabContent.addView(panel, marginTop(4));
         return panel;
     }
@@ -2321,9 +2350,13 @@ public final class MainActivity extends Activity {
      LinearLayout topicCard(LinearLayout parent, String title, String subtitle) {
         LinearLayout card = column();
         card.setPadding(dp(10), dp(10), dp(10), dp(10));
+        int accent = sectionAccent(title);
         card.setBackground(roundBorder(
-                Color.rgb(31, 24, 49), Color.rgb(80, 65, 111), 16, 1));
-        TextView h = text(title, 19, TEXT, true);
+                sectionSurface(title),
+                accent,
+                16,
+                1));
+        TextView h = text(title, 19, accent, true);
         card.addView(h);
         TextView s = text(subtitle, 12, MUTED, false);
         card.addView(s, marginTop(3));
@@ -2363,8 +2396,8 @@ public final class MainActivity extends Activity {
         LinearLayout card = column();
         card.setPadding(dp(9), dp(9), dp(9), dp(9));
         card.setBackground(roundBorder(
-                Color.rgb(39, 29, 60),
-                Color.rgb(168, 137, 230),
+                modeSurface(selectedMode),
+                modeAccent(selectedMode),
                 14,
                 2));
         TextView h = text(title, 15, TEXT, true);
@@ -2627,11 +2660,22 @@ public final class MainActivity extends Activity {
     }
 
      void addPanelSection(LinearLayout panel, String heading, String body) {
-        TextView h = text(heading, 12, GOLD, true);
-        panel.addView(h, marginTop(11));
+        int accent = sectionAccent(heading);
+        LinearLayout card = column();
+        card.setPadding(dp(10), dp(9), dp(10), dp(10));
+        card.setBackground(roundBorder(
+                sectionSurface(heading),
+                accent,
+                14,
+                1));
+
+        TextView h = text(heading, 12, accent, true);
+        card.addView(h);
+
         TextView b = text(body, 13, TEXT, false);
         b.setLineSpacing(dp(2), 1f);
-        panel.addView(b, marginTop(3));
+        card.addView(b, marginTop(4));
+        panel.addView(card, marginTop(8));
     }
 
      String formatTenGods() {
@@ -2961,7 +3005,7 @@ public final class MainActivity extends Activity {
         aiCopy = entry.aiCopy;
         if (fromUser) {
             selectedResultTab = 0;
-            resultExpanded = false;
+            resultExpanded = true;
             loadMoreRequested = false;
         }
 
@@ -2988,7 +3032,7 @@ public final class MainActivity extends Activity {
                     entry.titleLine());
             Toast.makeText(
                     this,
-                    "已開啟歷史結果，不會重新排盤或呼叫 AI",
+                    "已開啟完整歷史結果，不會重新排盤或呼叫 AI",
                     Toast.LENGTH_SHORT).show();
         }
     }
@@ -3121,30 +3165,91 @@ public final class MainActivity extends Activity {
         return button;
     }
 
+    static int modeAccent(FortuneMode mode) {
+        if (mode == FortuneMode.BA_ZI) return BAZI_ACCENT;
+        if (mode == FortuneMode.TAROT_NUMEROLOGY) return TAROT_ACCENT;
+        return VEDIC_ACCENT;
+    }
+
+    static int modeSurface(FortuneMode mode) {
+        if (mode == FortuneMode.BA_ZI) return Color.rgb(55, 40, 31);
+        if (mode == FortuneMode.TAROT_NUMEROLOGY) return Color.rgb(27, 48, 51);
+        return Color.rgb(28, 39, 58);
+    }
+
+    private int resultTabAccent(int index) {
+        switch (index) {
+            case 1:
+                return SKY;
+            case 2:
+                return ROSE;
+            case 3:
+                return GOLD;
+            case 4:
+                return TEAL;
+            case 0:
+            default:
+                return modeAccent(selectedMode);
+        }
+    }
+
+    private int sectionAccent(String heading) {
+        String value = heading == null ? "" : heading;
+        if (value.contains("財") || value.contains("資源")
+                || value.contains("年份") || value.contains("時期")) {
+            return GOLD;
+        }
+        if (value.contains("感情") || value.contains("人際")
+                || value.contains("關係")) {
+            return ROSE;
+        }
+        if (value.contains("工作") || value.contains("週期")
+                || value.contains("未來") || value.contains("時間")) {
+            return SKY;
+        }
+        if (value.contains("家庭") || value.contains("子女")
+                || value.contains("性格") || value.contains("天賦")) {
+            return TEAL;
+        }
+        return modeAccent(selectedMode);
+    }
+
+    private int sectionSurface(String heading) {
+        int accent = sectionAccent(heading);
+        if (accent == GOLD) return Color.rgb(55, 44, 31);
+        if (accent == ROSE) return Color.rgb(56, 33, 48);
+        if (accent == SKY) return Color.rgb(28, 41, 59);
+        if (accent == TEAL) return Color.rgb(27, 48, 51);
+        return modeSurface(selectedMode);
+    }
+
     private void updateModeSelectionUi() {
         boolean bazi = selectedMode == FortuneMode.BA_ZI;
         boolean tarot = selectedMode == FortuneMode.TAROT_NUMEROLOGY;
         boolean vedic = selectedMode == FortuneMode.VEDIC_ASTROLOGY;
         if (baZiModeButton != null) {
             baZiModeButton.setBackground(roundBorder(
-                    bazi ? ACCENT : Color.rgb(31, 24, 49),
-                    bazi ? ACCENT : Color.rgb(150, 116, 206),
+                    bazi ? BAZI_ACCENT : Color.rgb(31, 24, 49),
+                    BAZI_ACCENT,
                     16, bazi ? 2 : 1));
-            baZiModeButton.setTextColor(bazi ? Color.rgb(30, 22, 46) : TEXT);
+            baZiModeButton.setTextColor(
+                    bazi ? Color.rgb(47, 29, 18) : BAZI_ACCENT);
         }
         if (tarotModeButton != null) {
             tarotModeButton.setBackground(roundBorder(
-                    tarot ? ACCENT : Color.rgb(31, 24, 49),
-                    tarot ? ACCENT : Color.rgb(150, 116, 206),
+                    tarot ? TAROT_ACCENT : Color.rgb(31, 24, 49),
+                    TAROT_ACCENT,
                     16, tarot ? 2 : 1));
-            tarotModeButton.setTextColor(tarot ? Color.rgb(30, 22, 46) : TEXT);
+            tarotModeButton.setTextColor(
+                    tarot ? Color.rgb(18, 43, 40) : TAROT_ACCENT);
         }
         if (vedicModeButton != null) {
             vedicModeButton.setBackground(roundBorder(
-                    vedic ? ACCENT : Color.rgb(31, 24, 49),
-                    vedic ? ACCENT : Color.rgb(150, 116, 206),
+                    vedic ? VEDIC_ACCENT : Color.rgb(31, 24, 49),
+                    VEDIC_ACCENT,
                     16, vedic ? 2 : 1));
-            vedicModeButton.setTextColor(vedic ? Color.rgb(30, 22, 46) : TEXT);
+            vedicModeButton.setTextColor(
+                    vedic ? Color.rgb(18, 33, 50) : VEDIC_ACCENT);
         }
         if (modeLabel != null) {
             if (bazi) {
