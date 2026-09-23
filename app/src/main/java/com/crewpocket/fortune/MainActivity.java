@@ -943,15 +943,23 @@ public final class MainActivity extends Activity {
         }
         try {
             Date referenceTime = new Date();
+            FortuneFacts calculatedFacts = engine.calculateFacts(
+                    calculationMode,
+                    profile,
+                    referenceTime);
+            FortuneResult calculatedResult = engine.calculate(
+                    calculationMode,
+                    profile,
+                    referenceTime);
+
+            if (generation != calculationGeneration
+                    || calculationMode != selectedMode) {
+                return;
+            }
+
             resultReferenceTimeMillis = referenceTime.getTime();
-            currentFacts = engine.calculateFacts(
-                    selectedMode,
-                    profile,
-                    referenceTime);
-            currentResult = engine.calculate(
-                    selectedMode,
-                    profile,
-                    referenceTime);
+            currentFacts = calculatedFacts;
+            currentResult = calculatedResult;
             FortunePresetStore.saveLast(this, preset);
             OperationLog.add(
                     this,
@@ -975,10 +983,6 @@ public final class MainActivity extends Activity {
                             currentResult,
                             currentFacts,
                             aiCopy);
-            if (generation != calculationGeneration
-                    || calculationMode != selectedMode) {
-                return;
-            }
             currentHistoryId = historyEntry.id;
 
             if (aiCopy != null) {
