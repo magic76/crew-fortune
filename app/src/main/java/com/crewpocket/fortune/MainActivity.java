@@ -1000,9 +1000,6 @@ public final class MainActivity extends Activity {
     }
 
     private void addUnifiedTabbedResult(FortuneResult result, boolean aiLoading) {
-        TextView basis = text("計算依據｜" + result.basis, 12, MUTED, false);
-        resultCard.addView(basis, marginTop(6));
-
         HorizontalScrollView tabScroll = new HorizontalScrollView(this);
         tabScroll.setHorizontalScrollBarEnabled(false);
         LinearLayout tabs = new LinearLayout(this);
@@ -2005,11 +2002,11 @@ public final class MainActivity extends Activity {
 
         String subtitleValue;
         if (mode == FortuneMode.BA_ZI) {
-            subtitleValue = "本命、流年等資料已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。";
+            subtitleValue = "重點與人生節奏已經可以先看；AI 正在把工作、財運、感情與未來十年整理成完整報告。";
         } else if (mode == FortuneMode.VEDIC_ASTROLOGY) {
-            subtitleValue = "Lagna、九曜、12 宮與 Dasha 已經可以先看；AI 正在只依 deterministic Vedic facts 整理完整報告。";
+            subtitleValue = "重點與人生節奏已經可以先看；AI 正在依完整星盤資料整理個人報告。";
         } else {
-            subtitleValue = "本命與流年資料已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。";
+            subtitleValue = "重點與人生節奏已經可以先看；AI 正在把個性、工作、資源、感情與未來幾年整理成完整報告。";
         }
         TextView subtitle = text(subtitleValue, 13, MUTED, false);
         subtitle.setLineSpacing(dp(2), 1f);
