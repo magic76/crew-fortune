@@ -41,15 +41,15 @@ final class FortuneOverviewSnapshot {
             };
         } else if (mode == FortuneMode.VEDIC_ASTROLOGY) {
             keys = new String[] {
-                    "核心總覽",
                     "工作",
-                    "感情"
+                    "感情",
+                    "家庭／子女"
             };
         } else {
             keys = new String[] {
-                    "內在 vs 外在",
                     "性格與天賦",
-                    "工作與財務"
+                    "工作與財務",
+                    "感情與人際"
             };
         }
 
