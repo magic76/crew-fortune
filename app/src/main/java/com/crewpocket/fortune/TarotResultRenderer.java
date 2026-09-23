@@ -22,55 +22,13 @@ final class TarotResultRenderer {
     void addTarotOverviewTab(FortuneResult result, boolean aiLoading) {
         LinearLayout panel = host.resultPanel();
 
-        LinearLayout identities = new LinearLayout(host);
-        identities.setOrientation(LinearLayout.HORIZONTAL);
-        identities.setGravity(Gravity.CENTER);
-        host.addNumerologyIdentityCard(
-                identities,
-                "外在人格牌",
-                host.rendererFacts().detailText("personalityCardNumber"),
-                host.rendererFacts().detailText("personalityCardName"));
-        host.addNumerologyIdentityCard(
-                identities,
-                "內在靈魂牌",
-                host.rendererFacts().detailText("soulCardNumber"),
-                host.rendererFacts().detailText("soulCardName"));
-        panel.addView(identities);
-
-        TextView core = host.text(
-                "生命道路 " + host.rendererFacts().detailText("lifePathDisplay")
-                        + "　·　天賦 " + host.rendererFacts().detailText("talentNumbers"),
-                12,
-                MainActivity.MUTED,
-                true);
-        core.setGravity(Gravity.CENTER);
-        panel.addView(core, host.marginTop(6));
-
+        host.addOverviewIdentity(panel, FortuneMode.TAROT_NUMEROLOGY);
         host.addOverviewTakeaways(panel, FortuneMode.TAROT_NUMEROLOGY);
         host.addOverviewTiming(panel, FortuneMode.TAROT_NUMEROLOGY);
-
-        String summary;
-        if (aiLoading) {
-            summary = host.localReportSection("核心總覽");
-        } else if (host.rendererCopy() != null
-                && !host.rendererCopy().overview.isEmpty()) {
-            summary = host.rendererCopy().overview;
-        } else {
-            summary = host.localReportSection("核心總覽");
-        }
-        summary = FortuneResultTabCopy.compactInterpretation(summary, "");
-        if (!summary.isEmpty()) {
-            host.addPanelSection(panel, "一句總結", summary);
-        }
-
-        TextView next = host.text(
-                "想看出生牌、巔峰與挑戰 →「本命」；想看年度／月份循環 →「流年」。",
-                11,
-                MainActivity.MUTED,
-                false);
-        next.setLineSpacing(host.dp(2), 1f);
-        panel.addView(next, host.marginTop(9));
+        host.addOverviewNextFocus(panel);
+        host.addOverviewPrimaryAction(panel, aiLoading);
     }
+
     void addTarotTimelineTab() {
         LinearLayout panel = host.resultPanel();
 
