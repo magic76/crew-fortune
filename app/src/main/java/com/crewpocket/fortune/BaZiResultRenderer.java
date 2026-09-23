@@ -22,58 +22,13 @@ final class BaZiResultRenderer {
     void addBaZiOverviewTab(FortuneResult result, boolean aiLoading) {
         LinearLayout panel = host.resultPanel();
 
-        LinearLayout hero = new LinearLayout(host);
-        hero.setOrientation(LinearLayout.HORIZONTAL);
-        hero.setGravity(Gravity.CENTER_VERTICAL);
-
-        LinearLayout master = host.column();
-        master.addView(host.text("日主", 11, MainActivity.GOLD, true));
-        master.addView(host.text(
-                host.rendererFacts().detailText("dayMaster")
-                        + host.rendererFacts().detailText("dayMasterElement"),
-                30, MainActivity.TEXT, true), host.marginTop(3));
-        hero.addView(master, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-        LinearLayout strength = host.column();
-        TextView strengthLabel = host.text("旺衰", 11, MainActivity.MUTED, true);
-        strengthLabel.setGravity(Gravity.END);
-        strength.addView(strengthLabel);
-        TextView strengthValue = host.text(
-                host.rendererFacts().detailText("dayMasterStrength")
-                        + " · " + host.rendererFacts().detailText("strengthIndex"),
-                20, MainActivity.ACCENT, true);
-        strengthValue.setGravity(Gravity.END);
-        strength.addView(strengthValue, host.marginTop(3));
-        hero.addView(strength, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        panel.addView(hero);
-
+        host.addOverviewIdentity(panel, FortuneMode.BA_ZI);
         host.addOverviewTakeaways(panel, FortuneMode.BA_ZI);
         host.addOverviewTiming(panel, FortuneMode.BA_ZI);
-
-        String summary;
-        if (aiLoading) {
-            summary = host.localReportSection("核心總覽");
-        } else if (host.rendererCopy() != null
-                && !host.rendererCopy().overview.isEmpty()) {
-            summary = host.rendererCopy().overview;
-        } else {
-            summary = host.localReportSection("核心總覽");
-        }
-        summary = FortuneResultTabCopy.compactInterpretation(summary, "");
-        if (!summary.isEmpty()) {
-            host.addPanelSection(panel, "一句總結", summary);
-        }
-
-        TextView next = host.text(
-                "想看四柱、五行與十神細節 →「本命」；想看大運與逐年節奏 →「流年」。",
-                11,
-                MainActivity.MUTED,
-                false);
-        next.setLineSpacing(host.dp(2), 1f);
-        panel.addView(next, host.marginTop(9));
+        host.addOverviewNextFocus(panel);
+        host.addOverviewPrimaryAction(panel, aiLoading);
     }
+
     void addBaZiLuckTimelineTab() {
         LinearLayout panel = host.resultPanel();
 
