@@ -62,7 +62,7 @@ final class FortuneOverviewSnapshot {
         }
 
         while (out.size() < 3) {
-            out.add("完整命盤資料已算好；可到「本命」查看原始依據。");
+            out.add("完整資料已算好；想看專業原始依據可到「命盤資料」。");
         }
         return out;
     }
