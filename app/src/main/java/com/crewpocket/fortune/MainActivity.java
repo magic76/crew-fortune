@@ -77,6 +77,7 @@ public final class MainActivity extends Activity {
     private ScrollView mainScroll;
     private LinearLayout inputPage;
     private LinearLayout resultCard;
+    private boolean showingResultPage;
     private boolean resultExpanded;
     private boolean loadMoreRequested;
     private FortuneResult currentResult;
@@ -148,6 +149,7 @@ public final class MainActivity extends Activity {
         outState.putString("state_ai_style", selectedAiStyle.name());
         outState.putBoolean("state_has_result", currentResult != null && currentFacts != null);
         outState.putInt("state_result_tab", selectedResultTab);
+        outState.putBoolean("state_showing_result_page", showingResultPage);
         outState.putBoolean("state_result_expanded", resultExpanded);
         outState.putBoolean("state_load_more_requested", loadMoreRequested);
         outState.putLong("state_result_reference_time", resultReferenceTimeMillis);
@@ -803,6 +805,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showResultPage() {
+        showingResultPage = true;
         if (inputPage != null) inputPage.setVisibility(View.GONE);
         if (resultCard != null) resultCard.setVisibility(View.VISIBLE);
         if (mainScroll != null) {
@@ -811,6 +814,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showInputPage() {
+        showingResultPage = false;
         if (inputPage != null) inputPage.setVisibility(View.VISIBLE);
         if (resultCard != null) resultCard.setVisibility(View.GONE);
         if (mainScroll != null) {
@@ -820,10 +824,9 @@ public final class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (resultCard != null
-                && resultCard.getVisibility() == View.VISIBLE
-                && inputPage != null
-                && inputPage.getVisibility() != View.VISIBLE) {
+        if (showingResultPage
+                && resultCard != null
+                && inputPage != null) {
             showInputPage();
             return;
         }
@@ -1005,7 +1008,8 @@ public final class MainActivity extends Activity {
         }
 
         addUnifiedTabbedResult(result, aiLoading);
-        resultCard.setVisibility(View.VISIBLE);
+        resultCard.setVisibility(
+                showingResultPage ? View.VISIBLE : View.GONE);
     }
 
     private void addProgressiveOverview(
@@ -2703,6 +2707,10 @@ public final class MainActivity extends Activity {
                             AiStyle.FUNNY.name()));
             selectedResultTab =
                     state.getInt("state_result_tab", 0);
+            showingResultPage =
+                    state.getBoolean(
+                            "state_showing_result_page",
+                            state.getBoolean("state_has_result", false));
             resultExpanded =
                     state.getBoolean("state_result_expanded", false);
             loadMoreRequested =
@@ -2764,6 +2772,11 @@ public final class MainActivity extends Activity {
                         aiCopy = FortunePaidReadingStore.loadReport(
                                 this,
                                 currentReadingId);
+                    }
+                    if (showingResultPage) {
+                        showResultPage();
+                    } else {
+                        showInputPage();
                     }
                     renderResult(currentResult, false);
                     consumeSavedPendingPurchaseIfNeeded();
@@ -2828,7 +2841,11 @@ public final class MainActivity extends Activity {
         }
 
         updateModeSelectionUi();
-        showResultPage();
+        if (fromUser || showingResultPage) {
+            showResultPage();
+        } else {
+            showInputPage();
+        }
         renderResult(currentResult, false);
         consumeSavedPendingPurchaseIfNeeded();
 
