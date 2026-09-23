@@ -304,7 +304,7 @@ final class VedicResultRenderer {
         LinearLayout panel = host.resultPanel();
 
         TextView intro = host.text(
-                "不做吉凶分數。每個主題都先給「怎麼看 → 關鍵資料 → 目前時間 → 白話解讀」，語音老師只負責補充與追問。",
+                "先看個性、工作、財務、感情與家庭的白話結論；星盤證據放在結論後面，需要時再看。",
                 13, MainActivity.MUTED, false);
         intro.setLineSpacing(host.dp(3), 1f);
         panel.addView(intro);
@@ -367,16 +367,16 @@ final class VedicResultRenderer {
         String rule = host.mapValue(raw, "rule");
         Object evidence = raw instanceof Map ? ((Map<?, ?>) raw).get("evidence") : null;
 
-        host.addTopicLine(card, "怎麼看", rule);
+        host.addTopicLine(card, "先說重點",
+                FortuneResultTabCopy.compactInterpretation(
+                        aiText,
+                        "完整命盤已經算好；這個主題的完整白話內容會在「完整解讀」裡把各個訊號串起來。"));
 
         String timingEvidence =
                 VedicFactsFormatter.topicTimingEvidence(host.rendererFacts(), profileKey);
-        addVedicEvidenceCardGrid(card, evidence, timingEvidence);
 
-        host.addTopicLine(card, "白話解讀",
-                FortuneResultTabCopy.compactInterpretation(
-                        aiText,
-                        "上面的本命與時間資料已經可以直接看；完整文字解讀會把這些訊號彼此之間的關係講清楚。"));
+        host.addTopicLine(card, "為什麼這樣說", rule);
+        addVedicEvidenceCardGrid(card, evidence, timingEvidence);
         host.addAskTeacherAction(card, "用語音追問這一題", question);
     }
     void addVedicEvidenceCardGrid(
