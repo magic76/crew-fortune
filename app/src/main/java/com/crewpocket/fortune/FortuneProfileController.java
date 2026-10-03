@@ -46,15 +46,44 @@ final class FortuneProfileController {
     }
 
     void addFields(LinearLayout form) {
-        form.addView(host.label("基本資料"), host.marginTop(8));
+        summaryCard = host.column();
+        summaryCard.setPadding(host.dp(13), host.dp(11), host.dp(13), host.dp(11));
+        summaryCard.setBackground(host.roundBorder(
+                FortuneTheme.BRAND_SOFT,
+                FortuneTheme.BRAND_LINE,
+                16,
+                1));
+        summaryCard.setVisibility(View.GONE);
+
+        LinearLayout summaryHead = new LinearLayout(host);
+        summaryHead.setOrientation(LinearLayout.HORIZONTAL);
+        summaryHead.setGravity(Gravity.CENTER_VERTICAL);
+        TextView summaryLabel = host.text("出生資料", 12, MainActivity.MUTED, true);
+        summaryHead.addView(summaryLabel, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        TextView edit = host.text("編輯  ›", 12, MainActivity.ACCENT, true);
+        edit.setPadding(host.dp(8), host.dp(4), host.dp(4), host.dp(4));
+        edit.setOnClickListener(v -> setFieldsExpanded(true));
+        summaryHead.addView(edit);
+        summaryCard.addView(summaryHead);
+
+        summaryText = host.text("", 14, MainActivity.TEXT, true);
+        summaryText.setLineSpacing(host.dp(2), 1f);
+        summaryCard.addView(summaryText, host.marginTop(5));
+        form.addView(summaryCard, host.marginTop(8));
+
+        fieldsContainer = host.column();
+        form.addView(fieldsContainer);
+
+        fieldsContainer.addView(host.label("基本資料"), host.marginTop(8));
 
         birthInput = host.input("點選生日  →");
         birthInput.setFocusable(false);
         birthInput.setClickable(true);
         birthInput.setTextColor(MainActivity.ACCENT);
         birthInput.setBackground(host.roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(150, 116, 206),
+                FortuneTheme.SURFACE_ALT,
+                FortuneTheme.LINE,
                 14,
                 1));
         birthInput.setOnClickListener(v -> showDatePicker());
@@ -64,8 +93,8 @@ final class FortuneProfileController {
         birthTimeInput.setClickable(true);
         birthTimeInput.setTextColor(MainActivity.ACCENT);
         birthTimeInput.setBackground(host.roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(150, 116, 206),
+                FortuneTheme.SURFACE_ALT,
+                FortuneTheme.LINE,
                 14,
                 1));
         birthTimeInput.setOnClickListener(v -> showTimePicker());
@@ -80,22 +109,22 @@ final class FortuneProfileController {
                 birthTimeInput,
                 new LinearLayout.LayoutParams(
                         0, host.dp(48), 0.85f));
-        form.addView(dateTimeRow, host.marginTop(8));
+        fieldsContainer.addView(dateTimeRow, host.marginTop(8));
 
         TextView sharedHint = host.text(
-                "基本資料固定顯示，切換命理不會消失；不同系統只取它需要的欄位。",
+                "這份資料會共用在不同命理方式，不需要重複輸入。",
                 10,
                 MainActivity.MUTED,
                 false);
         sharedHint.setLineSpacing(host.dp(2), 1f);
-        form.addView(sharedHint, host.marginTop(4));
+        fieldsContainer.addView(sharedHint, host.marginTop(4));
 
         TextView genderLabel = host.text(
                 "性別 · 八字使用",
                 11,
                 MainActivity.MUTED,
                 true);
-        form.addView(genderLabel, host.marginTop(7));
+        fieldsContainer.addView(genderLabel, host.marginTop(7));
 
         genderRow = new LinearLayout(host);
         genderRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -111,13 +140,60 @@ final class FortuneProfileController {
         genderRow.addView(
                 femaleButton,
                 new LinearLayout.LayoutParams(0, host.dp(44), 1f));
-        form.addView(genderRow, host.marginTop(6));
+        fieldsContainer.addView(genderRow, host.marginTop(6));
 
-        addVedicLocationFields(form);
-        addPresetActions(form);
+        addVedicLocationFields(fieldsContainer);
+        addPresetActions(fieldsContainer);
+
+        Button done = host.secondaryButton("完成資料設定");
+        done.setOnClickListener(v -> {
+            if (text(birthInput).isEmpty()) {
+                Toast.makeText(host, "請先選擇生日", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            refreshProfileSummary();
+            setFieldsExpanded(false);
+        });
+        fieldsContainer.addView(done, host.fixedHeightTop(44, 10));
     }
 
-    void onModeSelected(FortuneMode mode) {
+    private void setFieldsExpanded(boolean expanded) {
+        if (fieldsContainer == null || summaryCard == null) return;
+        boolean hasProfile = birthInput != null && !text(birthInput).isEmpty();
+        if (!hasProfile) expanded = true;
+        fieldsContainer.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        summaryCard.setVisibility(!expanded && hasProfile ? View.VISIBLE : View.GONE);
+        if (!expanded) refreshProfileSummary();
+    }
+
+    private void refreshProfileSummary() {
+        if (summaryText == null || birthInput == null) return;
+        StringBuilder line = new StringBuilder();
+        String date = text(birthInput);
+        String time = text(birthTimeInput);
+        if (!date.isEmpty()) line.append(date);
+        if (!time.isEmpty()) {
+            if (line.length() > 0) line.append(" · ");
+            line.append(time);
+        }
+
+        StringBuilder detail = new StringBuilder();
+        if ("male".equals(selectedGender)) detail.append("男");
+        if ("female".equals(selectedGender)) detail.append("女");
+        String city = text(birthPlaceNameInput);
+        if (!city.isEmpty()) {
+            if (detail.length() > 0) detail.append(" · ");
+            detail.append(city);
+        }
+
+        if (detail.length() > 0) {
+            if (line.length() > 0) line.append("\n");
+            line.append(detail);
+        }
+        summaryText.setText(line.length() == 0 ? "尚未設定" : line.toString());
+    }
+
+    void onModeSelected    void onModeSelected(FortuneMode mode) {
         if (birthTimeInput != null) {
             birthTimeInput.setVisibility(View.VISIBLE);
         }
@@ -220,7 +296,11 @@ final class FortuneProfileController {
 
     void restoreLastProfile() {
         FortunePreset preset = FortunePresetStore.loadLast(host);
-        if (preset != null) applyPreset(preset);
+        if (preset != null) {
+            applyPreset(preset);
+            refreshProfileSummary();
+            setFieldsExpanded(false);
+        }
     }
 
     void saveCurrentPreset(FortuneMode mode) {
@@ -475,8 +555,8 @@ final class FortuneProfileController {
         citySearchRow.setPadding(
                 host.dp(2), host.dp(2), host.dp(2), host.dp(2));
         citySearchRow.setBackground(host.roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(150, 116, 206),
+                FortuneTheme.SURFACE,
+                FortuneTheme.LINE,
                 15,
                 1));
 
@@ -571,6 +651,7 @@ final class FortuneProfileController {
         } else {
             clearGender();
         }
+        refreshProfileSummary();
     }
 
     private void selectGender(String gender) {
@@ -581,42 +662,43 @@ final class FortuneProfileController {
         maleButton.setBackground(host.roundBorder(
                 male
                         ? MainActivity.ACCENT
-                        : Color.rgb(31, 24, 49),
+                        : FortuneTheme.SURFACE,
                 male
                         ? MainActivity.ACCENT
-                        : Color.rgb(150, 116, 206),
+                        : FortuneTheme.LINE,
                 14,
                 male ? 2 : 1));
         femaleButton.setBackground(host.roundBorder(
                 !male
                         ? MainActivity.ACCENT
-                        : Color.rgb(31, 24, 49),
+                        : FortuneTheme.SURFACE,
                 !male
                         ? MainActivity.ACCENT
-                        : Color.rgb(150, 116, 206),
+                        : FortuneTheme.LINE,
                 14,
                 !male ? 2 : 1));
         maleButton.setTextColor(
                 male
-                        ? Color.rgb(30, 22, 46)
+                        ? Color.WHITE
                         : MainActivity.ACCENT);
         femaleButton.setTextColor(
                 !male
-                        ? Color.rgb(30, 22, 46)
+                        ? Color.WHITE
                         : MainActivity.ACCENT);
+        refreshProfileSummary();
     }
 
     private void clearGender() {
         selectedGender = "";
         if (maleButton == null || femaleButton == null) return;
         maleButton.setBackground(host.roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(150, 116, 206),
+                FortuneTheme.SURFACE,
+                FortuneTheme.LINE,
                 14,
                 1));
         femaleButton.setBackground(host.roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(150, 116, 206),
+                FortuneTheme.SURFACE,
+                FortuneTheme.LINE,
                 14,
                 1));
         maleButton.setTextColor(MainActivity.ACCENT);
@@ -650,6 +732,7 @@ final class FortuneProfileController {
                             host,
                             "BIRTH_DATE_SELECTED",
                             value);
+                    refreshProfileSummary();
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
@@ -686,6 +769,7 @@ final class FortuneProfileController {
                             host,
                             "BIRTH_TIME_SELECTED",
                             value);
+                    refreshProfileSummary();
                 },
                 hour,
                 minute,
@@ -741,6 +825,8 @@ final class FortuneProfileController {
                             + " · 已自動設定時區");
             geocodeStatus.setTextColor(MainActivity.GOLD);
         }
+
+        refreshProfileSummary();
 
         OperationLog.add(
                 host,
