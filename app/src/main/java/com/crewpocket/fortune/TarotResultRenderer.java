@@ -224,7 +224,7 @@ final class TarotResultRenderer {
         panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setPadding(host.dp(12), host.dp(14), host.dp(12), host.dp(14));
         GradientDrawable background = host.round(MainActivity.CARD_2, 18);
-        background.setStroke(host.dp(1), Color.rgb(87, 69, 121));
+        background.setStroke(host.dp(1), FortuneTheme.LINE);
         panel.setBackground(background);
         LinearLayout container = host.resultHostLayout();
         container.addView(panel, host.marginTop(6));
