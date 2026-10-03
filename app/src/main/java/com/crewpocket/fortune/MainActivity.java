@@ -3390,6 +3390,14 @@ public final class MainActivity extends Activity {
             vedicModeButton.setTextColor(
                     vedic ? Color.rgb(18, 33, 50) : VEDIC_ACCENT);
         }
+        if (calculateButton != null) {
+            calculateButton.setText(
+                    bazi
+                            ? "開始八字解讀"
+                            : tarot
+                            ? "開始塔羅生命靈數解讀"
+                            : "開始印度星盤解讀");
+        }
         if (modeLabel != null) {
             if (bazi) {
                 modeLabel.setText(
@@ -3489,7 +3497,7 @@ public final class MainActivity extends Activity {
      void styleDarkDialog(AlertDialog dialog) {
         if (dialog == null || dialog.getWindow() == null) return;
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        dialog.getWindow().setDimAmount(0.68f);
+        dialog.getWindow().setDimAmount(0.30f);
     }
 
      GradientDrawable roundBorder(
