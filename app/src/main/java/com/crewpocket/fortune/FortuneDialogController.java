@@ -32,7 +32,7 @@ final class FortuneDialogController {
                 host.dp(14), host.dp(12));
         panel.setBackground(host.roundBorder(
                 MainActivity.CARD,
-                Color.rgb(92, 73, 127),
+                FortuneTheme.LINE,
                 22,
                 1));
 
@@ -43,7 +43,7 @@ final class FortuneDialogController {
                 true));
 
         TextView hint = host.text(
-                "點之前的結果會直接開完整結果，不需要再按 Load more，也不會重新排盤或呼叫 AI。",
+                "點之前的結果會直接開已保存內容，不會重新排盤，也不會重新呼叫 AI。",
                 12,
                 MainActivity.MUTED,
                 false);
@@ -187,6 +187,11 @@ final class FortuneDialogController {
 
         dialog.show();
         host.styleDarkDialog(dialog);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setLayout(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT);
+        }
     }
 
     void showOperationLog() {
@@ -199,7 +204,7 @@ final class FortuneDialogController {
                 host.dp(12), host.dp(10));
         panel.setBackground(host.roundBorder(
                 MainActivity.CARD,
-                Color.rgb(92, 73, 127),
+                FortuneTheme.LINE,
                 24,
                 1));
 
@@ -236,8 +241,8 @@ final class FortuneDialogController {
                         host.dp(10), host.dp(8),
                         host.dp(10), host.dp(8));
                 item.setBackground(host.roundBorder(
-                        Color.rgb(39, 29, 60),
-                        Color.rgb(168, 137, 230),
+                        FortuneTheme.SURFACE_ALT,
+                        FortuneTheme.BRAND_LINE,
                         14,
                         2));
                 item.setClickable(true);
@@ -301,7 +306,7 @@ final class FortuneDialogController {
                 host.dp(16), host.dp(14));
         panel.setBackground(host.roundBorder(
                 MainActivity.CARD,
-                Color.rgb(92, 73, 127),
+                FortuneTheme.LINE,
                 22,
                 1));
 
@@ -446,7 +451,7 @@ final class FortuneDialogController {
                 host.dp(9), host.dp(9));
         evidenceView.setBackground(host.roundBorder(
                 MainActivity.CARD_2,
-                Color.rgb(80, 65, 111),
+                FortuneTheme.LINE,
                 14,
                 1));
         panel.addView(
@@ -490,7 +495,7 @@ final class FortuneDialogController {
                 host.dp(9), host.dp(9));
         evidence.setBackground(host.roundBorder(
                 MainActivity.CARD_2,
-                Color.rgb(80, 65, 111),
+                FortuneTheme.LINE,
                 14,
                 1));
         panel.addView(evidence, host.marginTop(8));
@@ -520,7 +525,7 @@ final class FortuneDialogController {
                 host.dp(9), host.dp(9));
         detail.setBackground(host.roundBorder(
                 MainActivity.CARD_2,
-                Color.rgb(80, 65, 111),
+                FortuneTheme.LINE,
                 14,
                 1));
 
@@ -584,7 +589,7 @@ final class FortuneDialogController {
                 host.dp(9), host.dp(8));
         detail.setBackground(host.roundBorder(
                 MainActivity.CARD_2,
-                Color.rgb(80, 65, 111),
+                FortuneTheme.LINE,
                 14,
                 1));
         panel.addView(detail, host.marginTop(6));
@@ -642,7 +647,7 @@ final class FortuneDialogController {
                 host.dp(14), host.dp(12));
         panel.setBackground(host.roundBorder(
                 MainActivity.CARD,
-                Color.rgb(92, 73, 127),
+                FortuneTheme.LINE,
                 20,
                 1));
         return panel;

@@ -54,19 +54,19 @@ import java.util.Map;
 
 public final class MainActivity extends Activity {
     private static final int REQUEST_TEACHER_AUDIO = 4101;
-    private static final int BG = Color.rgb(23, 17, 38);
-    static final int CARD = Color.rgb(39, 30, 60);
-    static final int CARD_2 = Color.rgb(50, 38, 76);
-    static final int TEXT = Color.rgb(248, 245, 255);
-    static final int MUTED = Color.rgb(190, 181, 207);
-    static final int ACCENT = Color.rgb(183, 156, 255);
-    static final int GOLD = Color.rgb(255, 214, 128);
-    static final int BAZI_ACCENT = Color.rgb(255, 183, 104);
-    static final int TAROT_ACCENT = Color.rgb(103, 220, 193);
-    static final int VEDIC_ACCENT = Color.rgb(111, 181, 255);
-    static final int ROSE = Color.rgb(245, 143, 184);
-    static final int SKY = Color.rgb(119, 191, 255);
-    static final int TEAL = Color.rgb(103, 220, 193);
+    private static final int BG = FortuneTheme.BG;
+    static final int CARD = FortuneTheme.SURFACE;
+    static final int CARD_2 = FortuneTheme.SURFACE_ALT;
+    static final int TEXT = FortuneTheme.TEXT;
+    static final int MUTED = FortuneTheme.MUTED;
+    static final int ACCENT = FortuneTheme.BRAND;
+    static final int GOLD = FortuneTheme.GOLD;
+    static final int BAZI_ACCENT = FortuneTheme.BAZI;
+    static final int TAROT_ACCENT = FortuneTheme.TAROT;
+    static final int VEDIC_ACCENT = FortuneTheme.VEDIC;
+    static final int ROSE = FortuneTheme.ROSE;
+    static final int SKY = FortuneTheme.SKY;
+    static final int TEAL = FortuneTheme.TEAL;
 
     private final FortuneEngine engine = new FortuneEngine();
 
@@ -79,6 +79,9 @@ public final class MainActivity extends Activity {
     private Button strictStyleButton;
     private Button normalStyleButton;
     private Button funnyStyleButton;
+    private Button calculateButton;
+    private TextView aiStyleSummary;
+    private LinearLayout aiStyleOptions;
     private AiStyle selectedAiStyle = AiStyle.FUNNY;
     private ScrollView mainScroll;
     private LinearLayout inputPage;
@@ -119,6 +122,13 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                            | (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
+                            ? View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                            : 0));
+        }
         selectedAiStyle = AppConfig.getAiStyle(this);
         setContentView(buildScreen());
         setupBilling();
@@ -185,7 +195,7 @@ public final class MainActivity extends Activity {
         panel.setPadding(dp(14), dp(14), dp(14), dp(12));
         panel.setBackground(roundBorder(
                 CARD,
-                Color.rgb(92, 73, 127),
+                FortuneTheme.LINE,
                 20,
                 1));
 
@@ -640,13 +650,15 @@ public final class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         mainScroll = scroll;
         scroll.setFillViewport(true);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         scroll.setBackgroundColor(BG);
 
         LinearLayout root = column();
-        final int baseLeft = dp(14);
-        final int baseTop = dp(16);
-        final int baseRight = dp(14);
-        final int baseBottom = dp(24);
+        final int baseLeft = dp(18);
+        final int baseTop = dp(18);
+        final int baseRight = dp(18);
+        final int baseBottom = dp(28);
         root.setPadding(baseLeft, baseTop, baseRight, baseBottom);
         root.setOnApplyWindowInsetsListener((view, insets) -> {
             int topInset = insets.getSystemWindowInsetTop();
@@ -670,151 +682,214 @@ public final class MainActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        TextView eyebrow = text("CREW FORTUNE · 命運研究所", 13, GOLD, true);
-        top.addView(eyebrow, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-        TextView history = text("記錄 ›", 12, GOLD, true);
+        LinearLayout brand = column();
+        TextView brandTitle = text("Crew Fortune", 18, TEXT, true);
+        TextView brandSub = text("命運研究所", 11, MUTED, false);
+        brand.addView(brandTitle);
+        brand.addView(brandSub, marginTop(1));
+        top.addView(brand, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView history = text("歷史", 12, ACCENT, true);
         history.setGravity(Gravity.CENTER);
-        history.setPadding(dp(10), dp(7), dp(10), dp(7));
+        history.setPadding(dp(12), dp(8), dp(12), dp(8));
         history.setBackground(roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(150, 116, 206),
-                12,
+                FortuneTheme.BRAND_SOFT,
+                FortuneTheme.BRAND_LINE,
+                14,
                 1));
         history.setOnClickListener(v -> dialogController.showFortuneHistory());
-        LinearLayout.LayoutParams historyLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        historyLp.leftMargin = dp(6);
-        top.addView(history, historyLp);
-
-        aiStatus = text("", 12, ACCENT, true);
-        aiStatus.setGravity(Gravity.CENTER);
-        aiStatus.setPadding(dp(10), dp(7), dp(10), dp(7));
-        aiStatus.setBackground(roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(150, 116, 206),
-                12,
-                1));
-        aiStatus.setOnClickListener(v -> {
-            OperationLog.add(this, "OPEN_AI_SETTINGS", "");
-            if (FortuneTextModelSession.hasProductionAi(this)) {
-                Toast.makeText(
-                        this,
-                        "正式版使用 Firebase AI Logic，App 內不保存 Gemini Key",
-                        Toast.LENGTH_SHORT).show();
-            } else {
-                dialogController.showApiKey();
-            }
-        });
-        LinearLayout.LayoutParams aiStatusLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        aiStatusLp.leftMargin = dp(5);
-        top.addView(aiStatus, aiStatusLp);
+        top.addView(history);
 
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.mipmap.ic_launcher);
         logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        logo.setPadding(0, 0, 0, 0);
-        logo.setBackground(round(CARD_2, 12));
+        logo.setBackground(round(FortuneTheme.SURFACE_ALT, 12));
         logo.setContentDescription("Crew Fortune");
         logo.setOnClickListener(v -> dialogController.showAbout());
-        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(34), dp(34));
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(36), dp(36));
         logoLp.leftMargin = dp(8);
         top.addView(logo, logoLp);
-
         root.addView(top);
 
         inputPage = column();
         root.addView(inputPage);
 
-        TextView title = text("看懂你的命盤，\n也看懂自己的節奏。", 32, TEXT, true);
+        TextView title = text("從不同角度，\n看懂自己的節奏。", 30, TEXT, true);
         title.setLineSpacing(0, 1.04f);
-        inputPage.addView(title, marginTop(4));
+        inputPage.addView(title, marginTop(20));
 
-        TextView sub = text("八字、塔羅生命靈數、印度星盤。\n固定規則排盤，AI 命理老師只負責把結果講成人話。", 15, MUTED, false);
+        TextView sub = text(
+                "先選一種方式。出生資料只要設定一次，之後可以直接開始解讀。",
+                14,
+                MUTED,
+                false);
         sub.setLineSpacing(dp(2), 1f);
-        inputPage.addView(sub, marginTop(6));
+        inputPage.addView(sub, marginTop(7));
+
+        TextView modeSection = text("選一種方式", 13, TEXT, true);
+        inputPage.addView(modeSection, marginTop(20));
+
+        baZiModeButton = modeButton("八字\n性格 · 工作 · 財運 · 大運");
+        baZiModeButton.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        baZiModeButton.setOnClickListener(v -> selectMode(FortuneMode.BA_ZI));
+        inputPage.addView(baZiModeButton, fixedHeightTop(72, 8));
+
+        LinearLayout secondModeRow = new LinearLayout(this);
+        secondModeRow.setOrientation(LinearLayout.HORIZONTAL);
+
+        tarotModeButton = modeButton("塔羅生命靈數\n核心性格 · 人生主題");
+        tarotModeButton.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        tarotModeButton.setOnClickListener(v -> selectMode(FortuneMode.TAROT_NUMEROLOGY));
+        LinearLayout.LayoutParams tarotLp = new LinearLayout.LayoutParams(0, dp(76), 1f);
+        tarotLp.rightMargin = dp(8);
+        secondModeRow.addView(tarotModeButton, tarotLp);
+
+        vedicModeButton = modeButton("印度星盤\n人生週期 · 行星 · Dasha");
+        vedicModeButton.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        vedicModeButton.setOnClickListener(v -> selectMode(FortuneMode.VEDIC_ASTROLOGY));
+        secondModeRow.addView(vedicModeButton, new LinearLayout.LayoutParams(0, dp(76), 1f));
+        inputPage.addView(secondModeRow, marginTop(8));
+
+        modeLabel = text("", 11, MUTED, false);
+        modeLabel.setLineSpacing(dp(2), 1f);
+        inputPage.addView(modeLabel, marginTop(6));
 
         LinearLayout form = column();
-        form.setPadding(dp(12), dp(12), dp(12), dp(12));
-        form.setBackground(round(CARD, 18));
-        inputPage.addView(form, marginTop(6));
+        form.setPadding(dp(16), dp(15), dp(16), dp(16));
+        form.setBackground(roundBorder(
+                CARD,
+                FortuneTheme.LINE,
+                22,
+                1));
+        inputPage.addView(form, marginTop(18));
 
-        form.addView(label("選擇排盤方式"));
-
-        LinearLayout modeRow = new LinearLayout(this);
-        modeRow.setOrientation(LinearLayout.HORIZONTAL);
-        baZiModeButton = modeButton("八字");
-        tarotModeButton = modeButton("塔羅生命靈數");
-        vedicModeButton = modeButton("印度星盤");
-        baZiModeButton.setTextSize(12);
-        tarotModeButton.setTextSize(12);
-        vedicModeButton.setTextSize(12);
-        baZiModeButton.setOnClickListener(v -> selectMode(FortuneMode.BA_ZI));
-        tarotModeButton.setOnClickListener(v -> selectMode(FortuneMode.TAROT_NUMEROLOGY));
-        vedicModeButton.setOnClickListener(v -> selectMode(FortuneMode.VEDIC_ASTROLOGY));
-        LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        modeLp.rightMargin = dp(5);
-        modeRow.addView(baZiModeButton, modeLp);
-        LinearLayout.LayoutParams tarotLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        tarotLp.rightMargin = dp(5);
-        modeRow.addView(tarotModeButton, tarotLp);
-        modeRow.addView(vedicModeButton, new LinearLayout.LayoutParams(0, dp(46), 1f));
-        form.addView(modeRow, marginTop(6));
-
-        modeLabel = text("", 12, MUTED, false);
-        modeLabel.setLineSpacing(dp(2), 1f);
-        form.addView(modeLabel, marginTop(5));
+        LinearLayout profileHeader = new LinearLayout(this);
+        profileHeader.setOrientation(LinearLayout.HORIZONTAL);
+        profileHeader.setGravity(Gravity.CENTER_VERTICAL);
+        TextView profileTitle = text("你的資料", 16, TEXT, true);
+        profileHeader.addView(profileTitle, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        TextView profileHint = text("只需設定一次", 11, MUTED, false);
+        profileHeader.addView(profileHint);
+        form.addView(profileHeader);
 
         profileController.addFields(form);
 
-        TextView styleLabel = text("AI 解讀口吻（不影響命盤）", 12, MUTED, true);
-        form.addView(styleLabel, marginTop(6));
+        TextView styleLabel = text("解讀風格", 12, TEXT, true);
+        form.addView(styleLabel, marginTop(14));
 
-        LinearLayout styleRow = new LinearLayout(this);
-        styleRow.setOrientation(LinearLayout.HORIZONTAL);
+        aiStyleSummary = text("", 13, ACCENT, true);
+        aiStyleSummary.setPadding(dp(12), dp(10), dp(12), dp(10));
+        aiStyleSummary.setBackground(roundBorder(
+                FortuneTheme.BRAND_SOFT,
+                FortuneTheme.BRAND_LINE,
+                14,
+                1));
+        aiStyleSummary.setOnClickListener(v -> {
+            if (aiStyleOptions != null) {
+                aiStyleOptions.setVisibility(
+                        aiStyleOptions.getVisibility() == View.VISIBLE
+                                ? View.GONE
+                                : View.VISIBLE);
+            }
+        });
+        form.addView(aiStyleSummary, marginTop(6));
+
+        aiStyleOptions = new LinearLayout(this);
+        aiStyleOptions.setOrientation(LinearLayout.HORIZONTAL);
+        aiStyleOptions.setVisibility(View.GONE);
         strictStyleButton = styleButton("嚴謹");
-        normalStyleButton = styleButton("普通");
+        normalStyleButton = styleButton("白話");
         funnyStyleButton = styleButton("風趣");
         strictStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.STRICT));
         normalStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.NORMAL));
         funnyStyleButton.setOnClickListener(v -> selectAiStyle(AiStyle.FUNNY));
         LinearLayout.LayoutParams styleLp = new LinearLayout.LayoutParams(0, dp(42), 1f);
-        styleLp.rightMargin = dp(5);
-        styleRow.addView(strictStyleButton, styleLp);
+        styleLp.rightMargin = dp(6);
+        aiStyleOptions.addView(strictStyleButton, styleLp);
         LinearLayout.LayoutParams styleLp2 = new LinearLayout.LayoutParams(0, dp(42), 1f);
-        styleLp2.rightMargin = dp(5);
-        styleRow.addView(normalStyleButton, styleLp2);
-        styleRow.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(42), 1f));
-        form.addView(styleRow, marginTop(4));
+        styleLp2.rightMargin = dp(6);
+        aiStyleOptions.addView(normalStyleButton, styleLp2);
+        aiStyleOptions.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(42), 1f));
+        form.addView(aiStyleOptions, marginTop(6));
 
-        TextView styleHint = text("嚴謹＝專業｜普通＝白話｜風趣＝有梗；只改文字口吻。", 11, MUTED, false);
-        form.addView(styleHint, marginTop(2));
+        aiStatus = text("", 11, MUTED, false);
+        aiStatus.setVisibility(View.GONE);
 
-        Button calculate = primaryButton("開始排盤  →");
-        calculate.setTextSize(17);
-        calculate.setBackground(round(ACCENT, 20));
-        calculate.setOnClickListener(v -> calculate());
-        LinearLayout.LayoutParams calcLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(52));
-        calcLp.topMargin = dp(12);
-        inputPage.addView(calculate, calcLp);
+        TextView aiSettings = text("AI 設定  ›", 11, MUTED, true);
+        aiSettings.setGravity(Gravity.END);
+        aiSettings.setPadding(0, dp(10), 0, 0);
+        aiSettings.setOnClickListener(v -> {
+            OperationLog.add(this, "OPEN_AI_SETTINGS", "");
+            if (FortuneTextModelSession.hasProductionAi(this)) {
+                Toast.makeText(
+                        this,
+                        "正式版使用 Firebase AI Logic，不需要自行設定 Gemini Key",
+                        Toast.LENGTH_SHORT).show();
+            } else {
+                dialogController.showApiKey();
+            }
+        });
+        form.addView(aiSettings);
+
+        calculateButton = primaryButton("開始解讀");
+        calculateButton.setTextSize(16);
+        calculateButton.setOnClickListener(v -> calculate());
+        inputPage.addView(calculateButton, fixedHeightTop(54, 14));
+
+        addRecentReadingCard(inputPage);
 
         resultCard = column();
-        resultCard.setPadding(dp(12), dp(12), dp(12), dp(12));
-        resultCard.setBackground(round(CARD, 20));
+        resultCard.setPadding(0, 0, 0, 0);
+        resultCard.setBackgroundColor(BG);
         resultCard.setVisibility(View.GONE);
-        root.addView(resultCard, marginTop(9));
+        root.addView(resultCard, marginTop(8));
 
         updateModeSelectionUi();
+        updateAiStyleButtons();
 
-        TextView foot = text("娛樂用途 · 八字＋塔羅生命靈數＋印度星盤", 12, MUTED, false);
+        TextView foot = text("內容供自我探索與娛樂用途", 11, MUTED, false);
         foot.setGravity(Gravity.CENTER);
-        root.addView(foot, marginTop(9));
+        root.addView(foot, marginTop(18));
         return scroll;
+    }
+
+    private void addRecentReadingCard(LinearLayout container) {
+        List<FortuneHistoryEntry> entries = FortuneHistoryStore.list(this);
+        if (entries.isEmpty()) return;
+
+        TextView label = text("最近解讀", 13, TEXT, true);
+        container.addView(label, marginTop(22));
+
+        FortuneHistoryEntry entry = entries.get(0);
+        LinearLayout card = column();
+        card.setPadding(dp(15), dp(13), dp(15), dp(13));
+        card.setBackground(roundBorder(
+                CARD,
+                FortuneTheme.LINE,
+                18,
+                1));
+
+        LinearLayout head = new LinearLayout(this);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        TextView title = text(entry.titleLine(), 15, TEXT, true);
+        head.addView(title, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        TextView arrow = text("›", 22, ACCENT, false);
+        head.addView(arrow);
+        card.addView(head);
+
+        TextView meta = text(
+                entry.subtitleLine() + " · " + entry.savedAtText(),
+                11,
+                MUTED,
+                false);
+        card.addView(meta, marginTop(4));
+        card.setOnClickListener(v -> openHistoryEntry(entry));
+        container.addView(card, marginTop(7));
     }
 
     private void showResultPage() {
@@ -1034,8 +1109,8 @@ public final class MainActivity extends Activity {
                 true);
         back.setPadding(dp(8), dp(7), dp(8), dp(7));
         back.setBackground(roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(128, 101, 181),
+                FortuneTheme.SURFACE,
+                FortuneTheme.BRAND_LINE,
                 11,
                 1));
         back.setOnClickListener(v -> showInputPage());
@@ -1088,11 +1163,11 @@ public final class MainActivity extends Activity {
         nav.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView back = text("‹ 修改資料", 12, ACCENT, true);
-        back.setPadding(dp(8), dp(7), dp(8), dp(7));
+        back.setPadding(dp(10), dp(8), dp(10), dp(8));
         back.setBackground(roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(128, 101, 181),
-                11,
+                FortuneTheme.BRAND_SOFT,
+                FortuneTheme.BRAND_LINE,
+                13,
                 1));
         back.setOnClickListener(v -> showInputPage());
         nav.addView(back);
@@ -1167,7 +1242,7 @@ public final class MainActivity extends Activity {
         TextView state;
         if (aiCopy != null) {
             state = text(
-                    "完整解讀已準備好，點 Load more 直接展開。",
+                    "完整解讀已準備好，可以直接閱讀。",
                     11,
                     GOLD,
                     true);
@@ -1179,13 +1254,13 @@ public final class MainActivity extends Activity {
                     true);
         } else if (FortuneTextModelSession.usesDeveloperKey(this)) {
             state = text(
-                    "完整解讀尚未完成；Load more 仍可查看目前可用內容。",
+                    "完整解讀尚未完成；目前仍可查看已整理內容。",
                     11,
                     MUTED,
                     false);
         } else {
             state = text(
-                    "初步結果免費；Load more 可查看完整解讀。",
+                    "初步結果免費；完整解讀可另外查看。",
                     11,
                     MUTED,
                     false);
@@ -1200,13 +1275,44 @@ public final class MainActivity extends Activity {
     }
 
     private void addUnifiedTabbedResult(FortuneResult result, boolean aiLoading) {
-        HorizontalScrollView tabScroll = new HorizontalScrollView(this);
-        tabScroll.setHorizontalScrollBarEnabled(false);
+        if (selectedResultTab == 3 || selectedResultTab == 4) {
+            LinearLayout subNav = new LinearLayout(this);
+            subNav.setOrientation(LinearLayout.HORIZONTAL);
+            subNav.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView backToOverview = text("‹ 回到總覽", 12, ACCENT, true);
+            backToOverview.setPadding(dp(10), dp(8), dp(10), dp(8));
+            backToOverview.setBackground(roundBorder(
+                    FortuneTheme.BRAND_SOFT,
+                    FortuneTheme.BRAND_LINE,
+                    13,
+                    1));
+            backToOverview.setOnClickListener(v -> {
+                selectedResultTab = 0;
+                renderResult(currentResult, aiController.isRunning() && aiCopy == null);
+            });
+            subNav.addView(backToOverview);
+
+            TextView sectionTitle = text(
+                    selectedResultTab == 3 ? "完整解讀" : "命盤資料",
+                    13,
+                    selectedResultTab == 3 ? GOLD : TEAL,
+                    true);
+            sectionTitle.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+            subNav.addView(sectionTitle, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            resultCard.addView(subNav, marginTop(8));
+
+            resultTabContent = column();
+            resultCard.addView(resultTabContent, marginTop(8));
+            renderUnifiedTab(result, aiLoading);
+            addSharedResultActions(aiLoading, result.mode);
+            return;
+        }
+
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
-        tabScroll.addView(tabs);
-
-        final String[] labels = {"重點", "人生節奏", "主題", "完整解讀", "命盤資料"};
+        final String[] labels = {"總覽", "人生節奏", "主題"};
         for (int i = 0; i < labels.length; i++) {
             final int index = i;
             Button tab = new Button(this);
@@ -1216,47 +1322,63 @@ public final class MainActivity extends Activity {
             boolean selected = selectedResultTab == i;
             int tabColor = resultTabAccent(i);
             tab.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
-            tab.setTextColor(selected ? Color.rgb(30, 22, 46) : tabColor);
+            tab.setTextColor(selected ? Color.WHITE : MUTED);
             tab.setBackground(roundBorder(
-                    selected ? tabColor : Color.rgb(31, 24, 49),
-                    tabColor,
-                    13,
-                    selected ? 2 : 1));
-            tab.setPadding(dp(10), 0, dp(10), 0);
+                    selected ? tabColor : CARD,
+                    selected ? tabColor : FortuneTheme.LINE,
+                    14,
+                    1));
+            tab.setPadding(dp(8), 0, dp(8), 0);
             tab.setOnClickListener(v -> {
                 selectedResultTab = index;
                 OperationLog.add(this, "RESULT_TAB_SELECTED", labels[index]);
                 renderResult(currentResult, aiController.isRunning() && aiCopy == null);
             });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, dp(40));
-            lp.rightMargin = dp(4);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(42), 1f);
+            if (i < labels.length - 1) lp.rightMargin = dp(6);
             tabs.addView(tab, lp);
         }
-        resultCard.addView(tabScroll, marginTop(6));
-
-        TextView tabGuide = text(
-                FortuneResultTabCopy.overviewHint(result.mode),
-                11, MUTED, true);
-        tabGuide.setLineSpacing(dp(2), 1f);
-        resultCard.addView(tabGuide, marginTop(5));
+        resultCard.addView(tabs, marginTop(10));
 
         TextView selectedTabGuide = text(
                 FortuneResultTabCopy.description(result.mode, selectedResultTab),
-                12, ACCENT, false);
-        selectedTabGuide.setLineSpacing(dp(2), 1f);
-        resultCard.addView(selectedTabGuide, marginTop(3));
-
-        TextView interactionHint = text(
-                "紫色外框＋「→／查看／問老師」＝可以點",
-                10,
+                12,
                 MUTED,
-                true);
-        resultCard.addView(interactionHint, marginTop(4));
+                false);
+        selectedTabGuide.setLineSpacing(dp(2), 1f);
+        resultCard.addView(selectedTabGuide, marginTop(7));
 
         resultTabContent = column();
-        resultCard.addView(resultTabContent, marginTop(4));
+        resultCard.addView(resultTabContent, marginTop(8));
         renderUnifiedTab(result, aiLoading);
+
+        LinearLayout secondaryActions = new LinearLayout(this);
+        secondaryActions.setOrientation(LinearLayout.HORIZONTAL);
+        Button full = secondaryButton(
+                aiCopy != null
+                        ? "閱讀完整解讀"
+                        : aiController.isRunning()
+                        ? "完整解讀整理中"
+                        : "查看完整解讀");
+        full.setEnabled(!aiController.isRunning() || aiCopy != null);
+        full.setOnClickListener(v -> {
+            selectedResultTab = 3;
+            resultExpanded = true;
+            renderResult(currentResult, aiController.isRunning() && aiCopy == null);
+        });
+        secondaryActions.addView(full, new LinearLayout.LayoutParams(0, dp(46), 1f));
+
+        Button raw = secondaryButton("命盤資料");
+        raw.setOnClickListener(v -> {
+            selectedResultTab = 4;
+            resultExpanded = true;
+            renderResult(currentResult, aiController.isRunning() && aiCopy == null);
+        });
+        LinearLayout.LayoutParams rawLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
+        rawLp.leftMargin = dp(7);
+        secondaryActions.addView(raw, rawLp);
+        resultCard.addView(secondaryActions, marginTop(10));
+
         addSharedResultActions(aiLoading, result.mode);
     }
 
@@ -1511,7 +1633,7 @@ public final class MainActivity extends Activity {
         benefits.setPadding(dp(11), dp(10), dp(11), dp(10));
         benefits.setBackground(roundBorder(
                 CARD_2,
-                Color.rgb(88, 70, 122),
+                FortuneTheme.LINE,
                 15,
                 1));
         benefits.addView(text(
@@ -1762,8 +1884,8 @@ public final class MainActivity extends Activity {
             int focusAccent = shown == 0 ? ROSE : GOLD;
             card.setBackground(roundBorder(
                     shown == 0
-                            ? Color.rgb(56, 33, 48)
-                            : Color.rgb(55, 44, 31),
+                            ? FortuneTheme.ROSE_SOFT
+                            : FortuneTheme.GOLD_SOFT,
                     focusAccent,
                     13,
                     1));
@@ -1802,7 +1924,16 @@ public final class MainActivity extends Activity {
     }
 
     void addOverviewPrimaryAction(LinearLayout panel, boolean aiLoading) {
-        Button button = primaryButton("Load more  ↓");
+        boolean preparing = aiController.isRunning() && aiCopy == null;
+        String label = aiCopy != null
+                ? "閱讀完整解讀  ↓"
+                : preparing
+                ? "完整解讀整理中…"
+                : "查看完整解讀  ↓";
+
+        Button button = primaryButton(label);
+        button.setEnabled(!preparing);
+        button.setAlpha(preparing ? 0.62f : 1f);
         button.setOnClickListener(v -> {
             loadMoreRequested = true;
             resultExpanded = true;
@@ -1823,13 +1954,13 @@ public final class MainActivity extends Activity {
 
         String hintValue;
         if (aiCopy != null) {
-            hintValue = "完整解讀已經準備好。";
-        } else if (aiController.isRunning()) {
-            hintValue = "AI 正在背景整理；現在點也可以，完成後會自動顯示。";
+            hintValue = "完整解讀已準備好。";
+        } else if (preparing) {
+            hintValue = "AI 正在背景整理，你可以先閱讀上面的初步結果。";
         } else if (!FortuneTextModelSession.usesDeveloperKey(this)) {
-            hintValue = "完整解讀需要解鎖；不影響上面的免費初步結果。";
+            hintValue = "初步結果免費；完整內容可另外解鎖。";
         } else {
-            hintValue = "會顯示目前可用的完整內容。";
+            hintValue = "可查看目前已整理完成的內容。";
         }
         TextView hint = text(hintValue, 10, MUTED, false);
         hint.setGravity(Gravity.CENTER);
@@ -1870,8 +2001,8 @@ public final class MainActivity extends Activity {
                     index == 0
                             ? modeSurface(mode)
                             : index == 1
-                            ? Color.rgb(28, 49, 53)
-                            : Color.rgb(55, 44, 31),
+                            ? FortuneTheme.TEAL_SOFT
+                            : FortuneTheme.GOLD_SOFT,
                     takeawayAccent,
                     13,
                     1));
@@ -1903,8 +2034,8 @@ public final class MainActivity extends Activity {
                         index == 0
                                 ? modeSurface(mode)
                                 : index == 1
-                                ? Color.rgb(28, 49, 53)
-                                : Color.rgb(55, 44, 31),
+                                ? FortuneTheme.TEAL_SOFT
+                                : FortuneTheme.GOLD_SOFT,
                         takeawayAccent,
                         13,
                         2));
@@ -1915,8 +2046,8 @@ public final class MainActivity extends Activity {
                         true);
                 why.setPadding(dp(8), dp(5), dp(8), dp(5));
                 why.setBackground(roundBorder(
-                        Color.rgb(31, 24, 49),
-                        Color.rgb(128, 101, 181),
+                        FortuneTheme.SURFACE,
+                        FortuneTheme.BRAND_LINE,
                         10,
                         1));
                 copy.addView(why, marginTop(6));
@@ -1943,7 +2074,7 @@ public final class MainActivity extends Activity {
         LinearLayout card = column();
         card.setPadding(dp(10), dp(10), dp(10), dp(10));
         card.setBackground(roundBorder(
-                Color.rgb(28, 41, 59),
+                FortuneTheme.SKY_SOFT,
                 SKY,
                 14,
                 1));
@@ -1974,8 +2105,8 @@ public final class MainActivity extends Activity {
             row.setOrientation(LinearLayout.VERTICAL);
             row.setPadding(dp(9), dp(8), dp(9), dp(8));
             row.setBackground(roundBorder(
-                    Color.rgb(48, 36, 72),
-                    Color.rgb(168, 137, 230),
+                    FortuneTheme.BRAND_SOFT,
+                    FortuneTheme.BRAND_LINE,
                     13,
                     2));
             row.setClickable(true);
@@ -2009,8 +2140,8 @@ public final class MainActivity extends Activity {
                     true);
             why.setPadding(dp(8), dp(5), dp(8), dp(5));
             why.setBackground(roundBorder(
-                    Color.rgb(31, 24, 49),
-                    Color.rgb(128, 101, 181),
+                    FortuneTheme.SURFACE,
+                    FortuneTheme.BRAND_LINE,
                     10,
                     1));
             row.addView(why, marginTop(6));
@@ -2162,8 +2293,8 @@ public final class MainActivity extends Activity {
             LinearLayout card = column();
             card.setPadding(dp(10), dp(10), dp(10), dp(13));
             card.setBackground(roundBorder(
-                    Color.rgb(55, 42, 82),
-                    Color.rgb(111, 91, 157),
+                    FortuneTheme.BRAND_SOFT,
+                    FortuneTheme.BRAND_LINE,
                     14,
                     1));
 
@@ -2256,8 +2387,8 @@ public final class MainActivity extends Activity {
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(dp(11), dp(11), dp(11), dp(14));
         card.setBackground(roundBorder(
-                Color.rgb(45, 35, 67),
-                Color.rgb(111, 91, 157),
+                FortuneTheme.BRAND_SOFT,
+                FortuneTheme.BRAND_LINE,
                 15,
                 1));
 
@@ -2322,7 +2453,7 @@ public final class MainActivity extends Activity {
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(dp(9), dp(8), dp(9), dp(8));
-            row.setBackground(round(Color.rgb(43, 33, 65), 12));
+            row.setBackground(round(FortuneTheme.SURFACE_ALT, 12));
 
             TextView label = text(section, 12, MUTED, true);
             row.addView(label, new LinearLayout.LayoutParams(
@@ -2339,7 +2470,7 @@ public final class MainActivity extends Activity {
         LinearLayout panel = column();
         panel.setPadding(dp(11), dp(12), dp(11), dp(16));
         panel.setBackground(roundBorder(
-                Color.rgb(35, 29, 49),
+                FortuneTheme.SURFACE,
                 resultTabAccent(selectedResultTab),
                 16,
                 1));
@@ -2416,8 +2547,8 @@ public final class MainActivity extends Activity {
         moreView.setGravity(Gravity.CENTER_VERTICAL);
         moreView.setPadding(dp(9), dp(6), dp(9), dp(6));
         moreView.setBackground(roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(128, 101, 181),
+                FortuneTheme.SURFACE,
+                FortuneTheme.BRAND_LINE,
                 10,
                 1));
         LinearLayout.LayoutParams moreLp = new LinearLayout.LayoutParams(
@@ -2562,8 +2693,8 @@ public final class MainActivity extends Activity {
         LinearLayout card = column();
         card.setGravity(Gravity.CENTER_HORIZONTAL);
         card.setPadding(dp(4), dp(7), dp(4), dp(7));
-        GradientDrawable background = round(Color.rgb(31, 24, 49), 14);
-        background.setStroke(dp(1), Color.rgb(78, 63, 108));
+        GradientDrawable background = round(FortuneTheme.SURFACE, 14);
+        background.setStroke(dp(1), FortuneTheme.LINE);
         card.setBackground(background);
 
         TextView labelView = text(label, 11, MUTED, true);
@@ -2598,7 +2729,7 @@ public final class MainActivity extends Activity {
 
         LinearLayout track = new LinearLayout(this);
         track.setOrientation(LinearLayout.HORIZONTAL);
-        track.setBackground(round(Color.rgb(29, 23, 45), 8));
+        track.setBackground(round(FortuneTheme.LINE, 8));
 
         int safeCount = Math.max(0, Math.min(8, count));
         if (safeCount > 0) {
@@ -2636,8 +2767,8 @@ public final class MainActivity extends Activity {
         LinearLayout card = column();
         card.setGravity(Gravity.CENTER);
         card.setPadding(dp(8), dp(9), dp(8), dp(9));
-        GradientDrawable background = round(Color.rgb(31, 24, 49), 16);
-        background.setStroke(dp(1), Color.rgb(86, 70, 119));
+        GradientDrawable background = round(FortuneTheme.SURFACE, 16);
+        background.setStroke(dp(1), FortuneTheme.LINE);
         card.setBackground(background);
 
         TextView h = text(heading, 12, GOLD, true);
@@ -3135,10 +3266,16 @@ public final class MainActivity extends Activity {
         OperationLog.add(this, "AI_STYLE_SELECTED", selectedAiStyle.name());
         AppConfig.setAiStyle(this, selectedAiStyle);
         updateAiStyleButtons();
-        Toast.makeText(this, "AI 風格：" + selectedAiStyle.label(), Toast.LENGTH_SHORT).show();
+        if (aiStyleSummary != null) {
+            aiStyleSummary.setText("目前：" + selectedAiStyle.label() + "  ›");
+        }
+        if (aiStyleOptions != null) aiStyleOptions.setVisibility(View.GONE);
     }
 
     private void updateAiStyleButtons() {
+        if (aiStyleSummary != null) {
+            aiStyleSummary.setText("目前：" + selectedAiStyle.label() + "  ›");
+        }
         if (strictStyleButton == null || normalStyleButton == null || funnyStyleButton == null) return;
         applyStyleButton(strictStyleButton, selectedAiStyle == AiStyle.STRICT);
         applyStyleButton(normalStyleButton, selectedAiStyle == AiStyle.NORMAL);
@@ -3147,21 +3284,23 @@ public final class MainActivity extends Activity {
 
     private void applyStyleButton(Button button, boolean selected) {
         button.setBackground(roundBorder(
-                selected ? ACCENT : Color.rgb(31, 24, 49),
-                selected ? ACCENT : Color.rgb(150, 116, 206),
+                selected ? ACCENT : CARD,
+                selected ? ACCENT : FortuneTheme.LINE,
                 14,
                 selected ? 2 : 1));
-        button.setTextColor(selected ? Color.rgb(30, 22, 46) : ACCENT);
+        button.setTextColor(selected ? Color.WHITE : ACCENT);
         button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
     }
 
     private Button modeButton(String value) {
         Button button = new Button(this);
         button.setText(value);
-        button.setTextSize(14);
+        button.setTextSize(13);
         button.setAllCaps(false);
         button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        button.setPadding(dp(8), 0, dp(8), 0);
+        button.setPadding(dp(14), dp(8), dp(14), dp(8));
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
         return button;
     }
 
@@ -3172,9 +3311,9 @@ public final class MainActivity extends Activity {
     }
 
     static int modeSurface(FortuneMode mode) {
-        if (mode == FortuneMode.BA_ZI) return Color.rgb(55, 40, 31);
-        if (mode == FortuneMode.TAROT_NUMEROLOGY) return Color.rgb(27, 48, 51);
-        return Color.rgb(28, 39, 58);
+        if (mode == FortuneMode.BA_ZI) return FortuneTheme.BAZI_SOFT;
+        if (mode == FortuneMode.TAROT_NUMEROLOGY) return FortuneTheme.TAROT_SOFT;
+        return FortuneTheme.VEDIC_SOFT;
     }
 
     private int resultTabAccent(int index) {
@@ -3216,10 +3355,10 @@ public final class MainActivity extends Activity {
 
     private int sectionSurface(String heading) {
         int accent = sectionAccent(heading);
-        if (accent == GOLD) return Color.rgb(55, 44, 31);
-        if (accent == ROSE) return Color.rgb(56, 33, 48);
-        if (accent == SKY) return Color.rgb(28, 41, 59);
-        if (accent == TEAL) return Color.rgb(27, 48, 51);
+        if (accent == GOLD) return FortuneTheme.GOLD_SOFT;
+        if (accent == ROSE) return FortuneTheme.ROSE_SOFT;
+        if (accent == SKY) return FortuneTheme.SKY_SOFT;
+        if (accent == TEAL) return FortuneTheme.TEAL_SOFT;
         return modeSurface(selectedMode);
     }
 
@@ -3229,27 +3368,35 @@ public final class MainActivity extends Activity {
         boolean vedic = selectedMode == FortuneMode.VEDIC_ASTROLOGY;
         if (baZiModeButton != null) {
             baZiModeButton.setBackground(roundBorder(
-                    bazi ? BAZI_ACCENT : Color.rgb(31, 24, 49),
-                    BAZI_ACCENT,
+                    bazi ? FortuneTheme.BAZI_SOFT : CARD,
+                    bazi ? BAZI_ACCENT : FortuneTheme.LINE,
                     16, bazi ? 2 : 1));
             baZiModeButton.setTextColor(
-                    bazi ? Color.rgb(47, 29, 18) : BAZI_ACCENT);
+                    bazi ? BAZI_ACCENT : TEXT);
         }
         if (tarotModeButton != null) {
             tarotModeButton.setBackground(roundBorder(
-                    tarot ? TAROT_ACCENT : Color.rgb(31, 24, 49),
-                    TAROT_ACCENT,
+                    tarot ? FortuneTheme.TAROT_SOFT : CARD,
+                    tarot ? TAROT_ACCENT : FortuneTheme.LINE,
                     16, tarot ? 2 : 1));
             tarotModeButton.setTextColor(
                     tarot ? Color.rgb(18, 43, 40) : TAROT_ACCENT);
         }
         if (vedicModeButton != null) {
             vedicModeButton.setBackground(roundBorder(
-                    vedic ? VEDIC_ACCENT : Color.rgb(31, 24, 49),
-                    VEDIC_ACCENT,
+                    vedic ? FortuneTheme.VEDIC_SOFT : CARD,
+                    vedic ? VEDIC_ACCENT : FortuneTheme.LINE,
                     16, vedic ? 2 : 1));
             vedicModeButton.setTextColor(
                     vedic ? Color.rgb(18, 33, 50) : VEDIC_ACCENT);
+        }
+        if (calculateButton != null) {
+            calculateButton.setText(
+                    bazi
+                            ? "開始八字解讀"
+                            : tarot
+                            ? "開始塔羅生命靈數解讀"
+                            : "開始印度星盤解讀");
         }
         if (modeLabel != null) {
             if (bazi) {
@@ -3277,7 +3424,7 @@ public final class MainActivity extends Activity {
         button.setTextSize(15);
         button.setAllCaps(false);
         button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        button.setTextColor(Color.rgb(30, 22, 46));
+        button.setTextColor(Color.WHITE);
         button.setMinHeight(dp(48));
         button.setMinimumHeight(0);
         button.setPadding(dp(14), dp(9), dp(14), dp(9));
@@ -3296,8 +3443,8 @@ public final class MainActivity extends Activity {
         button.setMinimumHeight(0);
         button.setPadding(dp(12), dp(8), dp(12), dp(8));
         button.setBackground(roundBorder(
-                Color.rgb(31, 24, 49),
-                Color.rgb(150, 116, 206),
+                CARD,
+                FortuneTheme.LINE,
                 14,
                 1));
         return button;
@@ -3312,12 +3459,12 @@ public final class MainActivity extends Activity {
      EditText input(String hint) {
         EditText input = new EditText(this);
         input.setHint(hint);
-        input.setHintTextColor(Color.rgb(142, 131, 163));
+        input.setHintTextColor(Color.rgb(155, 155, 155));
         input.setTextColor(TEXT);
         input.setTextSize(15);
         input.setSingleLine(true);
         input.setPadding(dp(12), 0, dp(12), 0);
-        input.setBackground(round(Color.rgb(29, 23, 45), 14));
+        input.setBackground(round(FortuneTheme.SURFACE_ALT, 14));
         input.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
         return input;
@@ -3350,7 +3497,7 @@ public final class MainActivity extends Activity {
      void styleDarkDialog(AlertDialog dialog) {
         if (dialog == null || dialog.getWindow() == null) return;
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        dialog.getWindow().setDimAmount(0.68f);
+        dialog.getWindow().setDimAmount(0.30f);
     }
 
      GradientDrawable roundBorder(

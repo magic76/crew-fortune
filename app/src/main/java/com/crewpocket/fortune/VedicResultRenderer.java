@@ -285,8 +285,8 @@ final class VedicResultRenderer {
         LinearLayout guide = host.column();
         guide.setPadding(host.dp(11), host.dp(11), host.dp(11), host.dp(12));
         guide.setBackground(host.roundBorder(
-                Color.rgb(47, 36, 72),
-                Color.rgb(105, 84, 146),
+                FortuneTheme.VEDIC_SOFT,
+                FortuneTheme.LINE,
                 16,
                 1));
 
@@ -440,8 +440,8 @@ final class VedicResultRenderer {
         LinearLayout mini = host.column();
         mini.setPadding(host.dp(9), host.dp(8), host.dp(9), host.dp(9));
         mini.setBackground(host.roundBorder(
-                Color.rgb(45, 34, 69),
-                Color.rgb(83, 67, 112),
+                FortuneTheme.SURFACE_ALT,
+                FortuneTheme.LINE,
                 13,
                 1));
 
