@@ -38,6 +38,9 @@ final class FortuneProfileController {
     private Button geocodeButton;
     private TextView geocodeStatus;
     private LinearLayout vedicCoordinateFields;
+    private LinearLayout fieldsContainer;
+    private LinearLayout summaryCard;
+    private TextView summaryText;
     private String selectedTimeZoneId = "+08:00";
     private boolean geocodingBirthPlace;
 
