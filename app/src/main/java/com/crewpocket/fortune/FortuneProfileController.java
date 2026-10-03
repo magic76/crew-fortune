@@ -193,7 +193,7 @@ final class FortuneProfileController {
         summaryText.setText(line.length() == 0 ? "尚未設定" : line.toString());
     }
 
-    void onModeSelected    void onModeSelected(FortuneMode mode) {
+    void onModeSelected(FortuneMode mode) {
         if (birthTimeInput != null) {
             birthTimeInput.setVisibility(View.VISIBLE);
         }
