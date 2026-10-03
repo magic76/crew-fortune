@@ -892,7 +892,7 @@ public final class MainActivity extends Activity {
         container.addView(card, marginTop(7));
     }
 
-    private void showResultPage()    private void showResultPage() {
+    private void showResultPage() {
         showingResultPage = true;
         if (inputPage != null) inputPage.setVisibility(View.GONE);
         if (resultCard != null) resultCard.setVisibility(View.VISIBLE);
@@ -1382,7 +1382,7 @@ public final class MainActivity extends Activity {
         addSharedResultActions(aiLoading, result.mode);
     }
 
-    void showFactDetailDialog    void showFactDetailDialog(String titleValue, Object value) {
+    void showFactDetailDialog(String titleValue, Object value) {
         dialogController.showFactDetail(titleValue, value);
     }
 
@@ -1967,7 +1967,7 @@ public final class MainActivity extends Activity {
         panel.addView(hint, marginTop(5));
     }
 
-    void addOverviewTakeaways    void addOverviewTakeaways(LinearLayout panel, FortuneMode mode) {
+    void addOverviewTakeaways(LinearLayout panel, FortuneMode mode) {
         List<String> values = FortuneOverviewSnapshot.keyTakeaways(
                 mode,
                 currentFacts,
