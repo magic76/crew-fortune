@@ -1,7 +1,9 @@
 package com.crewpocket.fortune;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.text.InputType;
 import android.view.Gravity;
 import android.widget.Button;
@@ -359,69 +361,187 @@ final class FortuneDialogController {
     }
 
     void showApiKey() {
-        final EditText keyInput = new EditText(host);
-        keyInput.setSingleLine(true);
-        keyInput.setHint("Gemini API Key");
+        LinearLayout panel = host.column();
+        panel.setPadding(
+                host.dp(16), host.dp(16),
+                host.dp(16), host.dp(14));
+        panel.setBackground(host.roundBorder(
+                MainActivity.CARD,
+                FortuneTheme.LINE,
+                22,
+                1));
+
+        panel.addView(host.text(
+                "Gemini API Key",
+                22,
+                MainActivity.TEXT,
+                true));
+
+        TextView intro = host.text(
+                "語音老師與開發模式的 AI 解讀需要你自己的 Gemini Key。"
+                        + "命盤計算與基本結果不需要 Key。",
+                13,
+                MainActivity.MUTED,
+                false);
+        intro.setLineSpacing(host.dp(2), 1f);
+        panel.addView(intro, host.marginTop(5));
+
+        LinearLayout guide = host.column();
+        guide.setPadding(
+                host.dp(12), host.dp(11),
+                host.dp(12), host.dp(11));
+        guide.setBackground(host.roundBorder(
+                FortuneTheme.BRAND_SOFT,
+                FortuneTheme.BRAND_LINE,
+                16,
+                1));
+
+        guide.addView(host.text(
+                "如何取得 Key",
+                13,
+                MainActivity.ACCENT,
+                true));
+
+        TextView steps = host.text(
+                "1. 前往 Google AI Studio\n"
+                        + "2. 登入 Google 帳號並建立 Gemini API Key\n"
+                        + "3. 複製 Key，回到這裡貼上並儲存",
+                12,
+                MainActivity.TEXT,
+                false);
+        steps.setLineSpacing(host.dp(3), 1f);
+        guide.addView(steps, host.marginTop(5));
+
+        Button openAiStudio = host.secondaryButton(
+                "前往 Google AI Studio 申請  →");
+        openAiStudio.setOnClickListener(v -> {
+            OperationLog.add(host, "OPEN_GEMINI_KEY_GUIDE", "ai_studio");
+            try {
+                Intent intent = new Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://aistudio.google.com/apikey"));
+                host.startActivity(intent);
+            } catch (RuntimeException error) {
+                Toast.makeText(
+                        host,
+                        "無法開啟瀏覽器，請搜尋 Google AI Studio API Key",
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+        guide.addView(openAiStudio, host.fixedHeightTop(44, 9));
+        panel.addView(guide, host.marginTop(12));
+
+        TextView inputLabel = host.text(
+                "貼上你的 API Key",
+                12,
+                MainActivity.TEXT,
+                true);
+        panel.addView(inputLabel, host.marginTop(13));
+
+        final EditText keyInput = host.input("Gemini API Key");
         keyInput.setText(AppConfig.getGeminiApiKey(host));
         keyInput.setInputType(
                 InputType.TYPE_CLASS_TEXT
                         | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        keyInput.setPadding(
-                host.dp(16), host.dp(8),
-                host.dp(16), host.dp(8));
+        panel.addView(keyInput, host.marginTop(6));
 
-        new AlertDialog.Builder(host)
-                .setTitle("AI 模式")
-                .setMessage(
-                        "Gemini 只負責解讀與文案，底層命盤由本地 deterministic engine 計算。"
-                                + "可在主畫面切換嚴謹／普通／風趣三種回應風格。")
-                .setView(keyInput)
-                .setPositiveButton("儲存", (dialog, which) -> {
-                    try {
-                        AppConfig.setGeminiApiKey(
-                                host,
-                                keyInput.getText().toString());
-                        OperationLog.add(
-                                host,
-                                "GEMINI_KEY_SAVED",
-                                "encrypted");
-                        host.refreshAiStatusFromController();
-                        Toast.makeText(
-                                host,
-                                "Gemini Key 已加密儲存於本機",
-                                Toast.LENGTH_SHORT).show();
-                    } catch (RuntimeException error) {
-                        OperationLog.add(
-                                host,
-                                "GEMINI_KEY_SAVE_FAILED",
-                                host.safeErrorMessage(error));
-                        Toast.makeText(
-                                host,
-                                "無法安全儲存 Gemini Key，請稍後再試",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .setNeutralButton("清除", (dialog, which) -> {
-                    try {
-                        AppConfig.setGeminiApiKey(host, "");
-                        OperationLog.add(
-                                host,
-                                "GEMINI_KEY_CLEARED",
-                                "");
-                        host.refreshAiStatusFromController();
-                    } catch (RuntimeException error) {
-                        OperationLog.add(
-                                host,
-                                "GEMINI_KEY_CLEAR_FAILED",
-                                host.safeErrorMessage(error));
-                        Toast.makeText(
-                                host,
-                                "無法清除本機金鑰",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .show();
+        TextView security = host.text(
+                "Key 會加密儲存在這台裝置。請勿分享 Key；API 用量與可能產生的費用由你的 Google 專案管理。",
+                11,
+                MainActivity.MUTED,
+                false);
+        security.setLineSpacing(host.dp(2), 1f);
+        panel.addView(security, host.marginTop(6));
+
+        LinearLayout actions = new LinearLayout(host);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button save = host.primaryButton("儲存 Key");
+        Button close = host.secondaryButton("取消");
+        LinearLayout.LayoutParams saveLp =
+                new LinearLayout.LayoutParams(
+                        0, host.dp(46), 1f);
+        saveLp.rightMargin = host.dp(6);
+        actions.addView(save, saveLp);
+        actions.addView(
+                close,
+                new LinearLayout.LayoutParams(
+                        0, host.dp(46), 1f));
+        panel.addView(actions, host.marginTop(12));
+
+        Button clear = host.secondaryButton("清除已儲存的 Key");
+        clear.setVisibility(
+                AppConfig.hasGeminiApiKey(host)
+                        ? android.view.View.VISIBLE
+                        : android.view.View.GONE);
+        panel.addView(clear, host.fixedHeightTop(42, 7));
+
+        final AlertDialog dialog =
+                new AlertDialog.Builder(host)
+                        .setView(panel)
+                        .create();
+
+        save.setOnClickListener(v -> {
+            String value = keyInput.getText().toString().trim();
+            if (value.isEmpty()) {
+                Toast.makeText(
+                        host,
+                        "請先貼上 Gemini API Key",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            try {
+                AppConfig.setGeminiApiKey(host, value);
+                OperationLog.add(
+                        host,
+                        "GEMINI_KEY_SAVED",
+                        "encrypted");
+                host.refreshAiStatusFromController();
+                Toast.makeText(
+                        host,
+                        "Gemini Key 已安全儲存在本機",
+                        Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            } catch (RuntimeException error) {
+                OperationLog.add(
+                        host,
+                        "GEMINI_KEY_SAVE_FAILED",
+                        host.safeErrorMessage(error));
+                Toast.makeText(
+                        host,
+                        "無法安全儲存 Gemini Key，請稍後再試",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        clear.setOnClickListener(v -> {
+            try {
+                AppConfig.setGeminiApiKey(host, "");
+                OperationLog.add(
+                        host,
+                        "GEMINI_KEY_CLEARED",
+                        "");
+                host.refreshAiStatusFromController();
+                Toast.makeText(
+                        host,
+                        "已清除 Gemini Key",
+                        Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            } catch (RuntimeException error) {
+                OperationLog.add(
+                        host,
+                        "GEMINI_KEY_CLEAR_FAILED",
+                        host.safeErrorMessage(error));
+                Toast.makeText(
+                        host,
+                        "無法清除本機金鑰",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+        close.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+        host.styleDarkDialog(dialog);
     }
 
     void showTraitEvidence(String trait, String evidence) {
