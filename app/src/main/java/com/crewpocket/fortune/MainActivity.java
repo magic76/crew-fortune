@@ -195,7 +195,7 @@ public final class MainActivity extends Activity {
         panel.setPadding(dp(14), dp(14), dp(14), dp(12));
         panel.setBackground(roundBorder(
                 CARD,
-                Color.rgb(92, 73, 127),
+                FortuneTheme.LINE,
                 20,
                 1));
 
@@ -1110,7 +1110,7 @@ public final class MainActivity extends Activity {
         back.setPadding(dp(8), dp(7), dp(8), dp(7));
         back.setBackground(roundBorder(
                 FortuneTheme.SURFACE,
-                Color.rgb(128, 101, 181),
+                FortuneTheme.BRAND_LINE,
                 11,
                 1));
         back.setOnClickListener(v -> showInputPage());
@@ -1633,7 +1633,7 @@ public final class MainActivity extends Activity {
         benefits.setPadding(dp(11), dp(10), dp(11), dp(10));
         benefits.setBackground(roundBorder(
                 CARD_2,
-                Color.rgb(88, 70, 122),
+                FortuneTheme.LINE,
                 15,
                 1));
         benefits.addView(text(
@@ -2001,7 +2001,7 @@ public final class MainActivity extends Activity {
                     index == 0
                             ? modeSurface(mode)
                             : index == 1
-                            ? Color.rgb(28, 49, 53)
+                            ? FortuneTheme.TEAL_SOFT
                             : FortuneTheme.GOLD_SOFT,
                     takeawayAccent,
                     13,
@@ -2034,7 +2034,7 @@ public final class MainActivity extends Activity {
                         index == 0
                                 ? modeSurface(mode)
                                 : index == 1
-                                ? Color.rgb(28, 49, 53)
+                                ? FortuneTheme.TEAL_SOFT
                                 : FortuneTheme.GOLD_SOFT,
                         takeawayAccent,
                         13,
@@ -2047,7 +2047,7 @@ public final class MainActivity extends Activity {
                 why.setPadding(dp(8), dp(5), dp(8), dp(5));
                 why.setBackground(roundBorder(
                         FortuneTheme.SURFACE,
-                        Color.rgb(128, 101, 181),
+                        FortuneTheme.BRAND_LINE,
                         10,
                         1));
                 copy.addView(why, marginTop(6));
@@ -2105,8 +2105,8 @@ public final class MainActivity extends Activity {
             row.setOrientation(LinearLayout.VERTICAL);
             row.setPadding(dp(9), dp(8), dp(9), dp(8));
             row.setBackground(roundBorder(
-                    Color.rgb(48, 36, 72),
-                    Color.rgb(168, 137, 230),
+                    FortuneTheme.BRAND_SOFT,
+                    FortuneTheme.BRAND_LINE,
                     13,
                     2));
             row.setClickable(true);
@@ -2141,7 +2141,7 @@ public final class MainActivity extends Activity {
             why.setPadding(dp(8), dp(5), dp(8), dp(5));
             why.setBackground(roundBorder(
                     FortuneTheme.SURFACE,
-                    Color.rgb(128, 101, 181),
+                    FortuneTheme.BRAND_LINE,
                     10,
                     1));
             row.addView(why, marginTop(6));
@@ -2293,8 +2293,8 @@ public final class MainActivity extends Activity {
             LinearLayout card = column();
             card.setPadding(dp(10), dp(10), dp(10), dp(13));
             card.setBackground(roundBorder(
-                    Color.rgb(55, 42, 82),
-                    Color.rgb(111, 91, 157),
+                    FortuneTheme.BRAND_SOFT,
+                    FortuneTheme.BRAND_LINE,
                     14,
                     1));
 
@@ -2387,8 +2387,8 @@ public final class MainActivity extends Activity {
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(dp(11), dp(11), dp(11), dp(14));
         card.setBackground(roundBorder(
-                Color.rgb(45, 35, 67),
-                Color.rgb(111, 91, 157),
+                FortuneTheme.BRAND_SOFT,
+                FortuneTheme.BRAND_LINE,
                 15,
                 1));
 
@@ -2453,7 +2453,7 @@ public final class MainActivity extends Activity {
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(dp(9), dp(8), dp(9), dp(8));
-            row.setBackground(round(Color.rgb(43, 33, 65), 12));
+            row.setBackground(round(FortuneTheme.SURFACE_ALT, 12));
 
             TextView label = text(section, 12, MUTED, true);
             row.addView(label, new LinearLayout.LayoutParams(
@@ -2470,7 +2470,7 @@ public final class MainActivity extends Activity {
         LinearLayout panel = column();
         panel.setPadding(dp(11), dp(12), dp(11), dp(16));
         panel.setBackground(roundBorder(
-                Color.rgb(35, 29, 49),
+                FortuneTheme.SURFACE,
                 resultTabAccent(selectedResultTab),
                 16,
                 1));
@@ -2548,7 +2548,7 @@ public final class MainActivity extends Activity {
         moreView.setPadding(dp(9), dp(6), dp(9), dp(6));
         moreView.setBackground(roundBorder(
                 FortuneTheme.SURFACE,
-                Color.rgb(128, 101, 181),
+                FortuneTheme.BRAND_LINE,
                 10,
                 1));
         LinearLayout.LayoutParams moreLp = new LinearLayout.LayoutParams(
@@ -2694,7 +2694,7 @@ public final class MainActivity extends Activity {
         card.setGravity(Gravity.CENTER_HORIZONTAL);
         card.setPadding(dp(4), dp(7), dp(4), dp(7));
         GradientDrawable background = round(FortuneTheme.SURFACE, 14);
-        background.setStroke(dp(1), Color.rgb(78, 63, 108));
+        background.setStroke(dp(1), FortuneTheme.LINE);
         card.setBackground(background);
 
         TextView labelView = text(label, 11, MUTED, true);
@@ -2729,7 +2729,7 @@ public final class MainActivity extends Activity {
 
         LinearLayout track = new LinearLayout(this);
         track.setOrientation(LinearLayout.HORIZONTAL);
-        track.setBackground(round(Color.rgb(29, 23, 45), 8));
+        track.setBackground(round(FortuneTheme.LINE, 8));
 
         int safeCount = Math.max(0, Math.min(8, count));
         if (safeCount > 0) {
@@ -2768,7 +2768,7 @@ public final class MainActivity extends Activity {
         card.setGravity(Gravity.CENTER);
         card.setPadding(dp(8), dp(9), dp(8), dp(9));
         GradientDrawable background = round(FortuneTheme.SURFACE, 16);
-        background.setStroke(dp(1), Color.rgb(86, 70, 119));
+        background.setStroke(dp(1), FortuneTheme.LINE);
         card.setBackground(background);
 
         TextView h = text(heading, 12, GOLD, true);
