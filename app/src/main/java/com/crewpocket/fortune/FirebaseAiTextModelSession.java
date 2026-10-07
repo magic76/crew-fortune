@@ -33,6 +33,7 @@ final class FirebaseAiTextModelSession implements ModelSession {
 
     private final Context context;
     private final float temperature;
+    private final boolean structuredJson;
     private final Executor callbackExecutor = Executors.newSingleThreadExecutor();
 
     private SessionConfig config;
@@ -42,8 +43,16 @@ final class FirebaseAiTextModelSession implements ModelSession {
     private volatile boolean closed;
 
     FirebaseAiTextModelSession(Context context, double temperature) {
+        this(context, temperature, true);
+    }
+
+    FirebaseAiTextModelSession(
+            Context context,
+            double temperature,
+            boolean structuredJson) {
         this.context = context.getApplicationContext();
         this.temperature = (float) Math.max(0.1, Math.min(1.4, temperature));
+        this.structuredJson = structuredJson;
     }
 
     static boolean isConfigured(Context context) {
@@ -84,7 +93,7 @@ final class FirebaseAiTextModelSession implements ModelSession {
             GenerationConfig generationConfig = new GenerationConfig.Builder()
                     .setTemperature(temperature)
                     .setMaxOutputTokens(9000)
-                    .setResponseMimeType("application/json")
+                    .setResponseMimeType(structuredJson ? "application/json" : "text/plain")
                     .build();
 
             Content systemInstruction = new Content.Builder()
