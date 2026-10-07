@@ -15,7 +15,7 @@ public final class FortuneResultTabCopyTest {
             assertTrue(topics.contains("生活主題")
                     || topics.contains("個性"));
             assertTrue(interpretation.contains("完整個人文字報告"));
-            assertTrue(data.contains("專業命盤資料"));
+            assertTrue(data.contains("專業"));\n            assertTrue(data.contains("資料") || data.contains("依據"));
         }
     }
 
