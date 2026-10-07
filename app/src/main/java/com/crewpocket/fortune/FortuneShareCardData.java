@@ -56,6 +56,82 @@ public final class FortuneShareCardData {
         return fromTarot(facts, result, aiCopy, displayName);
     }
 
+    public static FortuneShareCardData traits(
+            FortuneMode mode,
+            FortuneFacts facts,
+            FortuneResult result,
+            AiFortuneCopy aiCopy) {
+        if (mode == null || facts == null || result == null) {
+            throw new IllegalArgumentException("share card requires result facts");
+        }
+
+        List<String> traits = FortuneOverviewSnapshot.keyTakeaways(
+                mode,
+                facts,
+                aiCopy);
+        while (traits.size() < 3) traits.add("完整命盤已保存，可以回 App 繼續看。");
+
+        String firstTwo = "① " + truncate(traits.get(0), 70)
+                + "\n② " + truncate(traits.get(1), 70);
+        String third = "③ " + truncate(traits.get(2), 80);
+        String timing = FortuneOverviewSnapshot.currentTiming(
+                mode,
+                facts,
+                aiCopy);
+        List<String> now = new ArrayList<String>();
+        if (!timing.isEmpty()) now.add(truncate(timing, 72));
+        if (now.isEmpty()) now.add("先看懂自己，再看現在與未來。");
+
+        return new FortuneShareCardData(
+                mode,
+                mode.title(),
+                "最像你的 3 個特徵",
+                firstTwo,
+                "還有一個",
+                third,
+                "現在走到哪裡",
+                now,
+                safeQuote(aiCopy, result, ""));
+    }
+
+    public static FortuneShareCardData timing(
+            FortuneMode mode,
+            FortuneFacts facts,
+            FortuneResult result,
+            AiFortuneCopy aiCopy) {
+        if (mode == null || facts == null || result == null) {
+            throw new IllegalArgumentException("share card requires result facts");
+        }
+
+        String current = FortuneOverviewSnapshot.currentTiming(
+                mode,
+                facts,
+                aiCopy);
+        if (current.isEmpty()) current = "目前先看這段人生節奏，不把任何訊號當成必然事件。";
+
+        List<String> focus = new ArrayList<String>();
+        for (FortuneYearHighlightBuilder.Highlight item
+                : FortuneYearHighlightBuilder.build(mode, facts)) {
+            focus.add(item.year + "｜" + item.theme
+                    + " · " + truncate(item.summary, 42));
+            if (focus.size() >= 3) break;
+        }
+        if (focus.isEmpty()) {
+            focus.add("目前沒有需要特別放大的年份或時期");
+        }
+
+        return new FortuneShareCardData(
+                mode,
+                mode.title(),
+                "現在走到哪裡",
+                truncate(current, 150),
+                "看法",
+                "不是吉凶排名，而是目前與接下來比較值得注意的主題。",
+                "接下來先注意",
+                focus,
+                safeQuote(aiCopy, result, ""));
+    }
+
     private static FortuneShareCardData fromBaZi(
             FortuneFacts facts,
             FortuneResult result,
