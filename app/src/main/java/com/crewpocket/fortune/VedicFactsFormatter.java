@@ -201,7 +201,7 @@ public final class VedicFactsFormatter {
                 Map<?, ?> p = (Map<?, ?>) item;
                 if (!focus.contains(text(p.get("name")))) continue;
                 if (out.length() > 0) out.append("\n");
-                out.append("近期行運 ")
+                out.append("近期行運（Gochar） ")
                         .append(text(p.get("name")))
                         .append(" → H").append(text(p.get("natalHouse")))
                         .append(" · ").append(text(p.get("sign")));
