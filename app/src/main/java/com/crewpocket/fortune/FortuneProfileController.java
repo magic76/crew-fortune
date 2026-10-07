@@ -258,7 +258,7 @@ final class FortuneProfileController {
         }
 
         return new FortuneProfile(
-                text(profileNameInput),
+                "",
                 text(birthInput),
                 text(birthTimeInput),
                 selectedGender,
