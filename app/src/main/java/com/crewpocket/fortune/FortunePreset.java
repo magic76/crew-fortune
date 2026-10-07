@@ -32,8 +32,8 @@ public final class FortunePreset {
             String latitude,
             String longitude,
             String timeZoneId) {
-        // Names are intentionally ignored; fortune calculations do not use identity data.
-        this.name = "";
+        // Optional local label only. It is never needed by the deterministic calculation.
+        this.name = clean(name);
         this.birthDate = clean(birthDate);
         this.birthTime = clean(birthTime);
         this.gender = clean(gender);
@@ -45,7 +45,9 @@ public final class FortunePreset {
     }
 
     public String label() {
-        StringBuilder out = new StringBuilder(mode.title());
+        StringBuilder out = new StringBuilder();
+        if (!name.isEmpty()) out.append(name).append(" · ");
+        out.append(mode.title());
         if (!birthDate.isEmpty()) out.append(" · ").append(birthDate);
         if ((mode == FortuneMode.BA_ZI || mode == FortuneMode.VEDIC_ASTROLOGY)
                 && !birthTime.isEmpty()) {
@@ -72,6 +74,17 @@ public final class FortunePreset {
                 + "|" + timeZoneId;
     }
 
+    public String profileGroupKey() {
+        return birthDate + "|" + birthTime + "|" + gender
+                + "|" + latitude + "|" + longitude + "|" + timeZoneId;
+    }
+
+    public String profileTitle() {
+        if (!name.isEmpty()) return name;
+        if (!birthDate.isEmpty()) return birthDate;
+        return "未命名資料";
+    }
+
     public BirthPlace birthPlaceOrNull() {
         if (mode != FortuneMode.VEDIC_ASTROLOGY) return null;
         if (latitude.isEmpty() || longitude.isEmpty() || timeZoneId.isEmpty()) return null;
@@ -89,6 +102,7 @@ public final class FortunePreset {
     public JSONObject toJson() {
         JSONObject object = new JSONObject();
         try {
+            object.put("name", name);
             object.put("birthDate", birthDate);
             object.put("birthTime", birthTime);
             object.put("gender", gender);
@@ -106,7 +120,7 @@ public final class FortunePreset {
         try {
             FortuneMode mode = FortuneMode.valueOf(object.optString("mode", "BA_ZI"));
             return new FortunePreset(
-                    "",
+                    object.optString("name", ""),
                     object.optString("birthDate", ""),
                     object.optString("birthTime", ""),
                     object.optString("gender", ""),
