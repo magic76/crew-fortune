@@ -23,6 +23,7 @@ final class FortuneProfileController {
     private final BirthPlaceSearchClient birthPlaceSearchClient =
             new BirthPlaceSearchClient();
 
+    private EditText profileNameInput;
     private EditText birthInput;
     private EditText birthTimeInput;
     private LinearLayout genderRow;
@@ -79,6 +80,17 @@ final class FortuneProfileController {
         form.addView(fieldsContainer);
 
         fieldsContainer.addView(host.label("基本資料"), host.marginTop(8));
+
+        profileNameInput = host.input("這份資料叫什麼？例如：我、另一半（選填）");
+        profileNameInput.setSingleLine(true);
+        fieldsContainer.addView(profileNameInput, host.marginTop(8));
+
+        TextView nameHint = host.text(
+                "只用來整理本機的常用資料與歷史紀錄，不會影響命盤計算。",
+                10,
+                MainActivity.MUTED,
+                false);
+        fieldsContainer.addView(nameHint, host.marginTop(3));
 
         birthInput = host.input("點選生日  →");
         birthInput.setFocusable(false);
@@ -172,7 +184,11 @@ final class FortuneProfileController {
     private void refreshProfileSummary() {
         if (summaryText == null || birthInput == null) return;
         StringBuilder line = new StringBuilder();
+        String profileName = text(profileNameInput);
+        if (!profileName.isEmpty()) line.append(profileName);
         String date = text(birthInput);
+        if (!date.isEmpty() && line.length() > 0) line.append("\n");
+
         String time = text(birthTimeInput);
         if (!date.isEmpty()) line.append(date);
         if (!time.isEmpty()) {
@@ -242,7 +258,7 @@ final class FortuneProfileController {
         }
 
         return new FortuneProfile(
-                "",
+                text(profileNameInput),
                 text(birthInput),
                 text(birthTimeInput),
                 selectedGender,
@@ -255,7 +271,7 @@ final class FortuneProfileController {
 
     FortunePreset currentPreset(FortuneMode mode) {
         return new FortunePreset(
-                "",
+                text(profileNameInput),
                 text(birthInput),
                 text(birthTimeInput),
                 selectedGender,
@@ -267,6 +283,7 @@ final class FortuneProfileController {
     }
 
     void saveState(Bundle outState) {
+        outState.putString("state_profile_name", text(profileNameInput));
         outState.putString("state_birth_date", text(birthInput));
         outState.putString("state_birth_time", text(birthTimeInput));
         outState.putString("state_gender", selectedGender);
@@ -280,6 +297,7 @@ final class FortuneProfileController {
 
     void restoreState(Bundle state) {
         if (state == null) return;
+        profileNameInput.setText(state.getString("state_profile_name", ""));
         birthInput.setText(state.getString("state_birth_date", ""));
         birthTimeInput.setText(state.getString("state_birth_time", ""));
         birthPlaceNameInput.setText(
@@ -641,6 +659,7 @@ final class FortuneProfileController {
     private void applyPreset(FortunePreset preset) {
         if (preset == null) return;
 
+        profileNameInput.setText(preset.name);
         birthInput.setText(preset.birthDate);
         birthTimeInput.setText(preset.birthTime);
         birthPlaceNameInput.setText(preset.birthPlaceName);
