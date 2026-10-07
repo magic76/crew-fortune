@@ -7,18 +7,18 @@ public final class VedicFactsFormatter {
     private VedicFactsFormatter() {}
 
     public static String coreSummary(FortuneFacts facts) {
-        return "Lagna｜" + facts.detailText("lagnaSign")
+        return "上升（Lagna）｜" + facts.detailText("lagnaSign")
                 + " · " + facts.detailText("lagnaNakshatra")
                 + " Pada " + facts.detailText("lagnaPada")
-                + "\nMoon｜" + facts.detailText("moonSign")
+                + "\n月亮｜" + facts.detailText("moonSign")
                 + " · " + facts.detailText("moonNakshatra")
                 + " Pada " + facts.detailText("moonPada")
-                + "\nSun｜" + facts.detailText("sunSign");
+                + "\n太陽｜" + facts.detailText("sunSign");
     }
 
     public static String dashaSummary(FortuneFacts facts) {
-        return "Mahadasha｜" + period(facts.detail("currentMahadasha"))
-                + "\nAntardasha｜" + period(facts.detail("currentAntardasha"));
+        return "人生大週期（Mahadasha）｜" + period(facts.detail("currentMahadasha"))
+                + "\n次週期（Antardasha）｜" + period(facts.detail("currentAntardasha"));
     }
 
     public static String planets(FortuneFacts facts) {
@@ -54,7 +54,7 @@ public final class VedicFactsFormatter {
             if (out.length() > 0) out.append("\n");
             out.append("H").append(text(h.get("house")))
                     .append("｜").append(text(h.get("sign")))
-                    .append(" · lord ").append(text(h.get("lord")))
+                    .append(" · 宮主 ").append(text(h.get("lord")))
                     .append(" · ").append(compact(h.get("planets")));
         }
         return out.toString();
@@ -201,7 +201,7 @@ public final class VedicFactsFormatter {
                 Map<?, ?> p = (Map<?, ?>) item;
                 if (!focus.contains(text(p.get("name")))) continue;
                 if (out.length() > 0) out.append("\n");
-                out.append("Gochar ")
+                out.append("近期行運（Gochar） ")
                         .append(text(p.get("name")))
                         .append(" → H").append(text(p.get("natalHouse")))
                         .append(" · ").append(text(p.get("sign")));
@@ -228,7 +228,7 @@ public final class VedicFactsFormatter {
                 Object targets = a.get("natalPlanets");
                 if (!(targets instanceof List) || ((List<?>) targets).isEmpty()) continue;
                 if (out.length() > 0) out.append("\n");
-                out.append("Transit ")
+                out.append("行運 ")
                         .append(text(a.get("transitPlanet")))
                         .append(" aspect → H")
                         .append(text(a.get("toNatalHouse")))
@@ -242,7 +242,7 @@ public final class VedicFactsFormatter {
                 Map<?, ?> c = (Map<?, ?>) item;
                 if (!focus.isEmpty() && !focus.contains(text(c.get("transitPlanet")))) continue;
                 if (out.length() > 0) out.append("\n");
-                out.append("Transit ")
+                out.append("行運 ")
                         .append(text(c.get("transitPlanet")))
                         .append(" 合本命 ").append(text(c.get("natalPlanet")))
                         .append(" · H").append(text(c.get("natalHouse")))

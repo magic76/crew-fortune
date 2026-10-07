@@ -47,6 +47,7 @@ public final class GeminiTextModelSession implements ModelSession {
 
     private final String apiKey;
     private final double temperature;
+    private final boolean structuredJson;
     private final OkHttpClient client;
     private final JSONArray history = new JSONArray();
     private final Map<String, String> pendingCallNames = new LinkedHashMap<String, String>();
@@ -67,8 +68,16 @@ public final class GeminiTextModelSession implements ModelSession {
     }
 
     public GeminiTextModelSession(String apiKey, double temperature) {
+        this(apiKey, temperature, true);
+    }
+
+    public GeminiTextModelSession(
+            String apiKey,
+            double temperature,
+            boolean structuredJson) {
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.temperature = Math.max(0.1, Math.min(1.4, temperature));
+        this.structuredJson = structuredJson;
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(20, TimeUnit.SECONDS)
                 .readTimeout(40, TimeUnit.SECONDS)
@@ -280,7 +289,8 @@ public final class GeminiTextModelSession implements ModelSession {
                 .put("generationConfig", new JSONObject()
                         .put("temperature", temperature)
                         .put("maxOutputTokens", 9000)
-                        .put("responseMimeType", "application/json"));
+                        .put("responseMimeType",
+                                structuredJson ? "application/json" : "text/plain"));
 
         JSONArray declarations = functionDeclarations();
         if (declarations.length() > 0) {

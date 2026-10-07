@@ -22,6 +22,9 @@ final class FortuneOverviewSnapshot {
             for (String value : copy.topTraits) {
                 if (out.size() >= 3) break;
                 String compact = compact(value, 105);
+                if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+                    compact = userFacingVedicTerms(compact);
+                }
                 if (!compact.isEmpty()) out.add(compact);
             }
         }
@@ -56,6 +59,9 @@ final class FortuneOverviewSnapshot {
         for (String key : keys) {
             if (out.size() >= 3) break;
             String compact = compact(sections.get(key), 105);
+            if (mode == FortuneMode.VEDIC_ASTROLOGY) {
+                compact = userFacingVedicTerms(compact);
+            }
             if (!compact.isEmpty() && !out.contains(compact)) {
                 out.add(compact);
             }
@@ -93,7 +99,20 @@ final class FortuneOverviewSnapshot {
         } else {
             value = sections.get("目前週期");
         }
-        return compact(value, 170);
+        String result = compact(value, 170);
+        return mode == FortuneMode.VEDIC_ASTROLOGY
+                ? userFacingVedicTerms(result)
+                : result;
+    }
+
+    private static String userFacingVedicTerms(String value) {
+        if (value == null || value.isEmpty()) return "";
+        return value
+                .replace("Mahadasha", "人生大週期")
+                .replace("Antardasha", "次週期")
+                .replace("Gochar", "近期行運")
+                .replace("Lagna", "上升")
+                .replace("Nakshatra", "月宿");
     }
 
     static String compact(String value, int limit) {

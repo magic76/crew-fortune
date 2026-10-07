@@ -36,12 +36,12 @@ final class VedicResultRenderer {
 
         TextView intro = host.text(
                 "這一頁是你的「出生底盤」：看你天生比較容易把力氣放在哪裡、怎麼思考、怎麼做事，以及不同人生主題的基本結構。"
-                        + "下面的星座、宮位、Nakshatra 與宮主是原始命盤資料；不熟印度占星時，不需要自己逐條翻譯。",
+                        + "下面的上升、星座、宮位、月宿（Nakshatra）與宮主是原始星盤資料；不熟印度占星時，不需要自己逐條翻譯。",
                 13, MainActivity.MUTED, false);
         intro.setLineSpacing(host.dp(3), 1f);
         panel.addView(intro);
 
-        host.addPanelSection(panel, "Lagna / Moon / Sun",
+        host.addPanelSection(panel, "上升 · 月亮 · 太陽",
                 VedicFactsFormatter.coreSummary(host.rendererFacts()));
 
         String natalPlain = host.rendererCopy() != null && !host.rendererCopy().personality.isEmpty()
@@ -56,24 +56,24 @@ final class VedicResultRenderer {
 
         addVedicPageTeacherGuide(
                 panel,
-                "想用語音聽白話版？",
-                "上面的本命內容已經可以直接讀。語音老師會再挑 3–5 個最重要的結構，用比較口語的方式把個性、工作方式與關係模式串起來。",
-                "聽老師講本命",
+                "還想知道這張本命盤代表什麼？",
+                "上面的本命內容已經可以直接讀。文字老師可以再挑 3–5 個最重要的結構，把個性、工作方式與關係模式串起來。",
+                "問老師這張本命盤",
                 "請把我的本命頁講成人話。不要逐條念資料，也不要先講流年。"
                         + "請從 Lagna、Moon、Sun、Lagna lord、最重要的 house lord placements、行星落宮、Nakshatra、dignity、retrograde、Drishti/Conjunctions 中挑 3 到 5 個最關鍵的結構。"
                         + "先說結論，再說每個結論的 deterministic evidence，最後告訴我這些結構在個性、工作方式與關係模式上怎麼彼此連動。");
 
-        TextView chartTitle = host.text("本命盤 · Whole Sign", 13, MainActivity.GOLD, true);
+        TextView chartTitle = host.text("出生星盤 · Whole Sign 宮制", 13, MainActivity.GOLD, true);
         panel.addView(chartTitle, host.marginTop(14));
         TextView chartHint = host.text(
-                "這張圖是本命盤位置圖。H1 是你的上升起點；其他宮位代表工作、財務、關係、家庭等不同人生領域。",
+                "這張圖是出生星盤的位置圖。第 1 宮（H1）是上升起點；其他宮位代表工作、財務、關係、家庭等不同人生領域。",
                 11, MainActivity.MUTED, false);
         chartHint.setLineSpacing(host.dp(2), 1f);
         panel.addView(chartHint, host.marginTop(3));
         VedicNatalChartView natalChart = new VedicNatalChartView(host, host.rendererFacts());
         panel.addView(natalChart, host.marginTop(6));
 
-        TextView planetsTitle = host.text("九曜 · 行星落點", 13, MainActivity.GOLD, true);
+        TextView planetsTitle = host.text("行星落點（九曜）", 13, MainActivity.GOLD, true);
         panel.addView(planetsTitle, host.marginTop(14));
         Object planetsRaw = host.rendererFacts().detail("planets");
         if (planetsRaw instanceof List) {
@@ -152,7 +152,7 @@ final class VedicResultRenderer {
         intro.setLineSpacing(host.dp(3), 1f);
         panel.addView(intro);
 
-        host.addPanelSection(panel, "目前人生週期 · Mahadasha / Antardasha",
+        host.addPanelSection(panel, "目前人生週期（Dasha）",
                 VedicFactsFormatter.dashaSummary(host.rendererFacts()));
 
         if (host.rendererCopy() != null && !host.rendererCopy().currentCycle.isEmpty()) {
@@ -161,12 +161,12 @@ final class VedicResultRenderer {
 
         host.addPanelSection(
                 panel,
-                (host.rendererTransitDate() == null ? "目前 Gochar · " : "查看 Gochar · ")
+                (host.rendererTransitDate() == null ? "目前近期行運（Gochar） · " : "查看近期行運（Gochar） · ")
                         + host.rendererFacts().detailText("currentTransitDate"),
                 VedicFactsFormatter.currentGochar(host.rendererFacts()));
         String gocharHighlights = VedicFactsFormatter.gocharHighlights(host.rendererFacts());
         if (!gocharHighlights.isEmpty()) {
-            host.addPanelSection(panel, "Gochar × 本命重點", gocharHighlights);
+            host.addPanelSection(panel, "近期行運 × 出生星盤重點", gocharHighlights);
         }
 
         LinearLayout gocharActions = new LinearLayout(host);
@@ -187,14 +187,14 @@ final class VedicResultRenderer {
         panel.addView(gocharActions, host.marginTop(8));
 
         TextView gocharRule = host.text(
-                "Gochar 使用所選日期的 Lahiri sidereal 行星位置，宮位以本命 Lagna 的 Whole Sign Houses 計算。",
+                "近期行運（Gochar）使用所選日期的 Lahiri sidereal 行星位置，宮位以出生星盤的上升（Lagna）與 Whole Sign 宮制計算。",
                 11, MainActivity.MUTED, false);
         gocharRule.setLineSpacing(host.dp(2), 1f);
         panel.addView(gocharRule, host.marginTop(7));
 
         host.addPanelSection(
                 panel,
-                "目前週期碰上現在行運 · Dasha × Gochar",
+                "目前人生週期碰上近期行運",
                 VedicFactsFormatter.dashaSummary(host.rendererFacts())
                         + (gocharHighlights.isEmpty()
                         ? ""
@@ -221,16 +221,16 @@ final class VedicResultRenderer {
                 panel,
                 "想用語音整理這段時間？",
                 "上面的週期、行運與未來變化都已經寫在頁面裡。語音老師只會把它們濃縮成 3–5 個最有感的時間重點，方便你直接問下去。",
-                "聽老師講目前週期",
+                "問老師目前這段人生週期",
                 "請把我的流年頁講成人話。請以目前選擇的 currentTransitDate 為基準，"
                         + "先說 currentMahadasha/currentAntardasha 代表的人生背景，再疊加 currentTransits、transitAspectsToNatal、transitConjunctionsToNatal。"
                         + "只挑 3 到 5 個目前最值得注意的時間訊號，分清楚哪些來自 Dasha、哪些來自 Gochar。"
                         + "如果談未來，只能引用 majorTransitTimeline 與既有 Dasha 日期；不要自行補沒有計算的 transit，也不要把任何訊號說成必然事件。");
 
-        TextView visualTitle = host.text("人生大週期時間軸 · Dasha", 13, MainActivity.GOLD, true);
+        TextView visualTitle = host.text("人生大週期時間軸（Dasha）", 13, MainActivity.GOLD, true);
         panel.addView(visualTitle, host.marginTop(14));
         TextView visualHint = host.text(
-                "長條代表完整 Mahadasha 序列；紫色高亮目前週期，金線代表今天。",
+                "長條代表完整人生大週期（Mahadasha）；紫色高亮目前週期，金線代表今天。",
                 11, MainActivity.MUTED, false);
         panel.addView(visualHint, host.marginTop(3));
         VedicDashaTimelineView dashaTimeline =
@@ -264,7 +264,7 @@ final class VedicResultRenderer {
             }
         }
 
-        TextView adTitle = host.text("目前 Mahadasha 的 Antardasha", 13, MainActivity.GOLD, true);
+        TextView adTitle = host.text("目前人生大週期裡的次週期", 13, MainActivity.GOLD, true);
         panel.addView(adTitle, host.marginTop(18));
         String adTimeline = VedicFactsFormatter.antardashaTimeline(host.rendererFacts());
         host.addPanelSection(panel, "時間軸",
@@ -311,7 +311,7 @@ final class VedicResultRenderer {
 
         addVedicTopicCard(
                 panel,
-                "個性 / 天賦",
+                "個性與天賦",
                 "Lagna × Moon × Sun × Lagna lord",
                 "personalityProfile",
                 host.rendererCopy() == null ? "" : host.rendererCopy().personality,
@@ -319,7 +319,7 @@ final class VedicResultRenderer {
 
         addVedicTopicCard(
                 panel,
-                "工作 / Career",
+                "工作",
                 "10宮 × 10宮主 × Saturn/Jupiter × Dasha",
                 "careerProfile",
                 host.rendererCopy() == null ? "" : host.rendererCopy().career,
@@ -327,7 +327,7 @@ final class VedicResultRenderer {
 
         addVedicTopicCard(
                 panel,
-                "財務 / Wealth",
+                "財運與資源",
                 "2宮 × 11宮 × Jupiter/Venus × Dasha",
                 "wealthProfile",
                 host.rendererCopy() == null ? "" : host.rendererCopy().wealth,
@@ -335,7 +335,7 @@ final class VedicResultRenderer {
 
         addVedicTopicCard(
                 panel,
-                "感情 / Relationships",
+                "感情與關係",
                 "7宮 × 7宮主 × Venus × Dasha",
                 "relationshipProfile",
                 host.rendererCopy() == null ? "" : host.rendererCopy().relationships,
@@ -343,7 +343,7 @@ final class VedicResultRenderer {
 
         addVedicTopicCard(
                 panel,
-                "家庭 / Children",
+                "家庭與子女",
                 "4宮 × 5宮 × Moon/Jupiter",
                 "familyChildrenProfile",
                 host.rendererCopy() == null ? "" : host.rendererCopy().family,
@@ -377,7 +377,7 @@ final class VedicResultRenderer {
 
         host.addTopicLine(card, "為什麼這樣說", rule);
         addVedicEvidenceCardGrid(card, evidence, timingEvidence);
-        host.addAskTeacherAction(card, "用語音追問這一題", question);
+        host.addAskTeacherAction(card, "文字問老師這一題", question);
     }
     void addVedicEvidenceCardGrid(
             LinearLayout card,

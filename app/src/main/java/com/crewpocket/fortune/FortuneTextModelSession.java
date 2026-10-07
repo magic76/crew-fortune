@@ -16,15 +16,26 @@ final class FortuneTextModelSession implements ModelSession {
     private final GeminiTextModelSession byok;
 
     FortuneTextModelSession(Context context, double temperature) {
+        this(context, temperature, true);
+    }
+
+    FortuneTextModelSession(
+            Context context,
+            double temperature,
+            boolean structuredJson) {
         if (FirebaseAiTextModelSession.isConfigured(context)) {
-            firebase = new FirebaseAiTextModelSession(context, temperature);
+            firebase = new FirebaseAiTextModelSession(
+                    context,
+                    temperature,
+                    structuredJson);
             byok = null;
             delegate = firebase;
         } else {
             firebase = null;
             byok = new GeminiTextModelSession(
                     AppConfig.getGeminiApiKey(context),
-                    temperature);
+                    temperature,
+                    structuredJson);
             delegate = byok;
         }
     }
