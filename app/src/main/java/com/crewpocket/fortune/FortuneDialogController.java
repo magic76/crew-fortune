@@ -14,6 +14,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,13 +41,13 @@ final class FortuneDialogController {
                 1));
 
         panel.addView(host.text(
-                "算命記錄",
+                "解讀紀錄",
                 22,
                 MainActivity.TEXT,
                 true));
 
         TextView hint = host.text(
-                "點之前的結果會直接開已保存內容，不會重新排盤，也不會重新呼叫 AI。",
+                "依人物整理之前的結果。點開會直接讀取已保存內容，不會重新排盤，也不會重新呼叫 AI。",
                 12,
                 MainActivity.MUTED,
                 false);
@@ -64,74 +66,115 @@ final class FortuneDialogController {
             empty.setLineSpacing(host.dp(2), 1f);
             body.addView(empty, host.marginTop(14));
         } else {
+            Map<String, List<FortuneHistoryEntry>> groups =
+                    new LinkedHashMap<String, List<FortuneHistoryEntry>>();
             for (FortuneHistoryEntry entry : entries) {
-                LinearLayout item = host.column();
-                item.setPadding(
-                        host.dp(11), host.dp(10),
-                        host.dp(11), host.dp(10));
-                int modeColor = MainActivity.modeAccent(entry.preset.mode);
-                int modeSurface = MainActivity.modeSurface(entry.preset.mode);
-                item.setBackground(host.roundBorder(
-                        modeSurface,
-                        modeColor,
-                        15,
-                        2));
-                item.setClickable(true);
+                String key = entry.profileGroupKey();
+                List<FortuneHistoryEntry> group = groups.get(key);
+                if (group == null) {
+                    group = new ArrayList<FortuneHistoryEntry>();
+                    groups.put(key, group);
+                }
+                group.add(entry);
+            }
 
-                LinearLayout head = new LinearLayout(host);
-                head.setOrientation(LinearLayout.HORIZONTAL);
-                head.setGravity(Gravity.CENTER_VERTICAL);
+            for (List<FortuneHistoryEntry> group : groups.values()) {
+                if (group.isEmpty()) continue;
+                FortuneHistoryEntry first = group.get(0);
 
-                TextView title = host.text(
-                        entry.titleLine(),
+                LinearLayout personHeader = new LinearLayout(host);
+                personHeader.setOrientation(LinearLayout.HORIZONTAL);
+                personHeader.setGravity(Gravity.CENTER_VERTICAL);
+
+                TextView person = host.text(
+                        first.profileTitle(),
                         15,
-                        modeColor,
+                        MainActivity.TEXT,
                         true);
-                head.addView(
-                        title,
+                personHeader.addView(
+                        person,
                         new LinearLayout.LayoutParams(
                                 0,
                                 LinearLayout.LayoutParams.WRAP_CONTENT,
                                 1f));
 
-                TextView time = host.text(
-                        entry.savedAtText(),
+                TextView count = host.text(
+                        group.size() + " 份解讀",
                         11,
                         MainActivity.MUTED,
                         false);
-                head.addView(time);
-                item.addView(head);
+                personHeader.addView(count);
+                body.addView(personHeader, host.marginTop(13));
 
-                TextView profile = host.text(
-                        entry.subtitleLine(),
-                        12,
-                        MainActivity.TEXT,
-                        true);
-                profile.setLineSpacing(host.dp(2), 1f);
-                item.addView(profile, host.marginTop(4));
+                for (FortuneHistoryEntry entry : group) {
+                    LinearLayout item = host.column();
+                    item.setPadding(
+                            host.dp(11), host.dp(10),
+                            host.dp(11), host.dp(10));
+                    int modeColor = MainActivity.modeAccent(entry.preset.mode);
+                    int modeSurface = MainActivity.modeSurface(entry.preset.mode);
+                    item.setBackground(host.roundBorder(
+                            modeSurface,
+                            modeColor,
+                            15,
+                            1));
+                    item.setClickable(true);
 
-                TextView state = host.text(
-                        (entry.aiCopy == null
-                                ? "基本結果已保存"
-                                : "完整解讀已保存")
-                                + " · 直接查看完整結果  →",
-                        11,
-                        entry.aiCopy == null
-                                ? MainActivity.MUTED
-                                : MainActivity.GOLD,
-                        true);
-                item.addView(state, host.marginTop(5));
+                    LinearLayout head = new LinearLayout(host);
+                    head.setOrientation(LinearLayout.HORIZONTAL);
+                    head.setGravity(Gravity.CENTER_VERTICAL);
 
-                final FortuneHistoryEntry selected = entry;
-                item.setOnClickListener(v -> {
-                    AlertDialog current = dialogHolder[0];
-                    if (current != null && current.isShowing()) {
-                        current.dismiss();
-                    }
-                    host.openHistoryEntry(selected);
-                });
+                    TextView title = host.text(
+                            entry.titleLine(),
+                            14,
+                            modeColor,
+                            true);
+                    head.addView(
+                            title,
+                            new LinearLayout.LayoutParams(
+                                    0,
+                                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                                    1f));
 
-                body.addView(item, host.marginTop(8));
+                    TextView time = host.text(
+                            entry.savedAtText(),
+                            11,
+                            MainActivity.MUTED,
+                            false);
+                    head.addView(time);
+                    item.addView(head);
+
+                    TextView profile = host.text(
+                            entry.subtitleLine(),
+                            11,
+                            MainActivity.MUTED,
+                            false);
+                    profile.setLineSpacing(host.dp(2), 1f);
+                    item.addView(profile, host.marginTop(3));
+
+                    TextView state = host.text(
+                            (entry.aiCopy == null
+                                    ? "重點結果"
+                                    : "完整個人解讀")
+                                    + " · 點開直接看  →",
+                            11,
+                            entry.aiCopy == null
+                                    ? MainActivity.MUTED
+                                    : MainActivity.GOLD,
+                            true);
+                    item.addView(state, host.marginTop(5));
+
+                    final FortuneHistoryEntry selected = entry;
+                    item.setOnClickListener(v -> {
+                        AlertDialog current = dialogHolder[0];
+                        if (current != null && current.isShowing()) {
+                            current.dismiss();
+                        }
+                        host.openHistoryEntry(selected);
+                    });
+
+                    body.addView(item, host.marginTop(6));
+                }
             }
         }
 
