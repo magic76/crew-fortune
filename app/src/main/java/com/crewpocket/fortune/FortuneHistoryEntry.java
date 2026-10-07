@@ -98,6 +98,14 @@ final class FortuneHistoryEntry {
         return out.toString();
     }
 
+    String profileGroupKey() {
+        return preset == null ? id : preset.profileGroupKey();
+    }
+
+    String profileTitle() {
+        return preset == null ? "未命名資料" : preset.profileTitle();
+    }
+
     String savedAtText() {
         return new SimpleDateFormat(
                 "MM/dd HH:mm",
