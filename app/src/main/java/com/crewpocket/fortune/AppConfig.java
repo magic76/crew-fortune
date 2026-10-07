@@ -43,12 +43,12 @@ public final class AppConfig {
     }
 
     public static AiStyle getAiStyle(Context context) {
-        if (context == null) return AiStyle.FUNNY;
-        String raw = prefs(context).getString(KEY_AI_STYLE, AiStyle.FUNNY.name());
+        if (context == null) return AiStyle.NORMAL;
+        String raw = prefs(context).getString(KEY_AI_STYLE, AiStyle.NORMAL.name());
         try {
             return AiStyle.valueOf(raw);
         } catch (Exception ignored) {
-            return AiStyle.FUNNY;
+            return AiStyle.NORMAL;
         }
     }
 
