@@ -1,5 +1,6 @@
 package com.crewpocket.fortune;
 
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -27,15 +28,36 @@ final class FortuneShareController {
                 && host.shareCopyForController() == null) {
             Toast.makeText(
                     host,
-                    "AI 還在整理，完成後再產生分享圖片",
+                    "完整內容還在整理，可以稍後再分享重點卡",
                     Toast.LENGTH_SHORT).show();
             return;
         }
 
+        String[] options = {
+                "綜合重點卡",
+                "最像我的 3 個特徵",
+                "現在與未來"
+        };
+        new AlertDialog.Builder(host)
+                .setTitle("想分享哪一張？")
+                .setItems(options, (dialog, which) -> shareImage(which))
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void shareImage(int variant) {
+        FortuneResult result = host.shareResultForController();
+        FortuneFacts facts = host.shareFactsForController();
+        if (result == null || facts == null) return;
+
         final FortuneMode mode = host.aiModeForController();
         final AiFortuneCopy copy = host.shareCopyForController();
+        final int selectedVariant = Math.max(0, Math.min(2, variant));
 
-        OperationLog.add(host, "SHARE_IMAGE_START", mode.name());
+        OperationLog.add(
+                host,
+                "SHARE_IMAGE_START",
+                mode.name() + " · variant=" + selectedVariant);
         Toast.makeText(
                 host,
                 "正在產生分享卡…",
@@ -44,12 +66,21 @@ final class FortuneShareController {
         new Thread(() -> {
             Bitmap bitmap = null;
             try {
-                FortuneShareCardData data = FortuneShareCardData.from(
-                        mode,
-                        facts,
-                        result,
-                        copy,
-                        "");
+                FortuneShareCardData data;
+                if (selectedVariant == 1) {
+                    data = FortuneShareCardData.traits(
+                            mode, facts, result, copy);
+                } else if (selectedVariant == 2) {
+                    data = FortuneShareCardData.timing(
+                            mode, facts, result, copy);
+                } else {
+                    data = FortuneShareCardData.from(
+                            mode,
+                            facts,
+                            result,
+                            copy,
+                            "");
+                }
                 bitmap = FortuneShareCardRenderer.render(data);
 
                 File directory = new File(host.getCacheDir(), "share");
@@ -90,6 +121,7 @@ final class FortuneShareController {
                         host,
                         "SHARE_IMAGE_READY",
                         mode.name()
+                                + " · variant=" + selectedVariant
                                 + " · 1080x1350 · privacy_safe");
 
                 host.runOnUiThread(() -> host.startActivity(
@@ -112,4 +144,5 @@ final class FortuneShareController {
             }
         }, "fortune-share-card").start();
     }
+
 }
