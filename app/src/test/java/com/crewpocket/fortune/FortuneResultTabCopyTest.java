@@ -15,7 +15,8 @@ public final class FortuneResultTabCopyTest {
             assertTrue(topics.contains("生活主題")
                     || topics.contains("個性"));
             assertTrue(interpretation.contains("完整個人文字報告"));
-            assertTrue(data.contains("專業"));\n            assertTrue(data.contains("資料") || data.contains("依據"));
+            assertTrue(data.contains("專業"));
+            assertTrue(data.contains("資料") || data.contains("依據"));
         }
     }
 
@@ -42,8 +43,8 @@ public final class FortuneResultTabCopyTest {
         for (FortuneMode mode : FortuneMode.values()) {
             String hint = FortuneResultTabCopy.overviewHint(mode);
             assertTrue(hint.contains("先看懂自己"));
-            assertTrue(hint.contains("命盤資料"));
-            assertTrue(hint.contains("專業細節"));
+            assertTrue(hint.contains("命盤依據"));
+            assertTrue(hint.contains("現在與未來"));
         }
     }
 }
