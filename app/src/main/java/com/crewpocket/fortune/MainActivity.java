@@ -82,7 +82,7 @@ public final class MainActivity extends Activity {
     private Button calculateButton;
     private TextView aiStyleSummary;
     private LinearLayout aiStyleOptions;
-    private AiStyle selectedAiStyle = AiStyle.FUNNY;
+    private AiStyle selectedAiStyle = AiStyle.NORMAL;
     private ScrollView mainScroll;
     private LinearLayout inputPage;
     private LinearLayout resultCard;
@@ -112,6 +112,7 @@ public final class MainActivity extends Activity {
     private final BaZiResultRenderer baZiResultRenderer = new BaZiResultRenderer(this);
     private final TarotResultRenderer tarotResultRenderer = new TarotResultRenderer(this);
     private final FortuneAiController aiController = new FortuneAiController(this);
+    private final FortuneFollowUpController followUpController = new FortuneFollowUpController(this);
     private final FortuneTeacherController teacherController = new FortuneTeacherController(this);
     private final FortuneShareController shareController = new FortuneShareController(this);
     private final FortuneProfileController profileController = new FortuneProfileController(this);
@@ -146,6 +147,7 @@ public final class MainActivity extends Activity {
         OperationLog.add(this, "APP_DESTROY", "changingConfig=" + isChangingConfigurations());
         teacherController.close();
         aiController.close();
+        followUpController.close();
         if (billingManager != null) billingManager.close();
         super.onDestroy();
     }
@@ -778,7 +780,7 @@ public final class MainActivity extends Activity {
         profileController.addFields(form);
 
         TextView styleLabel = text("解讀風格", 12, TEXT, true);
-        form.addView(styleLabel, marginTop(14));
+        styleLabel.setVisibility(View.GONE);
 
         aiStyleSummary = text("", 13, ACCENT, true);
         aiStyleSummary.setPadding(dp(12), dp(10), dp(12), dp(10));
@@ -795,7 +797,7 @@ public final class MainActivity extends Activity {
                                 : View.VISIBLE);
             }
         });
-        form.addView(aiStyleSummary, marginTop(6));
+        aiStyleSummary.setVisibility(View.GONE);
 
         aiStyleOptions = new LinearLayout(this);
         aiStyleOptions.setOrientation(LinearLayout.HORIZONTAL);
@@ -813,7 +815,7 @@ public final class MainActivity extends Activity {
         styleLp2.rightMargin = dp(6);
         aiStyleOptions.addView(normalStyleButton, styleLp2);
         aiStyleOptions.addView(funnyStyleButton, new LinearLayout.LayoutParams(0, dp(42), 1f));
-        form.addView(aiStyleOptions, marginTop(6));
+        aiStyleOptions.setVisibility(View.GONE);
 
         aiStatus = text("", 11, MUTED, false);
         aiStatus.setVisibility(View.GONE);
@@ -1312,7 +1314,7 @@ public final class MainActivity extends Activity {
 
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
-        final String[] labels = {"總覽", "人生節奏", "主題"};
+        final String[] labels = {"總覽", "現在與未來", "主題"};
         for (int i = 0; i < labels.length; i++) {
             final int index = i;
             Button tab = new Button(this);
@@ -1352,32 +1354,30 @@ public final class MainActivity extends Activity {
         resultCard.addView(resultTabContent, marginTop(8));
         renderUnifiedTab(result, aiLoading);
 
-        LinearLayout secondaryActions = new LinearLayout(this);
-        secondaryActions.setOrientation(LinearLayout.HORIZONTAL);
-        Button full = secondaryButton(
+        Button full = primaryButton(
                 aiCopy != null
-                        ? "閱讀完整解讀"
+                        ? "閱讀完整個人解讀"
                         : aiController.isRunning()
                         ? "完整解讀整理中"
-                        : "查看完整解讀");
+                        : "查看完整個人解讀");
         full.setEnabled(!aiController.isRunning() || aiCopy != null);
+        full.setAlpha(aiController.isRunning() && aiCopy == null ? 0.62f : 1f);
         full.setOnClickListener(v -> {
             selectedResultTab = 3;
             resultExpanded = true;
             renderResult(currentResult, aiController.isRunning() && aiCopy == null);
         });
-        secondaryActions.addView(full, new LinearLayout.LayoutParams(0, dp(46), 1f));
+        resultCard.addView(full, fixedHeightTop(50, 10));
 
-        Button raw = secondaryButton("命盤資料");
+        TextView raw = text("查看命盤依據  ›", 12, ACCENT, true);
+        raw.setGravity(Gravity.CENTER);
+        raw.setPadding(dp(8), dp(10), dp(8), dp(10));
         raw.setOnClickListener(v -> {
             selectedResultTab = 4;
             resultExpanded = true;
             renderResult(currentResult, aiController.isRunning() && aiCopy == null);
         });
-        LinearLayout.LayoutParams rawLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        rawLp.leftMargin = dp(7);
-        secondaryActions.addView(raw, rawLp);
-        resultCard.addView(secondaryActions, marginTop(10));
+        resultCard.addView(raw, marginTop(3));
 
         addSharedResultActions(aiLoading, result.mode);
     }
@@ -1387,7 +1387,11 @@ public final class MainActivity extends Activity {
     }
 
     void askTeacherFromDialog(String question) {
-        startTeacherExplanation(question);
+        followUpController.ask(question);
+    }
+
+    void askTextFollowUp(String question) {
+        followUpController.ask(question);
     }
 
     void refreshAiStatusFromController() {
@@ -1622,7 +1626,7 @@ public final class MainActivity extends Activity {
         panel.addView(title);
 
         TextView intro = text(
-                "排盤本身免費。單次解鎖這一份命盤的完整個人報告；同一份命盤解鎖後可在這台裝置重看，不是訂閱。",
+                "免費內容先讓你看懂自己與目前節奏。單次解鎖後，會把性格、工作、財運、感情與重要時間點串成一份完整個人解讀；同一份命盤可在這台裝置重看，不是訂閱。",
                 14,
                 TEXT,
                 false);
@@ -1704,7 +1708,7 @@ public final class MainActivity extends Activity {
         TextView note = text(
                 pending
                         ? "上一筆付款還沒被消耗，重新產生不會再收費。成功保存報告後才會完成消耗。"
-                        : "免費總覽、本命資料與流年資料仍可直接查看。付款只解鎖 AI 完整文字報告。",
+                        : "免費的總覽、現在與未來、主題重點仍可直接查看。付款解鎖的是把各項訊號串起來的完整個人解讀。",
                 11,
                 MUTED,
                 false);
@@ -1728,7 +1732,7 @@ public final class MainActivity extends Activity {
                         ? "本地計算已完成 · AI 完整解讀整理中"
                         : aiCopy == null
                         ? "免費排盤已完成 · 完整解讀可單次解鎖"
-                        : "完整解讀已解鎖 · " + selectedAiStyle.label() + " · 計算資料固定",
+                        : "完整解讀已解鎖 · 可繼續文字追問",
                 12,
                 aiLoading ? ACCENT : MUTED,
                 aiLoading);
@@ -1741,6 +1745,16 @@ public final class MainActivity extends Activity {
             if (!contextualQuestions.isEmpty()) {
                 addFollowUpQuestions(contextualQuestions);
             }
+        }
+
+        if (!aiLoading
+                && currentFacts != null
+                && FortuneTextModelSession.canGenerate(this)) {
+            Button textTeacher = primaryButton("文字問老師  →");
+            textTeacher.setTextSize(14);
+            textTeacher.setOnClickListener(v ->
+                    dialogController.showTextQuestionInput());
+            resultCard.addView(textTeacher, fixedHeightTop(48, 8));
         }
 
         if (AppConfig.hasGeminiApiKey(this)) {
@@ -1868,8 +1882,8 @@ public final class MainActivity extends Activity {
 
         TextView title = text(
                 selectedMode == FortuneMode.VEDIC_ASTROLOGY
-                        ? "接下來先注意這 2 個時期"
-                        : "接下來先注意這 2 件事",
+                        ? "接下來先注意這 3 個時期"
+                        : "接下來先注意這 3 件事",
                 13,
                 ROSE,
                 true);
@@ -1877,15 +1891,17 @@ public final class MainActivity extends Activity {
 
         int shown = 0;
         for (FortuneYearHighlightBuilder.Highlight highlight : highlights) {
-            if (shown >= 2) break;
+            if (shown >= 3) break;
 
             LinearLayout card = column();
             card.setPadding(dp(10), dp(9), dp(10), dp(9));
-            int focusAccent = shown == 0 ? ROSE : GOLD;
+            int focusAccent = shown == 0 ? ROSE : shown == 1 ? GOLD : SKY;
             card.setBackground(roundBorder(
                     shown == 0
                             ? FortuneTheme.ROSE_SOFT
-                            : FortuneTheme.GOLD_SOFT,
+                            : shown == 1
+                            ? FortuneTheme.GOLD_SOFT
+                            : FortuneTheme.SKY_SOFT,
                     focusAccent,
                     13,
                     1));
@@ -1915,7 +1931,7 @@ public final class MainActivity extends Activity {
                     ? FortuneOverviewSnapshot.compact(aiCopy.advice, 120)
                     : "";
             if (fallback.isEmpty()) {
-                fallback = "目前先把「現在走到哪裡」看懂；更細的年份與週期放在「人生節奏」。";
+                fallback = "目前先把「現在走到哪裡」看懂；更細的年份與週期放在「現在與未來」。";
             }
             TextView body = text(fallback, 12, MUTED, false);
             body.setLineSpacing(dp(2), 1f);
@@ -1973,7 +1989,7 @@ public final class MainActivity extends Activity {
                 currentFacts,
                 aiCopy);
 
-        TextView title = text("先看這三件事", 14, modeAccent(mode), true);
+        TextView title = text("最像你的 3 個特徵", 14, modeAccent(mode), true);
         panel.addView(title, marginTop(10));
 
         TextView hint = text(
@@ -2177,7 +2193,7 @@ public final class MainActivity extends Activity {
                         MainActivity.this,
                         "TEACHER_FOLLOWUP_SELECTED",
                         "chars=" + question.length());
-                startTeacherExplanation(question);
+                followUpController.ask(question);
             });
 
             LinearLayout.LayoutParams lp = marginTop(index == 0 ? 6 : 7);
