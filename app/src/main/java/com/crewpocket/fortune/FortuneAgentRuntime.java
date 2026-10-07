@@ -30,4 +30,15 @@ public final class FortuneAgentRuntime {
                 new ToolRegistry(),
                 listener);
     }
+
+    public static AgentHarness createFollowUp(
+            ModelSession session,
+            AgentHarness.Listener listener,
+            AiStyle style) {
+        return new AgentHarness(
+                new FortuneFollowUpAgentSpec(style),
+                session,
+                new ToolRegistry(),
+                listener);
+    }
 }
