@@ -1771,7 +1771,7 @@ public final class MainActivity extends Activity {
             resultCard.addView(teacher, fixedHeightTop(48, 8));
         }
 
-        Button share = secondaryButton(aiLoading ? "分享圖片 · 整理中" : "分享圖片");
+        Button share = secondaryButton(aiLoading ? "分享重點卡 · 整理中" : "分享重點卡");
         share.setEnabled(!aiLoading);
         share.setAlpha(aiLoading ? 0.48f : 1f);
         if (!aiLoading) {
