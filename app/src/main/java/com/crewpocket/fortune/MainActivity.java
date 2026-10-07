@@ -2360,7 +2360,7 @@ public final class MainActivity extends Activity {
         ask.setMinHeight(dp(44));
         ask.setMinimumHeight(0);
         ask.setPadding(dp(12), dp(8), dp(12), dp(8));
-        ask.setOnClickListener(v -> startTeacherExplanation(question));
+        ask.setOnClickListener(v -> followUpController.ask(question));
         LinearLayout.LayoutParams askLp = marginTop(7);
         askLp.height = LinearLayout.LayoutParams.WRAP_CONTENT;
         card.addView(ask, askLp);
@@ -2384,7 +2384,7 @@ public final class MainActivity extends Activity {
                 return "正在撰寫個性、工作、財運、感情與未來十年";
             }
             if (mode == FortuneMode.VEDIC_ASTROLOGY) {
-                return "正在撰寫個性、工作、財務、感情與 Dasha 長期節奏";
+                return "正在撰寫個性、工作、財務、感情與長期人生節奏";
             }
             return "正在撰寫個性、工作、資源、感情與未來幾年";
         }
@@ -2392,7 +2392,7 @@ public final class MainActivity extends Activity {
             return "正在整理本命、大運、流年與主題訊號";
         }
         if (mode == FortuneMode.VEDIC_ASTROLOGY) {
-            return "正在整理 Lagna、九曜、12 宮、Nakshatra 與 Vimshottari Dasha";
+            return "正在整理上升、行星、12 宮與人生週期";
         }
         return "正在整理本命牌、人生階段、個人流年與主題";
     }
