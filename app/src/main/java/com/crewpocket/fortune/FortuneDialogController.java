@@ -196,6 +196,73 @@ final class FortuneDialogController {
         }
     }
 
+    void showTextQuestionInput() {
+        LinearLayout panel = host.column();
+        panel.setPadding(
+                host.dp(16), host.dp(16),
+                host.dp(16), host.dp(14));
+        panel.setBackground(host.roundBorder(
+                MainActivity.CARD,
+                FortuneTheme.LINE,
+                20,
+                1));
+
+        panel.addView(host.text(
+                "你現在最想問什麼？",
+                20,
+                MainActivity.TEXT,
+                true));
+
+        TextView hint = host.text(
+                "直接問工作、財運、感情、某一年，或「為什麼你會這樣說」。老師只會用這份命盤已算好的資料回答。",
+                12,
+                MainActivity.MUTED,
+                false);
+        hint.setLineSpacing(host.dp(2), 1f);
+        panel.addView(hint, host.marginTop(5));
+
+        final EditText input = host.input(
+                "例如：未來三年工作上最值得注意什麼？");
+        input.setSingleLine(false);
+        input.setMaxLines(4);
+        input.setMinLines(2);
+        input.setGravity(Gravity.TOP | Gravity.START);
+        panel.addView(input, host.marginTop(10));
+
+        LinearLayout actions = new LinearLayout(host);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        Button ask = host.primaryButton("文字問老師");
+        Button close = host.secondaryButton("取消");
+        LinearLayout.LayoutParams askLp =
+                new LinearLayout.LayoutParams(0, host.dp(46), 1f);
+        askLp.rightMargin = host.dp(6);
+        actions.addView(ask, askLp);
+        actions.addView(
+                close,
+                new LinearLayout.LayoutParams(0, host.dp(46), 1f));
+        panel.addView(actions, host.marginTop(10));
+
+        final AlertDialog dialog =
+                new AlertDialog.Builder(host)
+                        .setView(panel)
+                        .create();
+        ask.setOnClickListener(v -> {
+            String question = input.getText().toString().trim();
+            if (question.isEmpty()) {
+                Toast.makeText(
+                        host,
+                        "先輸入想問的問題",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            dialog.dismiss();
+            host.askTextFollowUp(question);
+        });
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        host.styleDarkDialog(dialog);
+    }
+
     void showOperationLog() {
         OperationLog.add(host, "OPEN_OPERATION_LOG", "");
         List<OperationLog.Entry> entries = OperationLog.list(host);
