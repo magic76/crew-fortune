@@ -65,8 +65,11 @@ public final class FortuneYearHighlightBuilder {
             } else {
                 explanation.append("以「").append(theme).append("」為主要觀察方向");
             }
-            if (!interactions.isEmpty()) {
-                explanation.append("；與本命可核對「").append(interactions.get(0)).append("」");
+            for (String interaction : interactions) {
+                if (!interaction.contains("未偵測")) {
+                    explanation.append("；與本命可核對「").append(interaction).append("」");
+                    break;
+                }
             }
             String luckPillar = mapText(item, "luckPillar");
             if (!luckPillar.isEmpty()) {
