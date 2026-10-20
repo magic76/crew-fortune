@@ -51,16 +51,28 @@ public final class FortuneYearHighlightBuilder {
             if (careerYears.contains(year)) score += 3;
             if (relationshipYears.contains(year)) score += 3;
 
-            String theme = baZiTheme(
-                    year,
-                    wealthYears,
-                    careerYears,
-                    relationshipYears,
-                    themes);
-            String summary = firstNonEmpty(
-                    mapText(item, "plainSummary"),
-                    compact(themes),
-                    "這一年值得和所屬大運一起看");
+            String god = mapText(item, "stemTenGod");
+            String focused = focusedGod(god);
+            String theme = focused.isEmpty()
+                    ? baZiTheme(year, wealthYears, careerYears, relationshipYears, themes)
+                    : god + "・" + focused;
+            StringBuilder explanation = new StringBuilder();
+            if (!god.isEmpty()) {
+                explanation.append("以「").append(god).append("」");
+                String meaning = mapText(item, "stemTenGodMeaning");
+                if (!meaning.isEmpty()) explanation.append("（").append(meaning).append("）");
+                explanation.append("為主要觀察方向");
+            } else {
+                explanation.append("以「").append(theme).append("」為主要觀察方向");
+            }
+            if (!interactions.isEmpty()) {
+                explanation.append("；與本命可核對「").append(interactions.get(0)).append("」");
+            }
+            String luckPillar = mapText(item, "luckPillar");
+            if (!luckPillar.isEmpty()) {
+                explanation.append("，並放在「").append(luckPillar).append("」大運背景下理解");
+            }
+            String summary = explanation.append("。").toString();
             String evidence = baZiEvidence(
                     item,
                     wealthYears.contains(year),
@@ -79,7 +91,7 @@ public final class FortuneYearHighlightBuilder {
                                     + " 年為什麼值得注意？請用 deterministic facts 說明。")));
         }
 
-        return top(candidates, 4);
+        return topDistinctBaZi(candidates, 4);
     }
 
     private static List<Highlight> buildVedic(FortuneFacts facts) {
@@ -153,6 +165,59 @@ public final class FortuneYearHighlightBuilder {
         }
 
         return top(candidates, 4);
+    }
+
+    private static String focusedGod(String god) {
+        switch (god) {
+            case "正財": return "穩定資源與財務";
+            case "偏財": return "機會與資源運用";
+            case "正官": return "工作責任與制度";
+            case "七殺": return "壓力與重要決策";
+            case "正印": return "學習與支持";
+            case "偏印": return "研究與新思路";
+            case "食神": return "穩定產出與創作";
+            case "傷官": return "表達與突破";
+            case "比肩": return "自主與同儕";
+            case "劫財": return "合作競爭與分配";
+            default: return "";
+        }
+    }
+
+    private static String baziFocusGroup(String label) {
+        if (label.startsWith("正財") || label.startsWith("偏財")) return "wealth";
+        if (label.startsWith("正官") || label.startsWith("七殺")) return "career";
+        if (label.startsWith("正印") || label.startsWith("偏印")) return "learning";
+        if (label.startsWith("食神") || label.startsWith("傷官")) return "output";
+        if (label.startsWith("比肩") || label.startsWith("劫財")) return "peers";
+        return label;
+    }
+
+    private static List<Highlight> topDistinctBaZi(List<Scored> candidates, int count) {
+        List<Scored> remaining = new ArrayList<Scored>(candidates);
+        List<Scored> selected = new ArrayList<Scored>();
+        while (!remaining.isEmpty() && selected.size() < count) {
+            Scored best = null;
+            int bestScore = Integer.MIN_VALUE;
+            for (Scored candidate : remaining) {
+                String focus = baziFocusGroup(candidate.highlight.theme);
+                int already = 0;
+                for (Scored picked : selected) {
+                    if (baziFocusGroup(picked.highlight.theme).equals(focus)) already++;
+                }
+                int effective = candidate.score - 7 * already;
+                if (best == null || effective > bestScore ||
+                        (effective == bestScore && candidate.score > best.score) ||
+                        (effective == bestScore && candidate.score == best.score && candidate.year < best.year)) {
+                    best = candidate;
+                    bestScore = effective;
+                }
+            }
+            selected.add(best);
+            remaining.remove(best);
+        }
+        List<Highlight> out = new ArrayList<Highlight>();
+        for (Scored picked : selected) out.add(picked.highlight);
+        return out;
     }
 
     private static String baZiTheme(
