@@ -1214,6 +1214,7 @@ public final class MainActivity extends Activity {
 
         TextView title = text(titleValue, 25, TEXT, true);
         resultCard.addView(title, marginTop(8));
+        addProminentTeacherCard(aiLoading);
 
         if (!resultExpanded) {
             addProgressiveOverview(result, aiLoading);
@@ -1225,6 +1226,64 @@ public final class MainActivity extends Activity {
         addUnifiedTabbedResult(result, aiLoading);
         resultCard.setVisibility(
                 showingResultPage ? View.VISIBLE : View.GONE);
+    }
+
+    private void addProminentTeacherCard(boolean aiLoading) {
+        if (currentFacts == null) return;
+
+        boolean canText = FortuneTextModelSession.canGenerate(this);
+        boolean canVoice = AppConfig.hasGeminiApiKey(this);
+        LinearLayout card = column();
+        card.setPadding(dp(16), dp(15), dp(16), dp(16));
+        card.setBackground(roundBorder(
+                FortuneTheme.BRAND_SOFT,
+                FortuneTheme.BRAND_LINE,
+                18,
+                1));
+        card.addView(text("有想問的？", 12, ACCENT, true), marginTop(0));
+        card.addView(text("問 AI 命理老師", 20, TEXT, true), marginTop(3));
+        TextView description = text(
+                aiLoading
+                        ? "命盤正在整理中，完成後就能針對工作、財運、感情或指定年份繼續問。"
+                        : "帶著這份命盤，直接問工作、財運、感情或指定年份；不用重新排盤。",
+                13,
+                MUTED,
+                false);
+        description.setLineSpacing(dp(2), 1f);
+        card.addView(description, marginTop(6));
+
+        if (canText) {
+            Button askText = primaryButton(
+                    aiLoading ? "文字老師 · 整理中" : "文字問老師  →");
+            askText.setTextSize(15);
+            askText.setMinHeight(dp(50));
+            askText.setEnabled(!aiLoading);
+            askText.setAlpha(aiLoading ? 0.55f : 1f);
+            if (!aiLoading) {
+                askText.setOnClickListener(v ->
+                        dialogController.showTextQuestionInput());
+            }
+            card.addView(askText, fixedHeightTop(50, 12));
+        }
+        if (canVoice) {
+            Button askVoice = canText
+                    ? secondaryButton(aiLoading ? "語音老師 · 整理中" : "語音問老師  →")
+                    : primaryButton(aiLoading ? "語音老師 · 整理中" : "語音問老師  →");
+            askVoice.setTextSize(14);
+            askVoice.setEnabled(!aiLoading);
+            askVoice.setAlpha(aiLoading ? 0.55f : 1f);
+            if (!aiLoading) {
+                askVoice.setOnClickListener(v -> startTeacherExplanation());
+            }
+            card.addView(askVoice, fixedHeightTop(46, 7));
+        }
+        if (!canText && !canVoice) {
+            Button setup = primaryButton("設定 Gemini Key，開始提問  →");
+            setup.setTextSize(14);
+            setup.setOnClickListener(v -> dialogController.showApiKey());
+            card.addView(setup, fixedHeightTop(50, 12));
+        }
+        resultCard.addView(card, marginTop(12));
     }
 
     private void addProgressiveOverview(
@@ -2333,9 +2392,9 @@ public final class MainActivity extends Activity {
             LinearLayout actions = new LinearLayout(this);
             actions.setOrientation(LinearLayout.HORIZONTAL);
             Button why = secondaryButton("查看依據");
-            Button ask = secondaryButton("問老師");
+            Button ask = primaryButton("問老師 →");
             why.setTextSize(11);
-            ask.setTextSize(11);
+            ask.setTextSize(12);
             why.setOnClickListener(v ->
                     dialogController.showHighlightEvidence(highlight));
             ask.setOnClickListener(v ->
@@ -2355,8 +2414,8 @@ public final class MainActivity extends Activity {
             LinearLayout card,
             String label,
             String question) {
-        Button ask = secondaryButton(label + "  →");
-        ask.setTextSize(12);
+        Button ask = primaryButton(label + "  →");
+        ask.setTextSize(13);
         ask.setMinHeight(dp(44));
         ask.setMinimumHeight(0);
         ask.setPadding(dp(12), dp(8), dp(12), dp(8));
