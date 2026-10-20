@@ -230,6 +230,7 @@ final class BaZiResultRenderer {
         host.addPanelSection(panel, "性格與做事方式", host.localReportSection("性格與天賦"));
         host.addPanelSection(panel, "工作與資源傾向", host.localReportSection("工作與財務"));
         host.addPanelSection(panel, "關係模式", host.localReportSection("感情與人際"));
+        host.addPanelSection(panel, "目前人生階段", host.localReportSection("目前大運與流年"));
 
         TextView divider = host.text("四柱命盤 · 以下是依據", 12, MainActivity.GOLD, true);
         panel.addView(divider, host.marginTop(11));

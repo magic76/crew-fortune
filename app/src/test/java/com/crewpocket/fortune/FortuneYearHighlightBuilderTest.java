@@ -49,10 +49,54 @@ public final class FortuneYearHighlightBuilderTest {
 
         assertTrue(highlights.size() >= 2);
         assertEquals(2027, highlights.get(0).year);
+        assertTrue(highlights.get(0).theme.contains("正財"));
         assertTrue(highlights.get(0).theme.contains("財務"));
-        assertTrue(highlights.get(0).theme.contains("感情"));
+        assertTrue(!highlights.get(0).theme.contains("感情"));
+        assertTrue(highlights.get(0).summary.contains("正財"));
         assertTrue(highlights.get(0).evidence.contains("財星"));
         assertTrue(highlights.get(0).question.contains("2027"));
+    }
+
+    @Test public void baziHighlightsChooseDistinctYearThemesFromActualTenGods() {
+        Map<String, Object> details = new LinkedHashMap<String, Object>();
+        Map<String, Object> current = new LinkedHashMap<String, Object>();
+        current.put("year", 2026);
+        details.put("currentAnnual", current);
+
+        List<Map<String, Object>> timeline = new ArrayList<Map<String, Object>>();
+        Map<String, Object> wealthYear = baziYear(2031, "辛亥", "財星／資源", "亥巳 六沖");
+        Map<String, Object> careerYear = baziYear(2033, "癸丑", "責任／規範", "丑未 六沖");
+        careerYear.put("stemTenGod", "正官");
+        careerYear.put("stemTenGodMeaning", "責任、規範與制度");
+        Map<String, Object> peerYear = baziYear(2037, "丁巳", "自我／同儕", "巳亥 六沖");
+        peerYear.put("stemTenGod", "劫財");
+        peerYear.put("stemTenGodMeaning", "資源分配與合作競爭");
+        Map<String, Object> otherWealth = baziYear(2039, "己未", "財星／資源", "未丑 六沖");
+        timeline.add(wealthYear);
+        timeline.add(careerYear);
+        timeline.add(peerYear);
+        timeline.add(otherWealth);
+        details.put("annualTimeline", timeline);
+        Map<String, Object> wealth = new LinkedHashMap<String, Object>();
+        wealth.put("annualSignalYears", Arrays.asList(2031, 2039));
+        details.put("wealthProfile", wealth);
+        Map<String, Object> career = new LinkedHashMap<String, Object>();
+        career.put("annualSignalYears", Arrays.asList(2033));
+        details.put("careerProfile", career);
+        Map<String, Object> relationship = new LinkedHashMap<String, Object>();
+        Map<String, Object> signal = new LinkedHashMap<String, Object>();
+        signal.put("year", 2037);
+        relationship.put("annualSignalYears", Arrays.asList(signal));
+        details.put("relationshipProfile", relationship);
+
+        List<FortuneYearHighlightBuilder.Highlight> actual =
+                FortuneYearHighlightBuilder.build(FortuneMode.BA_ZI, facts(FortuneMode.BA_ZI, details));
+        assertEquals(4, actual.size());
+        List<String> firstThree = Arrays.asList(actual.get(0).theme, actual.get(1).theme, actual.get(2).theme);
+        assertTrue(firstThree.toString().contains("正財"));
+        assertTrue(firstThree.toString().contains("正官"));
+        assertTrue(firstThree.toString().contains("劫財"));
+        assertTrue(actual.get(0).summary.contains("大運"));
     }
 
     @Test public void tarotHighlightsExposeCycleThemeAndEvidence() {
